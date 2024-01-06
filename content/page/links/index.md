@@ -15,7 +15,7 @@ menu:
         params:
             icon: link
 
-comments: true
+comments: false
 ---
 
 To use this feature, add `links` section to frontmatter.
