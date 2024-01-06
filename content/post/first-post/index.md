@@ -7,6 +7,7 @@ categories:
     - Example Category
 tags:
     - Example Tag
+image: 02.jpg
 ---
 
 test post
