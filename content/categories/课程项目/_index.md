@@ -1,10 +1,9 @@
-<!-- ---
-title: Example Category
-description: A description of this category
+---
+title: 课程项目
 image:
 
 # Badge style
 style:
-    background: "#2a9d8f"
+    background: "#aaaaaa"
     color: "#fff"
---- -->
+---
