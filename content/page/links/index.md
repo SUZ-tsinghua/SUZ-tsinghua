@@ -1,4 +1,4 @@
----
+<!-- ---
 title: Links
 links:
   - title: GitHub
@@ -9,13 +9,13 @@ links:
   #   description: TypeScript is a typed superset of JavaScript that compiles to plain JavaScript.
   #   website: https://www.typescriptlang.org
   #   image: favicon.png
-# menu:
-#     main: 
-#         weight: 1
-#         params:
-#             icon: link
+menu:
+    main: 
+        weight: 4
+        params:
+            icon: link
 
 comments: false
 ---
 
-这里应该有些links
+这里应该有些links -->
