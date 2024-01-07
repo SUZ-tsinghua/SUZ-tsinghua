@@ -1,14 +1,10 @@
 ---
 title: 第一个post
-description: 第一个post test
 slug: first-post
-date: 2024-01-06 00:00:00+0000
-categories:
-    - Example Category
-tags:
-    - Example Tag
+date: 2024-01-07
 image: 02.jpg
 ---
 
-test post
-这里啥也没有
+建站了，打算以后在这里写点课程笔记和项目介绍。
+
+放张02做封面吧，她真好看。
