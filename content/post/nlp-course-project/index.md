@@ -1,6 +1,6 @@
 ---
-title: NLP 课程项目
-description: 2023秋 自然语言处理 课程项目
+title: 2023秋 自然语言处理 课程项目
+description: 歌曲问答及推荐系统
 date: 2024-01-18
 math: true
 hidden: false
