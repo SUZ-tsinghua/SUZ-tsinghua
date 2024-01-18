@@ -1,6 +1,6 @@
 ---
-title: 第一个post
-slug: first-post
+title: 第0个post
+slug: zeroth-post
 date: 2024-01-07
 image: 02.jpg
 ---
