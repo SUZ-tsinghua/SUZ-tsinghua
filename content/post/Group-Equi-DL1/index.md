@@ -19,9 +19,7 @@ tags:
 
 其实 DL 中的许多问题都要求对于以某种方式对称后的输入，网络的输出也具有某种对称性（或不变性）。比如对于肿瘤细胞的识别：给定一张细胞的图片，要求判断其是否为恶性肿瘤细胞。我们希望图像旋转后，判断的结果保持不变。
 
-<div align="center">
- <img src="cells.png"  alt="cells">
-</div>
+![细胞图，第二个由第一个旋转得来](cells.png)
 
 一个最直接的办法就是 data augmentation，对于训练集中的一张图片，将其经过若干种旋转后的图片都加到训练集中。尽管这样可以在一定程度上解决问题，但是这种方法仍没有完全保证输出关于对称输入的不变性 (invariance)，而且其将有限的网络 capacity 用于学习对称性上，在相同的参数量下可能会造成 capacity 的下降。因此我们希望直接在网络层面保证对称性。
 
@@ -54,7 +52,7 @@ $$g^{-1}=(-\mathbf{x})$$
 
 Translation group 中的一个元素可以被视为一个平移变换 （Lecture 1.6 中会细讲）。
 
-![image](translation_group.png)
+![translation group](translation_group.png)
 
 #### Roto-translation group $SE(2)$ (2D Special Euclidean motion group)
 
@@ -66,13 +64,12 @@ $$g^{-1}=(-\mathbf{R}_{\theta}^{-1}\mathbf{x}, \mathbf{R}_{\theta}^{-1})$$
 
 $SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变换。
 
-<div align="center">
- <img src="SE(2).png" alt="SE(2) group">
-</div>
+![SE(2) group](SE(2).png)
 
 - **矩阵表示：** $SE(2)$ 中的元素也可以用矩阵表示：
 
 $$g=(\mathbf{x}, \mathbf{R}_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
+
 $$\begin{pmatrix} \mathbf{R}_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}_{\theta^{\prime}} & \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}_{\theta+\theta^{\prime}} & \mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
 
 #### Scale-translation group $\mathbb{R}^2\rtimes\mathbb{R}^+$
@@ -80,6 +77,7 @@ $$\begin{pmatrix} \mathbf{R}_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{
 $\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的每个元素 $g=(\mathbf{x},s)$ 由一个二维向量 $\mathbf{x}\in\mathbb{R}^2$ 以及一个正标量 $s\in \mathbb{R}^+$ 组成。对于 $g=(\mathbf{x},s), g^{\prime}=(\mathbf{x}^{\prime}, s^{\prime})$，我们有：
 
 $$g\cdot g^{\prime}=(s\mathbf{x}^{\prime}+\mathbf{x}, ss^{\prime})$$
+
 $$g^{-1}=\left(-\frac{1}{s}\mathbf{x}, \frac{1}{s}\right)$$
 
 $\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的一个元素可以被视为一个缩放变换加上一个平移变换。
@@ -103,9 +101,9 @@ $$g^{-1}=\left(-h^{-1}\cdot\mathbf{x}, h^{-1}\right)$$
 
 $$\rho(g^{\prime})\circ\rho(g)[\mathbf{v}]=\rho(g^{\prime}\cdot g)[\mathbf{v}]$$
 
-<div align="center">
- <img src="representation.png" alt="representation">
-</div>
+
+![representation is homomorphic](representation.png)
+
 
 #### Left-regular representations
 
@@ -121,9 +119,8 @@ $$\mathscr{L}_g[f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}_{-\theta}
 
 $$\mathscr{L}_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}_{g^{\prime}\cdot g}$$
 
-<div align="center">
- <img src="left_regular_rep.png" alt="left regular representation">
-</div>
+![left regular representation](left_regular_rep.png)
+
 
 ### Equivariance
 
@@ -133,9 +130,7 @@ $$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$
 
 即，先作用 $\Phi$ 与后作用 $\Phi$ 得到的效果是一样的。比如 $g$ 表示一个平移变换，$\Phi$ 表示用 CNN 从图片中提取特征。
 
-<div align="center">
- <img src="equivariance.png" alt="equivariance">
-</div>
+![equivariance](equivariance.png)
 
 ## Lecture 1.3 Regular group convolutions | Template matching viewpoint
 
@@ -157,9 +152,9 @@ Convolutions/cross-correlations 具有平移等变性，即对于 $\forall \math
 
 $$\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]=(k\star_{\mathbb{R}^2}\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$
 
-<div align="center">
- <img src="trans_equi.png" alt="translational equivariance">
-</div>
+
+![卷积操作具有平移等变性](trans_equi.png)
+
 
 - **Note:** 图中的 $\Phi$ 即为卷积操作，图中的 $\mathbf{x}$ 对应式子中的 $\mathbf{y}$。
 
