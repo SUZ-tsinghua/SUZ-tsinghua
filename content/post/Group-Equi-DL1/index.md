@@ -60,7 +60,7 @@ $SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathb
 
 $$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}_{\theta})\cdot (\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})=(\mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}_{\theta+\theta^{\prime}})$$
 
-$$g^{-1}=(-\mathbf{R}\\_{\theta}^{-1} \mathbf{x}, \mathbf{R}\\_{\theta}^{-1})$$
+$$g^{-1}=(-\mathbf{R}\_{\theta}^{-1} \mathbf{x}, \mathbf{R}\\_{\theta}^{-1})$$
 
 $SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变换。
 
