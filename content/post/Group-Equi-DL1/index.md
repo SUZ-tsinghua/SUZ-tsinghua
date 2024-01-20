@@ -68,10 +68,9 @@ $SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变
 
 - **矩阵表示：** $SE(2)$ 中的元素也可以用矩阵表示：
 
-$$g=(\mathbf{x}, \mathbf{R}\_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\
-\mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
+$$g=(\mathbf{x}, \mathbf{R}\_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\\\ \mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\\\ \sin\theta & \cos\theta & y\\\\ 0 & 0 & 1 \end{pmatrix}$$
 
-$$\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}\_{\theta^{\prime}} & \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}\_{\theta+\theta^{\prime}} & \mathbf{R}\_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
+$$\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}\_{\theta^{\prime}} & \mathbf{x}^{\prime}\\\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}\_{\theta+\theta^{\prime}} & \mathbf{R}\_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
 
 #### Scale-translation group $\mathbb{R}^2\rtimes\mathbb{R}^+$
 
