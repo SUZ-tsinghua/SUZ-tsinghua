@@ -11,7 +11,7 @@ tags:
     - DL
 ---
 
-最近在做一个将对称性与 RL 结合的工作，其中将 PPO 里的 actor-critic 网络换成了具有对称性的 EMLP (equivariant MLP)。EMLP 的效果就是，对于具有对称性的输入，其保证输出也具有对称性。EMLP 利用 [escnn](https://github.com/QUVA-Lab/escnn) 库实现。我在 escnn 库的 README.md 里找到了 Amsterdam 的一个暑期课程 [An Introduction to Group Equivariant Deep Learning](https://uvagedl.github.io/)，感觉是个很有趣的领域，于是打算学习一下并记点笔记。
+最近在做一个将对称性与 RL 结合的工作，其中将 PPO 里的 actor-critic 网络换成了具有对称性的 EMLP (equivariant MLP)。EMLP 的效果就是，对于具有对称性的输入，其保证输出也具有对称性。EMLP 利用 [escnn](https://github.com/QUVA-Lab/escnn) 库实现。我在 escnn 库的 README.md 里找到了 Amsterdam 大学的一个暑期课程 [An Introduction to Group Equivariant Deep Learning](https://uvagedl.github.io/)，感觉是个很有趣的领域，于是打算学习一下并记点笔记。
 
 # Lecture 1 Regular group convolutional neural networks
 
@@ -109,15 +109,15 @@ $$\rho(g^{\prime})\circ\rho(g)[\mathbf{v}]=\rho(g^{\prime}\cdot g)[\mathbf{v}]$$
 
 一个 left-regular representation $\mathscr{L}_g$ 作用在一个函数 $f$ 上，定义为：
 
-$$\mathscr{L}_g[f](x):=f(g^{-1}\cdot x)$$
+$$\mathscr{L}\_g[f](x):=f(g^{-1}\cdot x)$$
 
 这么说有点抽象，举个例子。$f\in \mathbb{L}_2(\mathbb{R}^2)$ 是一个二维图像，它给 $\mathbb{R}^2$ 上的每个点赋值。$g\in G=SE(2)$ 可以被看做是一个平移变换加上一个旋转变换。对于二维平面上的一个点 $\mathbf{y}\in\mathbb{R}^2$，可以算出：
 
-$$\mathscr{L}_g[f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}_{-\theta}(\mathbf{y}-\mathbf{x}))$$
+$$\mathscr{L}\_g[f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}\_{-\theta}(\mathbf{y}-\mathbf{x}))$$
 
 即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。有：
 
-$$\mathscr{L}\_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}\_{g^{\prime}\cdot g}$$
+$$\mathscr{L}\_{g^{\prime}}\circ\mathscr{L}\_g=\mathscr{L}\_{g^{\prime}\cdot g}$$
 
 ![left regular representation](left_regular_rep.png)
 
