@@ -68,7 +68,8 @@ $SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变
 
 - **矩阵表示：** $SE(2)$ 中的元素也可以用矩阵表示：
 
-$$g=(\mathbf{x}, \mathbf{R}\_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
+$$g=(\mathbf{x}, \mathbf{R}\_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\
+\mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
 
 $$\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}\_{\theta^{\prime}} & \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}\_{\theta+\theta^{\prime}} & \mathbf{R}\_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
 
@@ -117,7 +118,7 @@ $$\mathscr{L}_g[f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}_{-\theta}
 
 即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。有：
 
-$$\mathscr{L}_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}_{g^{\prime}\cdot g}$$
+$$\mathscr{L}\_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}\_{g^{\prime}\cdot g}$$
 
 ![left regular representation](left_regular_rep.png)
 
@@ -136,9 +137,9 @@ $$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$
 
 ### Cross-correlations
 
-定义 kernel $k\in \mathbb{L}_2(\mathbb{R}^2)$ 和二维图像 $f\in \mathbb{L}_2(\mathbb{R}^2)$ 之间的 cross-correlations 为：
+定义 kernel $k\in \mathbb{L}\_2(\mathbb{R}^2)$ 和二维图像 $f\in \mathbb{L}\_2(\mathbb{R}^2)$ 之间的 cross-correlations 为：
 
-$$(k\star_{\mathbb{R}^2}f)(\mathbf{x})=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L}_{\mathbf{x}}k, f)_{\mathbb{L}_2(\mathbb{R}^2)}$$
+$$(k\star _ {\mathbb{R}^2} f)(\mathbf{x})=\int _ {\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L} _ {\mathbf{x}}k, f) _ {\mathbb{L} _ 2(\mathbb{R}^2)}$$
 
 RHS 的标记是定义出来的。
 
