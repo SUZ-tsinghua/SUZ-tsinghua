@@ -139,19 +139,19 @@ $$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$
 
 定义 kernel $k\in \mathbb{L}\_2(\mathbb{R}^2)$ 和二维图像 $f\in \mathbb{L}\_2(\mathbb{R}^2)$ 之间的 cross-correlations 为：
 
-$$(k\star _ {\mathbb{R}^2} f)(\mathbf{x})=\int _ {\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L} _ {\mathbf{x}}k, f) _ {\mathbb{L} _ 2(\mathbb{R}^2)}$$
+$$(k\star\_{\mathbb{R}^2} f)(\mathbf{x})=\int\_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L}\_{\mathbf{x}} k, f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}$$
 
 RHS 的标记是定义出来的。
 
 - **Note:** 这其实就是 CNN 中的 convolution，但并不是严格意义上的 convolution，严格意义上的 convolution 为：
 
-$$\int_{\mathbb{R}^2} k(\mathbf{x}-\mathbf{x}^{\prime})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}$$
+$$\int\_{\mathbb{R}^2} k(\mathbf{x}-\mathbf{x}^{\prime})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}$$
 
 ### Equivariance
 
 Convolutions/cross-correlations 具有平移等变性，即对于 $\forall \mathbf{x}, \mathbf{y}\in \mathbb{R}^2$，有
 
-$$\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]=(k\star_{\mathbb{R}^2}\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$
+$$\mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)}[(k\star\_{\mathbb{R}^2}f)(\mathbf{x})]=(k\star\_{\mathbb{R}^2}\mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)}f)(\mathbf{x})$$
 
 
 ![卷积操作具有平移等变性](trans_equi.png)
@@ -160,8 +160,8 @@ $$\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[
 - **Note:** 图中的 $\Phi$ 即为卷积操作，图中的 $\mathbf{x}$ 对应式子中的 $\mathbf{y}$。
 
 > Proof: 
-> $$LHS=(k\star_{\mathbb{R}^2}f)(\mathbf{x}-\mathbf{y})=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x}+\mathbf{y})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime}-\mathbf{y})\mathrm{ d} \mathbf{x}^{\prime}=RHS$$
+> $$LHS=(k\star\_{\mathbb{R}^2}f)(\mathbf{x}-\mathbf{y})=\int\_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x}+\mathbf{y})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime}-\mathbf{y})\mathrm{ d} \mathbf{x}^{\prime}=RHS$$
 
 一般情况下，卷积操作对于旋转操作并不具有等变性。
 
-$$\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]\neq (k\star_{\mathbb{R}^2}\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$
+$$\mathscr{L}\_{\theta}^{SO(2)\rightarrow \mathbb{L}\_2(\mathbb{R}^2)}[(k\star\_{\mathbb{R}^2}f)(\mathbf{x})]\neq (k\star\_{\mathbb{R}^2}\mathscr{L}\_{\theta}^{SO(2)\rightarrow \mathbb{L}\_2(\mathbb{R}^2)}f)(\mathbf{x})$$
