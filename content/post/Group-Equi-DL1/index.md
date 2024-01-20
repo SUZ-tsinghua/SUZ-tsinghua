@@ -56,7 +56,7 @@ Translation group 中的一个元素可以被视为一个平移变换 （Lecture
 
 #### Roto-translation group $SE(2)$ (2D Special Euclidean motion group)
 
-$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}_{\theta})$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}_{\theta}\in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}_{\theta}), g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})$，我们有：
+$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}\_{\theta} )$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}\_{\theta} \in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}_{\theta}) , g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}} )$，我们有：
 
 $$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}_{\theta})\cdot (\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})=(\mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}_{\theta+\theta^{\prime}})$$
 
