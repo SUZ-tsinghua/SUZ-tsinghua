@@ -23,7 +23,7 @@ tags:
  <img src="cells.png"  alt="cells">
 </div>
 
-ttt
+tttttt
 一个最直接的办法就是 data augmentation，对于训练集中的一张图片，将其经过若干种旋转后的图片都加到训练集中。尽管这样可以在一定程度上解决问题，但是这种方法仍没有完全保证输出关于对称输入的不变性 (invariance)，而且其将有限的网络 capacity 用于学习对称性上，在相同的参数量下可能会造成 capacity 的下降。因此我们希望直接在网络层面保证对称性。
 
 我们已经知道 CNN 具有平移对称性，即对于平移一定距离的输入，CNN 的输出也具有相同方向、相同距离的平移。但如下图所示， CNN 并不具备旋转对称性。其中 input 即为输入的图像，feature map 是 CNN 的原始输出，stabilized view 是将 feature map 转回到原来的角度。对于旋转后的图像，CNN 的输出并不稳定，即 stabilized view 并不保持不变。
