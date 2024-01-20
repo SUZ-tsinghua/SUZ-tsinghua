@@ -56,9 +56,9 @@ Translation group 中的一个元素可以被视为一个平移变换 （Lecture
 
 #### Roto-translation group $SE(2)$ (2D Special Euclidean motion group)
 
-$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}\_{\theta} )$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}\_{\theta} \in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}_{\theta}) , g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}} )$，我们有：
+$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}\_{\theta} )$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}\_{\theta} \in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}\_{\theta}) , g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}\_{\theta^{\prime}} )$，我们有：
 
-$$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}_{\theta})\cdot (\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})=(\mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}_{\theta+\theta^{\prime}})$$
+$$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}\_{\theta}) \cdot (\mathbf{x}^{\prime}, \mathbf{R}\_{\theta^{\prime}})=(\mathbf{R}\_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}\_{\theta+\theta^{\prime}} )$$
 
 $$g^{-1}=(-\mathbf{R}\_{\theta}^{-1} \mathbf{x}, \mathbf{R}\_{\theta}^{-1} )$$
 
@@ -68,9 +68,9 @@ $SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变
 
 - **矩阵表示：** $SE(2)$ 中的元素也可以用矩阵表示：
 
-$$g=(\mathbf{x}, \mathbf{R}_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
+$$g=(\mathbf{x}, \mathbf{R}\_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix} = \begin{pmatrix} \cos\theta & -\sin\theta & x\\ \sin\theta & \cos\theta & y\\ 0 & 0 & 1 \end{pmatrix}$$
 
-$$\begin{pmatrix} \mathbf{R}_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}_{\theta^{\prime}} & \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}_{\theta+\theta^{\prime}} & \mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
+$$\begin{pmatrix} \mathbf{R}\_{\theta} & \mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}\_{\theta^{\prime}} & \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}\_{\theta+\theta^{\prime}} & \mathbf{R}\_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} & 1 \end{pmatrix}$$
 
 #### Scale-translation group $\mathbb{R}^2\rtimes\mathbb{R}^+$
 
