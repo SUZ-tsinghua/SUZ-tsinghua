@@ -29,7 +29,7 @@ tags:
 
 我们希望构造一个 CNN 网络结构 (Group equivariant CNN)，使得 CNN 具有旋转对称性，如下图所示。
 
-<!-- ![Equivariant CNN output](vectorfield.gif) -->
+![Equivariant CNN output](vectorfield.gif)
 
 ## Lecture 1.2 Group Theory | The basics
 
