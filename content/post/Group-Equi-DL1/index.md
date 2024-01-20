@@ -27,11 +27,11 @@ tags:
 
 我们已经知道 CNN 具有平移对称性，即对于平移一定距离的输入，CNN 的输出也具有相同方向、相同距离的平移。但如下图所示， CNN 并不具备旋转对称性。其中 input 即为输入的图像，feature map 是 CNN 的原始输出，stabilized view 是将 feature map 转回到原来的角度。对于旋转后的图像，CNN 的输出并不稳定，即 stabilized view 并不保持不变。
 
-![Conventional CNN output](conventional_cnn.gif)
+<!-- ![Conventional CNN output](conventional_cnn.gif) -->
 
 我们希望构造一个 CNN 网络结构 (Group equivariant CNN)，使得 CNN 具有旋转对称性，如下图所示。
 
-![Equivariant CNN output](vectorfield.gif)
+<!-- ![Equivariant CNN output](vectorfield.gif) -->
 
 ## Lecture 1.2 Group Theory | The basics
 
