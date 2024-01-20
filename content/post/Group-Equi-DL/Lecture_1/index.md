@@ -25,7 +25,7 @@ tags:
 
 我们已经知道 CNN 具有平移对称性，即对于平移一定距离的输入，CNN 的输出也具有相同方向、相同距离的平移。但如下图所示， CNN 并不具备旋转对称性。其中 input 即为输入的图像，feature map 是 CNN 的原始输出，stabilized view 是将 feature map 转回到原来的角度。对于旋转后的图像，CNN 的输出并不稳定，即 stabilized view 并不保持不变。
 
-<!-- ![Conventional CNN output](conventional_cnn.gif) -->
+![Conventional CNN output](conventional_cnn.gif)
 
 我们希望构造一个 CNN 网络结构 (Group equivariant CNN)，使得 CNN 具有旋转对称性，如下图所示。
 
@@ -115,7 +115,9 @@ $$\mathscr{L}\_g \[f\](x):=f(g^{-1}\cdot x)$$
 
 $$\mathscr{L}\_g \[f\](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}\_{-\theta}(\mathbf{y}-\mathbf{x}))$$
 
-即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。有：
+即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。
+
+Left-regular representations 满足性质：
 
 $$\mathscr{L}\_{g^{\prime}}\circ\mathscr{L}\_g=\mathscr{L}\_{g^{\prime}\cdot g}$$
 
