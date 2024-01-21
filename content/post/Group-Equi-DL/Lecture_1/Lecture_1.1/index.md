@@ -2,8 +2,8 @@
 title: Group Equivariant Deep Learning Lecture 1.1
 description: Introduction
 slug: GEDL-notes-1.1
-date: 2024-01-20 20:00:00 CST
-lastmod: 2024-01-20 21:00:00 CST
+date: 2024-01-20 20:00:00
+lastmod: 2024-01-20 20:00:00
 math: true
 hidden: false
 categories:
