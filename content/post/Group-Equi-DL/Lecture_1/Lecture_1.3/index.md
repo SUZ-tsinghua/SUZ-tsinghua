@@ -2,9 +2,8 @@
 title: Group Equivariant Deep Learning Lecture 1.3
 description: Regular group convolutions | Template matching viewpoint
 slug: GEDL-notes-1.3
-date: 2024-01-20 23:00:00+0800
-lastmod: 2024-01-21 14:00:00+0800
-timezone: UTC+8
+date: 2024-01-20 23:00:00 CST
+lastmod: 2024-01-21 14:00:00 CST
 math: true
 hidden: false
 categories:
