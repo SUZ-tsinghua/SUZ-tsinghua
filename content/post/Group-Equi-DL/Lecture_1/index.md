@@ -157,7 +157,7 @@ $$\mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)
 ![卷积操作具有平移等变性](trans-equi.png)
 
 > Proof: 
-> $$LHS=(k\star\_{\mathbb{R}^2}f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}\_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} k, \mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$
+> $$LHS=(k\star\_{\mathbb{R}^2} f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}\_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}\_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} k, \mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} f)_{\mathbb{L}\_2 (\mathbb{R}^2)}=RHS$$
 
 一般情况下，卷积操作对于旋转操作并不具有等变性。
 
@@ -188,7 +188,7 @@ Lifing correlations 具有 roto-translation 等变性，即（省略上标）：
 $$\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} (k\tilde{\star} f)(\mathbf{x}, \theta) = (k\tilde{\star} \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)(\mathbf{x}, \theta)$$
 
 > Proof: 
-> $$LHS=(k\tilde{\star} f)\left((\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)\right)=(\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} \mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$
+> $$LHS=(k\tilde{\star} f)\left((\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)\right)=(\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} \mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=RHS$$
 
 ![lifting correlations are roto-translation equivariant](lift-cor-roto-equi.png)
 
