@@ -2,7 +2,8 @@
 title: Group Equivariant Deep Learning Lecture 1.2
 description: Group Theory | The basics
 slug: GEDL-notes-1.2
-date: 2024-01-20
+date: 2024-01-20T22:00:00+08:00
+lastmod: 2024-01-20
 math: true
 hidden: false
 categories:

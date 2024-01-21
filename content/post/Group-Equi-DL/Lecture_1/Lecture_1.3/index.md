@@ -2,7 +2,8 @@
 title: Group Equivariant Deep Learning Lecture 1.3
 description: Regular group convolutions | Template matching viewpoint
 slug: GEDL-notes-1.3
-date: 2024-01-21
+date: 2024-01-20T23:00:00+08:00
+lastmod: 2024-01-21
 math: true
 hidden: false
 categories:
@@ -34,7 +35,7 @@ $$\mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)
 ![卷积操作具有平移等变性](trans-equi.png)
 
 > Proof: 
-> $$LHS=(k\star\_{\mathbb{R}^2} f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}\_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}\_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} k, \mathscr{L}\_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2(\mathbb{R}^2)} f)_{\mathbb{L}\_2 (\mathbb{R}^2)}=RHS$$
+> $$LHS=(k\star\_{\mathbb{R}^2} f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}\_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}\_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}\_2 (\mathbb{R}^2)}$$
 
 一般情况下，卷积操作对于旋转操作并不具有等变性。
 
