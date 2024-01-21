@@ -1,7 +1,7 @@
 ---
-title: Group Equivariant Deep Learning Lecture 1
-description: Regular group convolutional neural networks
-slug: GEDL-notes-1
+title: Group Equivariant Deep Learning Lecture 1.1
+description: Introduction
+slug: GEDL-notes-1.1
 date: 2024-01-20
 math: true
 hidden: false
@@ -15,7 +15,7 @@ tags:
 
 # Lecture 1 Regular group convolutional neural networks
 
-## Lecture 1.1 Introduction
+# Lecture 1.1 Introduction
 
 其实 DL 中的许多问题都要求对于以某种方式对称后的输入，网络的输出也具有某种对称性（或不变性）。比如对于肿瘤细胞的识别：给定一张细胞的图片，要求判断其是否为恶性肿瘤细胞。我们希望图像旋转后，判断的结果保持不变。
 
@@ -188,7 +188,7 @@ Lifing correlations 具有 roto-translation 等变性，即（省略上标）：
 $$\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} (k\tilde{\star} f)(\mathbf{x}, \theta) = (k\tilde{\star} \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)(\mathbf{x}, \theta)$$
 
 > Proof: 
-> $$LHS=(k\tilde{\star} f)\left((\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)\right)=(\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} \mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=RHS$$
+> $$LHS=(k\tilde{\star} f)(\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)=(\mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} \mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=(\mathscr{L}\_{\mathbf{x}} \mathscr{L}\_{\theta} k, \mathscr{L}\_{\mathbf{y}} \mathscr{L}\_{\varphi} f)\_{\mathbb{L}\_2 (\mathbb{R}^2)}=RHS$$
 
 ![lifting correlations are roto-translation equivariant](lift-cor-roto-equi.png)
 
