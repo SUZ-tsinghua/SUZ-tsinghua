@@ -48,7 +48,7 @@ $$\forall x_0, x\in X, \exists g\in G, \quad x=g\odot x_0$$
 
 对于群 $G$ 以及其正规子群 $H$，定义 quotient space/group 为：
 
-$$G/H=\left\{\{gh|h\in H\}| g\in G\right\}$$
+$$G/H=\left\\{\\{gh|h\in H\\}| g\in G\right\\}$$
 
 $G/H$ 中的元素是集合。
 
@@ -58,7 +58,7 @@ $G/H$ 中的元素是集合。
 
 对于集合 $X$ 中的元素 $x_0$ 以及作用在 $X$ 上的群 $G$，定义 $x_0$ 的 stabilizer 为：
 
-$$Stab\_G(x_0)=\{g|gx\_0=x\_0\}$$
+$$Stab\_G(x_0)=\\{g|gx\_0=x\_0\\}$$
 
 即那些能让 $x_0$ 保持稳定的元素 $g$。
 
