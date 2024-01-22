@@ -4,6 +4,7 @@ description: SE(2) Equivariant NN Example | histopathology
 slug: GEDL-notes-1.4
 date: 2024-01-22 12:00:00
 lastmod: 2024-01-22
+timeZone: "Asia/Shanghai"
 math: true
 hidden: false
 categories:
