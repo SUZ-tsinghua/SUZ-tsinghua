@@ -16,6 +16,6 @@ tags:
 
 本节简单讲了下 G-CNN 的发展历程，从 Discrete group 一步步到更一般的 group。感兴趣可以自己看：
 
-{{< youtube "kTvow5-eCCQ&list=PL8FnQMH2k7jzPrxqdYufoiYVHim8PyZWd&index=5" >}}
+{{< youtube "kTvow5-eCCQ" >}}
 
 [slides链接](https://uvagedl.github.io/lectures_pdf/Lecture_1_5_History.pdf)

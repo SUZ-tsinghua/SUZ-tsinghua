@@ -34,10 +34,7 @@ $$\Phi\circ \rho^X(g)=\Phi$$
 
 网络架构如上图所示，对于一张图片，将其经过一层 lifting convolution 和几层 group convolution 后，每个 output channel 都只含有一个 $ 1\times |G| $ 的向量。通过这样的操作抹去了 $x, y$，只留下了 $\theta$ 轴。由于中间的每一层都是 equivariant 的，因此对于不同旋转角度的输入，这一层的输出仅仅是在 $\theta$ 轴上有不同的平移。为了消除 $\theta$ 轴向平移的影响，在后面再加一层 projection layer （或者说是 pooling layer），在 $\theta$ 方向取 mean 或 max 等等。
 
-此时我们就得到了一个 $1 \times \# \text{ output channel}$ 的向量，此时的输出结果是 roto-invariant 的，可以直接在后面加一个 linear 层进行 classification。
-$1 \times \\# \text{ output channel}$
-$1 \times \#$
-$1 \times \text{ output channel}$
+此时我们就得到了一个 $1 \times \\# \text{ output channel}$ 的向量，此时的输出结果是 roto-invariant 的，可以直接在后面加一个 linear 层进行 classification。
 
 也可以在每层之后加一层 pointwise non-linear layer，这显然不会改变 equivariance。
 
