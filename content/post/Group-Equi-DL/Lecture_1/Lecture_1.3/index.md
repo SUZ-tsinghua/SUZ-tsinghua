@@ -3,7 +3,7 @@ title: Group Equivariant Deep Learning Lecture 1.3
 description: Regular group convolutions | Template matching viewpoint
 slug: GEDL-notes-1.3
 date: 2024-01-20 23:00:00
-lastmod: 2024-01-21 14:00:00
+lastmod: 2024-01-22
 math: true
 hidden: false
 categories:
@@ -87,3 +87,11 @@ Group correlations 将两个 3D feature maps 映射为一个 3D feature map。
 类似可以证明，group correlations 也是 roto-translation equivalent 的。
 
 ![group correlations are roto-translation equivariant](group-cor-roto-equi.png)
+
+### 网络架构
+
+将上面说的 lifting correlations 和 group correlations 连起来，就得到了一个 regular group CNN 最简单的样子。可以在后面再加上 projection layer 等层，将 $\theta$ 轴去掉，得到一个二维图像。我们构造了一个对 roto-translation 具有等变性的 CNN，当然也可以以类似的方法构造对 scale-translation 具有等变性的 CNN，如下图所示。
+
+![一个最基本的 regular group CNN](regular_group_CNN.png)
+
+当然，我们目前只得到了一个二维图像，下一节会以细胞识别为例子，构造一个完整的 regular group CNN。
