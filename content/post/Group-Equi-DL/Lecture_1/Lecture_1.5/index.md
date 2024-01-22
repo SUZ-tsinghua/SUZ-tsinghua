@@ -14,7 +14,7 @@ tags:
 
 # Lecture 1.5 A brief history of G-CNNs
 
-本节简单讲了下 G-CNN 的发展历程，从 Discrete group 一步步到更一般的 group。感兴趣可以自己看：
+本节简单讲了下 G-CNN 的发展历程，从 discrete group 一步步到更一般的 group。感兴趣可以自己看：
 
 {{< youtube "kTvow5-eCCQ" >}}
 
