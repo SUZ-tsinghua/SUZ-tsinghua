@@ -3,7 +3,7 @@ title: Group Equivariant Deep Learning Lecture 1.6
 description: Group Theory | Homogeneous/quotient spaces
 slug: GEDL-notes-1.6
 date: 2024-01-22 18:00:00+0800
-lastmod: 2024-01-22
+lastmod: 2024-01-23
 math: true
 hidden: false
 categories:
@@ -64,8 +64,24 @@ $$Stab\_G(x_0)=\\{g|gx\_0=x\_0\\}$$
 
 ## Homogeneous space $\equiv$ Quotient space
 
-任何一个 homogeneous space 都是一个 quotient space，任何一个 quotient space 都是一个 homogeneous space。
+[Slides](https://uvagedl.github.io/lectures_pdf/Lecture_1_6_GroupTheory.pdf) 中的表述为：Any quotient space is a homogeneous space. Any homogeneous space is a quotient space.
 
-后半句话很显然，但前半句话似乎不那么显然，lecture notes 中也未放上证明，其中的表述为：
+显然，quotient space 是一个 homogeneous space，因为 $G$ 可以传递地作用在 $G/H$ 上。
+
+但第二句话的表述并不严谨，quotient space 一定是一个 group，但 homogeneous space 不一定是个 group。因此对于一个给定的 homogeneous space，无法构造一个 quotient space，使得二者同构。但可以构造一个 quotient space，使得二者之间存在 bijection。
+
+[Lecture notes](https://uvagedl.github.io/GroupConvLectureNotes.pdf) 中对第二句话的表述为：
 
 ![任何一个 homogeneous space 都是 quotient space](lm22.png)
+
+> Proof:
+>
+> 对于任意一个 $x\_0\in X$，都可以构造一个映射 $f: G/H \rightarrow X, gH \mapsto gx\_0$。
+>
+> 这个映射是良定义的，因为如果 $\exists g\_1, g\_2, s.t. g\_1 H=g\_2 H$，那么 $\exists h\in H, s.t. g\_1=g\_2 h$。所以 $g\_1 x\_0 = g\_2 h x\_0 = g\_2 x\_0$。
+> 
+> 因为 $X$ 是一个 homogeneous space，所以 $f$ 是满射。
+>
+> 假设 $g\_1 x\_0=g\_2 x\_0$，那么 $g\_2^{-1} g\_1 x\_0 = x\_0, g\_2^{-1} g\_1\in H$，所以 $g\_1 H = g\_2 H$。$f$ 是单射。
+>
+> $f$ is a bijection.
