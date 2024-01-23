@@ -126,7 +126,7 @@ $$ f^{out}(y) = (Kf)(y) = \int\_X k(y,x) f(x) \mathrm{ d}x $$
 >
 > $$\tilde{k}(y,x) = \frac{1}{|\det g|} \tilde{k}(g^{-1}y,g^{-1}x)$$
 >
-> 又已知 $G$ acts transitively on $Y$，$\exists g\_y, s.t. y=g\_y y\_0$
+> 又已知 $G$ acts transitively on $Y$，$\exists g\_y,$ s.t. $y=g\_y y\_0$
 >
 > $$\tilde{k}(y,x) = \tilde{k}(g\_y y\_0,x) = \frac{1}{|\det g\_y|} \tilde{k}(y\_0,g\_y^{-1}x)$$
 >

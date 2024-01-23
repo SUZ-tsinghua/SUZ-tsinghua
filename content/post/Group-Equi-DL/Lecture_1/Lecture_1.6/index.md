@@ -78,7 +78,7 @@ $$Stab\_G(x_0)=\\{g|gx\_0=x\_0\\}$$
 >
 > 对于任意一个 $x\_0\in X$，都可以构造一个映射 $f: G/H \rightarrow X, gH \mapsto gx\_0$。
 >
-> 这个映射是良定义的，因为如果 $\exists g\_1, g\_2, s.t. g\_1 H=g\_2 H$，那么 $\exists h\in H, s.t. g\_1=g\_2 h$。所以 $g\_1 x\_0 = g\_2 h x\_0 = g\_2 x\_0$。
+> 这个映射是良定义的，因为如果 $\exists g\_1, g\_2,$ s.t. $g\_1 H=g\_2 H$，那么 $\exists h\in H,$ s.t. $g\_1=g\_2 h$。所以 $g\_1 x\_0 = g\_2 h x\_0 = g\_2 x\_0$。
 > 
 > 因为 $X$ 是一个 homogeneous space，所以 $f$ 是满射。
 >
