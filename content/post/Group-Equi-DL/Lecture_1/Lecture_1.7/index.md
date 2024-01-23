@@ -90,13 +90,13 @@ $$ f^{out}(y) = (Kf)(y) = \int\_X k(y,x) f(x) \mathrm{ d}x $$
 >
 > $\mathscr{K}$ is equivariant iff:
 >
-> 1. $\mathscr{K}$ 是一个 group convolution: $[\mathscr{K}f](y)=\int\_{X} \frac{1}{|\det g\_y|}k(g\_y^{-1}x)f(x)\mathrm{ d}x$
+> 1. $\mathscr{K}$ 是一个 group convolution: $[\mathscr{K}f] (y)=\int\_{X} \frac{1}{|\det g\_y|}k(g\_y^{-1}x)f(x)\mathrm{ d}x$
 >
 > 2. kernel 满足对称约束: $\forall h\in H, \frac{1}{|\det h|}k(h^{-1}x) = k(x)$
 
 定理中的 $|\det g\_y|$ 即为 $g\_y$ 的雅可比行列式的绝对值，理论上来说其会随 $x$ 而变，但在大部分实际情况中，$|\det g\_y| = 1$。
 
-以二维图像的 convolution 为例子来解释一下这个定理。此时 $X$ 与 $Y$ 均为 $\mathbb{R}^2$， $G$ 即为二维 translation group。若希望 linear map 是 equivariant 的，必须有 $[\mathscr{K}f](y)=\int\_{X} k(x - y)f(x)\mathrm{ d}x$ 这样的卷积形式（平移变换的雅可比行列式大小为1）。
+以二维图像的 convolution 为例子来解释一下这个定理。此时 $X$ 与 $Y$ 均为 $\mathbb{R}^2$， $G$ 即为二维 translation group。若希望 linear map 是 equivariant 的，必须有 $\[\mathscr{K}f\] (y)=\int\_{X} k(x - y)f(x)\mathrm{ d}x$ 这样的卷积形式（平移变换的雅可比行列式大小为1）。
 
 > Proof:
 >
@@ -104,7 +104,7 @@ $$ f^{out}(y) = (Kf)(y) = \int\_X k(y,x) f(x) \mathrm{ d}x $$
 >
 > 已知 $\mathscr{K}$ 具有形式 
 >
-> $$[\mathscr{K}f](y) = \int\_X \tilde{k} (y,x)f(x)\mathrm{ d} x \tag{1}$$
+> $$\[\mathscr{K}f\] (y) = \int\_X \tilde{k} (y,x)f(x)\mathrm{ d} x \tag{1}$$
 >
 > 希望 $\mathscr{K}$ is equivariant，即
 >
@@ -136,7 +136,7 @@ $$ f^{out}(y) = (Kf)(y) = \int\_X k(y,x) f(x) \mathrm{ d}x $$
 >
 > 代回到 (1) 式中，就得到了
 >
-> $$[\mathscr{K}f](y)=\int\_{X} \frac{1}{|\det g\_y|}k(g\_y^{-1}x)f(x)\mathrm{ d}x \tag{2}$$
+> $$\[\mathscr{K}f\] (y)=\int\_{X} \frac{1}{|\det g\_y|}k(g\_y^{-1}x)f(x)\mathrm{ d}x \tag{2}$$
 >
 > $\forall h\in H, k(h^{-1}x) = \tilde{k}(y\_0, h^{-1}x) = |\det h| \tilde{k}(h y\_0, x) = |\det h| k(x)$，即
 >
