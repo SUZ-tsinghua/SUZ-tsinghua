@@ -2,8 +2,8 @@
 title: Theory of Computation Lecture 1
 description: Mathematical Logic (1)
 slug: Theory-of-Computation-Lecture-1
-date: 2024-03-26 17:00:00
-lastmod: 2024-03-26 17:00:00
+date: 2024-03-25 17:00:00
+lastmod: 2024-03-25 17:00:00
 math: true
 hidden: false
 categories:
