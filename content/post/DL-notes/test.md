@@ -98,3 +98,9 @@ $(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式�
 > **Definition:**
 >
 > 设 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，我们说 $\mathscr{A}$ *逻辑蕴含 (logically implies)* $\mathscr{B}$，如果 $(\mathscr{A}\to\mathscr{B})$ 是一重言式，我们说 $\mathscr{A}$ *逻辑等值 (logically equivalent)* $\mathscr{B}$，如果 $(\mathscr{A}\leftrightarrow\mathscr{B})$ 是一重言式。
+
+$(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\sim q))$。
+
+> **Proposition:**
+>
+>
