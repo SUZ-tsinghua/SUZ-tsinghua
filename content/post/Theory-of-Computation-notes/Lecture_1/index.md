@@ -34,46 +34,46 @@ Negation:
 
 |$p$|$\sim p$|
 |-|-|
-|T|F|
-|F|T|
+|$T$|$F$|
+|$F$|$T$|
 
 Conjunction:
 
 |$p$|$q$|$p \land q$|
 |-----|-----|-----|
-|T|T|T|
-|T|F|F|
-|F|T|F|
-|F|F|F|
+|$T$|$T$|$T$|
+|$T$|$F$|$F$|
+|$F$|$T$|$F$|
+|$F$|$F$|$F$|
 
 Disjunction:
 
 |$p$|$q$|$p \lor q$|
 |-----|-----|-----|
-|T|T|T|
-|T|F|T|
-|F|T|T|
-|F|F|F|
+|$T$|$T$|$T$|
+|$T$|$F$|$T$|
+|$F$|$T$|$T$|
+|$F$|$F$|$F$|
 
 Conditional:
 
 |$p$|$q$|$p \to q$|
 |-----|-----|-----|
-|T|T|T|
-|T|F|F|
-|F|T|T|
-|F|F|T|
+|$T$|$T$|$T$|
+|$T$|$F$|$F$|
+|$F$|$T$|$T$|
+|$F$|$F$|$T$|
 
 Conditional 的真值表的前两行并不难理解，后两行则可以认为是一种定义上的方便。因为采取这样的定义后，在判断 $p\to q$ 是否恒为真时只需要判断 $p$ 为真是否始终能推出 $q$ 为真即可，而不需要考察 $p$ 为假的情况，这与先前的认知是一致的。
 
 Biconditional:
 
-|$p$|$q$|$p \to q$|
+|$p$|$q$|$p \leftrightarrow q$|
 |-----|-----|-----|
-|T|T|T|
-|T|F|F|
-|F|T|F|
-|F|F|T|
+|$T$|$T$|$T$|
+|$T$|$F$|$F$|
+|$F$|$T$|$F$|
+|$F$|$F$|$T$|
 
 类似表中的字母 $p, q, r, \cdots$ 称为命题变元 (statement variable)，它们表示任意的非特定的单个命题。而由命题变元和联结词组成的表达式称为命题形式 (statement form)，定义如下：
 
@@ -103,4 +103,29 @@ $(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\
 
 > **Proposition:**
 >
+> 如果 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 都是重言式，那么 $\mathscr{B}$ 也是重言式。
 >
+> **Proof:**
+> omitted.
+
+> **Proposition (Rules for Substitution):**
+>
+> 令 $\mathscr{A}$ 是一个命题形式，其中有命题变元 $p\_1, p\_2, \cdots, p\_n$，并且令 $\mathscr{A}\_1, \mathscr{A}\_2, \cdots, \mathscr{A}\_n$ 是任意命题形式。如果 $\mathscr{A}$ 是一个重言式，那么由 $\mathscr{A}$ 通过用 $\mathscr{A}\_i$ 到处去替换每个 $p\_i$ 而得到的 $\mathscr{B}$ 也是一重言式。
+>
+> **Proof:**
+> omitted.
+
+比如，$(p\land q)$ 逻辑蕴含 $p$，所以对任意 $\mathscr{A}, \mathscr{B}$，都有 $(\mathscr{A}\land \mathscr{B})$ 逻辑蕴含 $\mathscr{A}$。
+
+> **Proposition (De Morgan's Law):**
+>
+> 令 $\mathscr{A}\_1, \mathscr{A}\_2, \cdots, \mathscr{A}\_n$ 是任意的命题形式，那么：
+>
+> (1) $(\mathop{\lor}\limits\_{i=1}^n (\sim\mathscr{A}\_i))$ 逻辑等值于 $(\sim(\mathop{\land}\limits\_{i=1}^n \mathscr{A}\_i))$
+>
+> (2) $(\mathop{\land}\limits\_{i=1}^n (\sim\mathscr{A}\_i))$ 逻辑等值于 $(\sim(\mathop{\lor}\limits\_{i=1}^n \mathscr{A}\_i))$
+>
+> **Proof:**
+>
+> 用数学归纳法，先用 Rules for Substitution 证明 $n=2$ 的情形，再推广至任意正整数 $n$。
+
