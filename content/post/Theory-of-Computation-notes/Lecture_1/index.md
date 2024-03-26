@@ -84,3 +84,14 @@ Biconditional:
 > (1) 任何命题变元是一个命题形式。
 >
 > (2) 如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，那么 $(\sim \mathscr{A}), (\mathscr{A} \land \mathscr{B}), (\mathscr{A}\lor \mathscr{B}), (\mathscr{A}\to\mathscr{B}), (\mathscr{A} \leftrightarrow \mathscr{B})$ 是命题形式。
+
+每个命题形式都有其真值表。
+
+> **Definition:**
+>
+>
+> (1) 一命题形式称为*重言式 (tautology)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *T*。
+>
+> (2) 一命题形式称为*矛盾式 (contradiction)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *F*。
+
+$(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式。
