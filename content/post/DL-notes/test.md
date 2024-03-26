@@ -89,9 +89,12 @@ Biconditional:
 
 > **Definition:**
 >
->
 > (1) 一命题形式称为*重言式 (tautology)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *T*。
 >
 > (2) 一命题形式称为*矛盾式 (contradiction)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *F*。
 
 $(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式。
+
+> **Definition:**
+>
+> 设 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，我们说 $\mathscr{A}$ *逻辑蕴含 (logically implies)* $\mathscr{B}$，如果 $(\mathscr{A}\to\mathscr{B})$ 是一重言式，我们说 $\mathscr{A}$ *逻辑等值 (logically equivalent)* $\mathscr{B}$，如果 $(\mathscr{A}\leftrightarrow\mathscr{B})$ 是一重言式。
