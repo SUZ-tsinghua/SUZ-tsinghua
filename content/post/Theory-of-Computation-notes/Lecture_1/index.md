@@ -74,3 +74,13 @@ Biconditional:
 |T|F|F|
 |F|T|F|
 |F|F|T|
+
+类似表中的字母 $p, q, r, \cdots$ 称为命题变元 (statement variable)，它们表示任意的非特定的单个命题。而由命题变元和联结词组成的表达式称为命题形式 (statement form)，定义如下：
+
+> **Definition:**
+>
+> 一个*命题形式*是一个含有命题变元和联结词的表达式，并且能用以下规则构成：
+>
+> (1) 任何命题变元是一个命题形式。
+>
+> (2) 如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，那么 $(\sim \mathscr{A}), (\mathscr{A} \land \mathscr{B}), (\mathscr{A}\lor \mathscr{B}), (\mathscr{A}\to\mathscr{B}), (\mathscr{A} \leftrightarrow \mathscr{B})$ 是命题形式。
