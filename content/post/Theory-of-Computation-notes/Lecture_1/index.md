@@ -79,7 +79,7 @@ Biconditional:
 
 > **Definition:**
 >
-> 一个*命题形式*是一个含有命题变元和联结词的表达式，并且能用以下规则构成：
+> 一个 *命题形式* 是一个含有命题变元和联结词的表达式，并且能用以下规则构成：
 >
 > (1) 任何命题变元是一个命题形式。
 >
@@ -89,9 +89,9 @@ Biconditional:
 
 > **Definition:**
 >
-> (1) 一命题形式称为*重言式 (tautology)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *T*。
+> (1) 一命题形式称为 *重言式 (tautology)* ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *T* 。
 >
-> (2) 一命题形式称为*矛盾式 (contradiction)*，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *F*。
+> (2) 一命题形式称为 *矛盾式 (contradiction)* ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 *F* 。
 
 $(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式。
 
@@ -129,3 +129,98 @@ $(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\
 >
 > 用数学归纳法，先用 Rules for Substitution 证明 $n=2$ 的情形，再推广至任意正整数 $n$。
 
+> **Definition:**
+>
+> 定义只含有联结词 $\sim, \land, \lor$ 的命题形式为 *限制的命题形式 (restricted statement form)* 。
+
+> **Proposition:**
+>
+> 每个非矛盾的命题形式逻辑等值于一个限制的命题形式 $\mathop{\lor}\limits\_{i=1}^m(\mathop{\land}\_{j=1}^n Q\_{ij})$，其中每个 $Q\_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 *析取范式 (disjunctive normal form)* 。
+>
+> 每个非重言的命题形式逻辑等值于一个限制的命题形式 $\mathop{\land}\limits\_{i=1}^m(\mathop{\lor}\_{j=1}^n Q\_{ij})$，其中每个 $Q\_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 *合取范式 (conjunctive normal form)* 。
+>
+> **Proof:**
+>
+> 仅对析取范式进行证明，合取范式同理。仅需证明任意真值表中只有一行为 $T$ 的命题形式可以用 $\mathop{\land}\_{j=1}^n Q\_{j}$ 表示即可。多行为 $T$ 的命题形式可由一行为 $T$ 的命题形式通过 $\lor$ 联结得到。
+>
+> 对于每个命题变元 $q\_j$，若其在真值表中的那一行取 $T$，则 $Q\_{j}=q\_j$，否则取 $Q\_{j}=\sim q\_j$。
+>
+>这样就可以对任意非矛盾的命题形式构造出一个与其逻辑等值的析取范式。
+
+综合可得：
+
+> **Proposition:**
+>
+> 每个真值函数都可以用一个限制的命题形式表示。
+
+> **Definition:**
+>
+> 一个 *联结词的完全集 (adequate set of connectives)* 是这样一个集合，使得每个真值函数都能由仅仅含有该集中的联结词的命题形式所表示。
+
+显然，$\{\sim, \lor, \land\}$ 是一个完全集。
+
+> **Proposition:**
+>
+> $\{\sim, \land\}, \{\sim, \lor\}, \{\sim, \to\}$ 都是完全集。
+>
+> **Proof:**
+>
+> 可以用 $\{\sim, \lor, \land\}$ 是完全集来证明。
+
+然而，以上介绍的联结词均不能单独构成一个完全集，不过可以通过引入新的联结词来构成只含一个联结词的完全集。
+
+NOR（即 not+or）
+
+|$p$|$q$|$p \downarrow q$|
+|-----|-----|-----|
+|$T$|$T$|$F$|
+|$T$|$F$|$F$|
+|$F$|$T$|$F$|
+|$F$|$F$|$T$|
+
+NAND（即 not+and）
+
+|$p$|$q$|$p \| q$|
+|-----|-----|-----|
+|$T$|$T$|$F$|
+|$T$|$F$|$T$|
+|$F$|$T$|$T$|
+|$F$|$F$|$T$|
+
+> **Proposition:**
+>
+> $\{\downarrow\}, \{ | \}$ 都是联结词的完全集。
+>
+> **Proof:**
+>
+> 可以用已知的完全集来证明。
+
+但是仅使用一个联结词可能会导致表达式非常复杂，比如仅用 $\downarrow$ 构造出 $(p\to q)$：
+
+$$\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}\downarrow \{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}$$
+
+> **Definition:**
+>
+> *论证形式 (argument form)* 定义为类似：
+>
+> $$\mathscr{A}\_1, \mathscr{A}\_2, \cdots, \mathscr{A}\_n; \therefore \mathscr{A}$$
+>
+> 的形式。
+>
+> 我们称一个论证形式是 *无效 (nonvalid)* 的，如果存在一种对命题变元的真值指派，使得每个 $\mathscr{A}\_i$ 均取值 $T$，但是 $\mathscr{A}$ 取值 $F$。否则称其是 *有效 (valid)* 的。
+
+> **Proposition:**
+>
+> 论证形式
+> $$\mathscr{A}\_1, \mathscr{A}\_2, \cdots, \mathscr{A}\_n; \therefore \mathscr{A}$$
+>
+> 是有效的，当且仅当命题形式
+>
+> $$((\mathscr{A}\_1\land \mathscr{A}\_2 \land \cdots \land \mathscr{A}\_n) \to \mathscr{A})$$
+> 
+> 是一个重言式。
+>
+> **Proof:**
+> omitted.
+
+## Formal Statement Calculus (形式的命题演算)
