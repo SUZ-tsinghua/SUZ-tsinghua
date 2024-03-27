@@ -321,8 +321,8 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > (1) $n=1$ 时，三种情况：
 > - $\mathscr{B}$ 是 $L$ 中的一条公理，则有：
 >   $$\begin{align*}
->   (1)&\quad \mathscr{B} &&公理\\
->   (2)&\quad (\mathscr{B}\to (\mathscr{A}\to\mathscr{B})) &&(L1)\\
+>   (1)&\quad \mathscr{B} &&公理\\\\
+>   (2)&\quad (\mathscr{B}\to (\mathscr{A}\to\mathscr{B})) &&(L1)\\\\
 >   (3)&\quad (\mathscr{A}\to\mathscr{B}) && (1)+(2)+MP
 >   \end{align*}$$
 > - $\mathscr{B}\in \Gamma$，则同上一种情况。
