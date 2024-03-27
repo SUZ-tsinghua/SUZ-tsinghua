@@ -278,9 +278,9 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > **Solution:**
 >
 > $$\begin{align*}
-(1)&\quad (\mathscr{A}\to((\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &&(L1)\\
-(2)&\quad ((\mathscr{A}\to(\mathscr{A}\to\mathscr{A}))\to(\mathscr{A}\to\mathscr{A})) &&(1)+(L2)+MP\\
-(3)&\quad (\mathscr{A}\to(\mathscr{A}\to\mathscr{A})) &&(L1)\\
+(1)&\quad (\mathscr{A}\to((\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &&(L1)\\\\
+(2)&\quad ((\mathscr{A}\to(\mathscr{A}\to\mathscr{A}))\to(\mathscr{A}\to\mathscr{A})) &&(1)+(L2)+MP\\\\
+(3)&\quad (\mathscr{A}\to(\mathscr{A}\to\mathscr{A})) &&(L1)\\\\
 (4)&\quad (\mathscr{A}\to\mathscr{A}) &&(2)+(3)+MP
 \end{align*}$$
 
@@ -300,11 +300,16 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > **Solution:**
 >
 > $$\begin{align*}
-(1)&\quad \mathscr{A} &&假设\\
-(2)&\quad (\mathscr{A}\to(\mathscr{B}\to\mathscr{A})) &&(L1)\\
-(3)&\quad (\mathscr{B}\to\mathscr{A}) &&(1)+(2)+MP\\
-(4)&\quad (\mathscr{B}\to(\mathscr{A}\to\mathscr{C})) &&假设\\
-(5)&\quad ((\mathscr{B}\to\mathscr{A})\to(\mathscr{B}\to\mathscr{C})) &&(4)+(L2)+MP\\
+(1)&\quad \mathscr{A} &&假设\\\\
+(2)&\quad (\mathscr{A}\to(\mathscr{B}\to\mathscr{A})) &&(L1)\\\\
+(3)&\quad (\mathscr{B}\to\mathscr{A}) &&(1)+(2)+MP\\\\
+(4)&\quad (\mathscr{B}\to(\mathscr{A}\to\mathscr{C})) &&假设\\\\
+(5)&\quad ((\mathscr{B}\to\mathscr{A})\to(\mathscr{B}\to\mathscr{C})) &&(4)+(L2)+MP\\\\
 (6)&\quad (\mathscr{B}\to\mathscr{C}) &&(3)+(5)+MP
 \end{align*}$$
 
+注意，这样子推出来的公式并不一定是 $L$ 中的一个定理。
+
+> **Proposition (The deduction theorem):**
+>
+> $\Gamma\cup\\{\mathscr{A}\\}\vdash_L\mathscr{B}$ 当且仅当 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$，其中 $\mathscr{A}$ 和 $\mathscr{B}$ 是 $L$ 中的公式，$\Gamma$ 是 $L$ 的公式集（可能是空集）。
