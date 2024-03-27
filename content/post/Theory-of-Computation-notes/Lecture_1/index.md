@@ -313,3 +313,19 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > **Proposition (The deduction theorem):**
 >
 > $\Gamma\cup\\{\mathscr{A}\\}\vdash_L\mathscr{B}$ 当且仅当 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$，其中 $\mathscr{A}$ 和 $\mathscr{B}$ 是 $L$ 中的公式，$\Gamma$ 是 $L$ 的公式集（可能是空集）。
+>
+> **Proof:**
+>
+> 仅证明从左至右的部分，从右至左可以直接运用 MP。运用数学归纳法证明从左至右的部分，假设从 $\Gamma\cup\\{\mathscr{A}\\}$ 到 $\mathscr{B}$ 的演绎是一个有 $n$ 个公式的序列。
+>
+> (1) $n=1$ 时，三种情况：
+> - $\mathscr{B}$ 是 $L$ 中的一条公理，则有：
+>   $$\begin{align*}
+>   (1)&\quad \mathscr{B} &&公理\\
+>   (2)&\quad (\mathscr{B}\to (\mathscr{A}\to\mathscr{B})) &&(L1)\\
+>   (3)&\quad (\mathscr{A}\to\mathscr{B}) && (1)+(2)+MP
+>   \end{align*}$$
+> - $\mathscr{B}\in \Gamma$，则同上一种情况。
+> - $\mathscr{B}=\mathscr{A}$，先前已证 $\vdash_L (\mathscr{A}\to\mathscr{A})$。
+>
+> (2) 假设从 $\Gamma\cup\\{\mathscr{A}\\}$ 到 $\mathscr{B}$ 的演绎长度 $< n$ 时，proposition 成立。可以假设 $\mathscr{B}$ 不是 $L$ 中的公理，不在 $\Gamma$ 中，不为 $\mathscr{A}$，那么在 $\Gamma\cup\\{\mathscr{A}\\}$ 到 $\mathscr{B}$ 的演绎序列中， $\mathscr{B}$ 只可能由先前的两个公式 $\mathscr{C}$ 和 $(\mathscr{C}\to\mathscr{B})$ 通过 MP 得到。故而我们有 $\Gamma\cup \\{\mathscr{A}\\} \vdash_L \mathscr{C}$ 和 $\Gamma\cup \\{\mathscr{A}\\} \vdash_L (\mathscr{C}\to\mathscr{B})$。由归纳假设，$\Gamma\vdash_L(\mathscr{A}\to\mathscr{C}), \Gamma\vdash_L(\mathscr{A}\to(\mathscr{C}\to\mathscr{B}))$。由二者，通过 (L2) 和 MP 可得 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{C})$。
