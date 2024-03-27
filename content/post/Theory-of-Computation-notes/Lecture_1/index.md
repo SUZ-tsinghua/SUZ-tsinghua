@@ -329,3 +329,52 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > - $\mathscr{B}=\mathscr{A}$，先前已证 $\vdash_L (\mathscr{A}\to\mathscr{A})$。
 >
 > (2) 假设从 $\Gamma\cup\\{\mathscr{A}\\}$ 到 $\mathscr{B}$ 的演绎长度 $< n$ 时，proposition 成立。可以假设 $\mathscr{B}$ 不是 $L$ 中的公理，不在 $\Gamma$ 中，不为 $\mathscr{A}$，那么在 $\Gamma\cup\\{\mathscr{A}\\}$ 到 $\mathscr{B}$ 的演绎序列中， $\mathscr{B}$ 只可能由先前的两个公式 $\mathscr{C}$ 和 $(\mathscr{C}\to\mathscr{B})$ 通过 MP 得到。故而我们有 $\Gamma\cup \\{\mathscr{A}\\} \vdash_L \mathscr{C}$ 和 $\Gamma\cup \\{\mathscr{A}\\} \vdash_L (\mathscr{C}\to\mathscr{B})$。由归纳假设，$\Gamma\vdash_L(\mathscr{A}\to\mathscr{C}), \Gamma\vdash_L(\mathscr{A}\to(\mathscr{C}\to\mathscr{B}))$。由二者，通过 (L2) 和 MP 可得 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$。
+>
+> 这个 proposition 被称为 *演绎定理*。
+
+> **Proposition (Hypothetical Syllogism (HS)):**
+>
+> 对任何 $L$ 中的公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$：
+>
+> $$\\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\\} \vdash_L (\mathscr{A}\to\mathscr{C})$$
+>
+> **Proof:**
+>
+>   $$\begin{align*}
+>   (1)&\quad (\mathscr{A}\to\mathscr{B}) &&假设\\\\
+>   (2)&\quad (\mathscr{B}\to \mathscr{C}) &&假设\\\\
+>   (3)&\quad \mathscr{A} &&假设\\\\
+>   (4)&\quad \mathscr{B} &&(1)+(3)+MP \\\\
+>   (5)&\quad \mathscr{C} &&(2)+(4)+MP \\\\
+>   \end{align*}$$
+> 所以有 $\\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C}), \mathscr{A}\\} \vdash_L \mathscr{C}$，根据演绎定理，可得 $\\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\\} \vdash_L (\mathscr{A}\to\mathscr{C})$。
+>
+> 此 proposition 被称为 *假言三段论*。
+
+> **Exercise:**
+>
+> Prove:
+>
+> (1) $\vdash_L(\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$.
+>
+> (2) $\vdash_L((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$.
+>
+> **Proof:**
+>
+> (1) 
+> $$\begin{align*}
+>   (1)&\quad (\sim \mathscr{B}\to(\sim\mathscr{A}\to\sim\mathscr{B})) &&(L1)\\\\
+>   (2)&\quad ((\sim\mathscr{A}\to\sim\mathscr{B})\to(\mathscr{B}\to\mathscr{A})) &&(L2)\\\\
+>   (3)&\quad (\sim \mathscr{B}\to(\mathscr{B}\to\mathscr{A})) &&(1)+(2)+HS\\\\
+>   \end{align*}$$
+> (2) 由演绎定理，只需证明 $\\{(\sim \mathscr{A}\to\mathscr{A})\\}\vdash_L \mathscr{A}$：
+> $$\begin{align*}
+>   (1)&\quad (\sim\mathscr{A}\to\mathscr{A}) &&假设\\\\
+>   (2)&\quad (\sim\mathscr{A}\to(\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A})) &&(L1)\\\\
+>   (3)&\quad ((\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A}) \to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &&(L3)\\\\
+>   (4)&\quad (\sim\mathscr{A}\to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &&(2)+(3)+HS\\\\
+>   (5)&\quad ((\sim\mathscr{A}\to \mathscr{A})\to (\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &&(4)+(L2)+MP\\\\
+>   (6)&\quad ((\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A})) \to ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &&(L2)\\\\
+>   (7)&\quad ((\sim\mathscr{A}\to\mathscr{A})\to((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &&(5)+(6)+HS\\\\
+>   (8)&\quad \mathscr{A} &&(1)+(7)+2\times MP
+>   \end{align*}$$
