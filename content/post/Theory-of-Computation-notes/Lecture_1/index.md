@@ -157,15 +157,15 @@ $(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\
 >
 > 一个 *联结词的完全集 (adequate set of connectives)* 是这样一个集合，使得每个真值函数都能由仅仅含有该集中的联结词的命题形式所表示。
 
-显然，$\{\sim, \lor, \land\}$ 是一个完全集。
+显然，$\\{\sim, \lor, \land\\}$ 是一个完全集。
 
 > **Proposition:**
 >
-> $\{\sim, \land\}, \{\sim, \lor\}, \{\sim, \to\}$ 都是完全集。
+> $\\{\sim, \land\\}, \\{\sim, \lor\\}, \\{\sim, \to\\}$ 都是完全集。
 >
 > **Proof:**
 >
-> 可以用 $\{\sim, \lor, \land\}$ 是完全集来证明。
+> 可以用 $\\{\sim, \lor, \land\\}$ 是完全集来证明。
 
 然而，以上介绍的联结词均不能单独构成一个完全集，不过可以通过引入新的联结词来构成只含一个联结词的完全集。
 
@@ -189,7 +189,7 @@ NAND（即 not+and）
 
 > **Proposition:**
 >
-> $\{\downarrow\}, \{ | \}$ 都是联结词的完全集。
+> $\\{\downarrow\\}, \\{ | \\}$ 都是联结词的完全集。
 >
 > **Proof:**
 >
@@ -197,7 +197,7 @@ NAND（即 not+and）
 
 但是仅使用一个联结词可能会导致表达式非常复杂，比如仅用 $\downarrow$ 构造出 $(p\to q)$：
 
-$$\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}\downarrow \{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}$$
+$$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\downarrow \\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}$$
 
 > **Definition:**
 >
