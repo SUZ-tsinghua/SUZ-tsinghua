@@ -224,3 +224,87 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 > omitted.
 
 ## Formal Statement Calculus (形式的命题演算)
+
+我们主要关注两个特殊的形式系统（命题演算形式系统、谓词演算形式系统），我们先给出形式系统的一般性定义：
+
+> **Definition:**
+>
+> 一个 *形式系统 (formal system)* 由以下几部分构成：
+>
+> (1) 一个符号库 (an alphabet of symbols)。
+>
+> (2) 这些符号组成的有限字符串（称为合式公式，well-formed fomula）的一个集合。
+>
+> (3) 合式公式的一个集合，称为公理 (axiom)。
+>
+> (4) 有限个演绎规则 (rules of deduction) 组成的集合。
+
+接下来给出命题演算形式系统的定义：
+
+> **Definition:**
+>
+> 一个 *命题演算形式系统 L (formal system L of statement calculus)* 由以下几部分构成：
+>
+> (1) 一个无限的符号库：
+>
+> $$\sim, \to, (, ), p\_1, p\_2, p\_3, \cdots$$
+>
+> (2) 一个合式公式的集合，由以下规则确定：
+>
+> - 对于每个 $i\geq 1$, $p\_i$ 是合式公式。
+> - 如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是合式公式，那么 $(\sim \mathscr{A})$ 和 $(\mathscr{A}\to\mathscr{B})$ 也是合式公式。
+> - 所有合式公式都由以上两条规则产生。
+>
+> (3) 一个公理的集合，对于任何合式公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$，以下公式是 $L$ 的公理：
+>
+> - (L1) $(\mathscr{A}\to(\mathscr{B}\to\mathscr{A}))$.
+> - (L2) $((\mathscr{A}\to(\mathscr{B}\to\mathscr{C}))\to ((\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to\mathscr{C})))$.
+> - (L3) $(((\sim \mathscr{A})\to(\sim \mathscr{B}))\to (\mathscr{B}\to\mathscr{A}))$.
+>
+> (4) $L$ 中仅有一条演绎规则，称为 modus ponens (MP)，即对于 $L$ 中的任何公式 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$，$\mathscr{B}$ 也是 $L$ 中的一个公式。
+
+在考察 $L$ 中的公式及其演绎时，不应考虑其是否“正确”，而应将其完全视为一文字游戏，只能通过已有公式与演绎规则推出新的合式公式。而至于新推出的合式公式的“正确性”（即新公式为一重言式），则由“公理为重言式”（可直接验证），以及“演绎规则保持公式的重言性”（先前已证明）来保证。
+
+> **Definition:**
+>
+> $L$ 中的一个 *证明 (proof)* 是指公式的这样一个序列 $\mathscr{A}\_1, \cdots, \mathscr{A}\_n$，使得对于每个 $i (1\leq i\leq n)$，或者 $\mathscr{A}\_i$ 是 $L$ 的一个公理，或者 $\mathscr{A}\_i$ 可由序列中位于 $\mathscr{A}\_i$ 前面的两个公式 $\mathscr{A}\_j, \mathscr{A}\_k (j,k<i)$ 通过 MP 得到。这样的证明称为在 $L$ 中 $\mathscr{A}\_n$ 的一个证明，$\mathscr{A}\_n$ 称为 $L$ 中的一个 *定理 (theorem)*。
+>
+>$\mathscr{A}\_n$ 是 $L$ 中的一个定理可记作 $\vdash_L \mathscr{A}\_n$。
+
+> **Exercise:**
+>
+> Prove: $\vdash_L (\mathscr{A}\to\mathscr{A})$.
+>
+> **Solution:**
+>
+> $$\begin{align*}
+(1)&\quad (\mathscr{A}\to((\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &&(L1)\\
+(2)&\quad ((\mathscr{A}\to(\mathscr{A}\to\mathscr{A}))\to(\mathscr{A}\to\mathscr{A})) &&(1)+(L2)+MP\\
+(3)&\quad (\mathscr{A}\to(\mathscr{A}\to\mathscr{A})) &&(L1)\\
+(4)&\quad (\mathscr{A}\to\mathscr{A}) &&(2)+(3)+MP
+\end{align*}$$
+
+> **Definition:**
+>
+> 令 $\Gamma$ 是 $L$ 中的公式集（可以是也可以不是 $L$ 中的公理或定理）。$L$ 中的公式序列 $\mathscr{A}\_1, \cdots, \mathscr{A}\_n$ 是从 $\Gamma$ 的一个 *演绎 (deduction)*，如果每个 $i (1\leq i\leq n)$，下列之一成立：
+> - $\mathscr{A}\_i$ 是 $L$ 的一个公理。
+> - $\mathscr{A}\_i$ 是 $\Gamma$ 中的一个成员。
+> - $\mathscr{A}\_i$ 可由序列中在 $\mathscr{A}\_i$ 前的两个公式通过 MP 得到。
+>
+> 记作 $\Gamma\vdash_L \mathscr{A}\_n$。
+
+> **Exercise:**
+>
+> Prove: $\\{\mathscr{A},(\mathscr{B}\to(\mathscr{A}\to\mathscr{C}))\\}\vdash_L (\mathscr{B}\to\mathscr{C})$.
+>
+> **Solution:**
+>
+> $$\begin{align*}
+(1)&\quad \mathscr{A} &&假设\\
+(2)&\quad (\mathscr{A}\to(\mathscr{B}\to\mathscr{A})) &&(L1)\\
+(3)&\quad (\mathscr{B}\to\mathscr{A}) &&(1)+(2)+MP\\
+(4)&\quad (\mathscr{B}\to(\mathscr{A}\to\mathscr{C})) &&假设\\
+(5)&\quad ((\mathscr{B}\to\mathscr{A})\to(\mathscr{B}\to\mathscr{C})) &&(4)+(L2)+MP\\
+(6)&\quad (\mathscr{B}\to\mathscr{C}) &&(3)+(5)+MP
+\end{align*}$$
+
