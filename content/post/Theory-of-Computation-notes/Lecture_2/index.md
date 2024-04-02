@@ -2,7 +2,7 @@
 title: Theory of Computation Lecture 2
 description: Mathematical Logic (2)
 slug: Theory-of-Computation-Lecture-2
-date: 2024-04-02 17:00:00
+date: 2024-04-02 17:00:00+0800
 lastmod: 2024-04-02 17:00:00
 math: true
 hidden: false
