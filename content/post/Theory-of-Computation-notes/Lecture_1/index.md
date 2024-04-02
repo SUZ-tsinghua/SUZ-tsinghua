@@ -471,4 +471,4 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 
 > **Proof of the adequacy theorem of L:**
 >
-> 假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\{\sim\mathscr{A}\}$ 再到一个一致完全扩充 $L^*$。$\vdash\_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。
+> 假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\\{\sim\mathscr{A}\\}$ 再到一个一致完全扩充 $L^\*$。$\vdash\_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。
