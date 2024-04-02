@@ -6,6 +6,7 @@ date: 2024-04-02 18:00:00+0800
 lastmod: 2024-04-02 18:00:00
 math: true
 hidden: false
+image: cover.png
 categories:
     - 科研项目
 tags:
