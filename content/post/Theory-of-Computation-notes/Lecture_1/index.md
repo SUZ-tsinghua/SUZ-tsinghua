@@ -392,3 +392,83 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 >   \end{align*}$$
 
 ### $L$ 的完备性定理
+
+> **Definition:**
+>
+> $L$ 的一个 *赋值 (valuation)* 是一个函数 $v$，它的定义域是 $L$ 的公式，值域是集合 $\\{T, F\\}$，并且使得对 $L$ 的任意公式 $\mathscr{A}, \mathscr{B}$：
+>
+> (1) $v(\mathscr{A})\neq v(\sim\mathscr{A})$.
+>
+> (2) $v(\mathscr{A}\to\mathscr{B})=F$ 当且仅当 $v(\mathscr{A})=T$ 和 $v(\mathscr{A})=F$。
+
+> **Definition:**
+>
+> $L$ 中的一个公式 $\mathscr{A}$ 是一个 *重言式*，如果对每个赋值 $v$，都有 $v(\mathscr{A})=T$。
+
+> **Proposition (Soundness，可靠性):**
+>
+> $L$ 中的每个定理都是重言式。
+>
+> **Proof:**
+> 数学归纳法。
+
+> **Proposition (Consistency, 一致性):**
+>
+> $L$ 中的不存在公式 $\mathscr{A}$，使得 $\mathscr{A}$ 和 $(\sim\mathscr{A})$ 都是 $L$ 中的定理。
+>
+> **Proof:**
+> Soundness 可以推出 consistency。
+
+> **Proposition (Adequacy, 完备性):**
+>
+> 如果 $\mathscr{A}$ 是 $L$ 中的一个公式，且为重言式，那么 $\mathscr{A}$ 是 $L$ 中的一个定理。
+
+为了证明 adequacy，我们需要引入新的概念。
+
+> **Definition:**
+>
+> $L$ 的一个 *扩充 (extension)* 是一个形式系统，它通过修改或者扩大公理组使得原来所有的定理仍是定理（也可能引入新的定理）而得到。
+
+注意，此处说的是 **修改** 或 **扩大**，而并不仅仅是 **扩大**。 一个与 $L$ 没有共同公理的形式系统也可能是 $L$ 的一个扩充。
+
+> **Proposition:**
+>
+> $L$ 的一个扩充 $L^*$ 是一致的，当且仅当存在一个公式，它不是 $L^*$ 中的定理。
+>
+> **Proof:**
+>
+> (1) 如果 $L^*$ 一致，那么对任意公式 $\mathscr{A}$，总有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 不是 $L^*$ 中的定理。
+>
+> (2) 如果 $L^*$ 不一致，我们证明任意公式 $\mathscr{A}$ 都是 $L^*$ 中的定理。因为存在 $\mathscr{B}$，使得 $\mathscr{B}$ 和 $(\sim\mathscr{B})$ 都是 $L^*$ 中的定理。先前证过 $\vdash_L (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$，所以 $\vdash\_{L^*} (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$。再应用两次 MP 即可得到 $\vdash\_{L^*} \mathscr{A}$。
+
+> **Proposition:**
+>
+> 令 $L^*$ 是 $L$ 的一个一致的扩充，并且 $\mathscr{A}$ 是一个公式，它不是 $L^*$ 的一条定理，那么将 $L^*$ 补充公理 $(\sim\mathscr{A})$ 得到的系统 $L^{**}$ 也是一致的。
+>
+> **Proof:**
+> 
+> 如果 $L^{**}$ 不一致，那么 $\vdash\_{L^{**}} \mathscr{A}$，即 $\{\sim\mathscr{A}\}\vdash\_{L^*} \mathscr{A}$。
+>
+> 由 deduction theorem，$\vdash\_{L^*} (\sim\mathscr{A}\to\mathscr{A})$。
+>
+> 先前有 $\vdash_L ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$，故 $\vdash\_{L^*} \mathscr{A}$。矛盾
+
+由此可知，我们可以依次考察所有公式 $\mathscr{A}$，将 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 加入公理组中，最终得到一个一致的形式系统，且有对于所有公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是它的定理。
+
+> **Definition:**
+>
+> $L$ 的一个扩充是 *完全 (complete)* 的，如果对每个公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是该扩充的一条定理。
+
+> **Proposition:**
+>
+> 存在一个 $L$ 的一致完全扩充。
+
+> **Proposition:**
+>
+> 如果 $L^*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^*$ 中的每个定理都取值 $T$。
+>
+> 定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。
+
+> **Proof of the adequacy theorem of L:**
+>
+> 假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\{\sim\mathscr{A}\}$ 再到一个一致完全扩充 $L^*$。$\vdash\_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。
