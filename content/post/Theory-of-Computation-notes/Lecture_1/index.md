@@ -433,13 +433,13 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 
 > **Proposition:**
 >
-> $L$ 的一个扩充 $L^*$ 是一致的，当且仅当存在一个公式，它不是 $L^*$ 中的定理。
+> $L$ 的一个扩充 $L^\*$ 是一致的，当且仅当存在一个公式，它不是 $L^\*$ 中的定理。
 >
 > **Proof:**
 >
-> (1) 如果 $L^*$ 一致，那么对任意公式 $\mathscr{A}$，总有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 不是 $L^*$ 中的定理。
+> (1) 如果 $L^\*$ 一致，那么对任意公式 $\mathscr{A}$，总有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 不是 $L^*$ 中的定理。
 >
-> (2) 如果 $L^*$ 不一致，我们证明任意公式 $\mathscr{A}$ 都是 $L^*$ 中的定理。因为存在 $\mathscr{B}$，使得 $\mathscr{B}$ 和 $(\sim\mathscr{B})$ 都是 $L^*$ 中的定理。先前证过 $\vdash_L (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$，所以 $\vdash\_{L^*} (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$。再应用两次 MP 即可得到 $\vdash\_{L^*} \mathscr{A}$。
+> (2) 如果 $L^\*$ 不一致，我们证明任意公式 $\mathscr{A}$ 都是 $L^\*$ 中的定理。因为存在 $\mathscr{B}$，使得 $\mathscr{B}$ 和 $(\sim\mathscr{B})$ 都是 $L^\*$ 中的定理。先前证过 $\vdash_L (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$，所以 $\vdash\_{L^\*} (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$。再应用两次 MP 即可得到 $\vdash\_{L^\*} \mathscr{A}$。
 
 > **Proposition:**
 >
@@ -447,7 +447,7 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 >
 > **Proof:**
 > 
-> 如果 $L^{**}$ 不一致，那么 $\vdash\_{L^{**}} \mathscr{A}$，即 $\{\sim\mathscr{A}\}\vdash\_{L^*} \mathscr{A}$。
+> 如果 $L^{\*\*}$ 不一致，那么 $\vdash\_{L^{\*\*}} \mathscr{A}$，即 $\\{\sim\mathscr{A}\\}\vdash\_{L^\*} \mathscr{A}$。
 >
 > 由 deduction theorem，$\vdash\_{L^*} (\sim\mathscr{A}\to\mathscr{A})$。
 >
@@ -465,10 +465,10 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 
 > **Proposition:**
 >
-> 如果 $L^*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^*$ 中的每个定理都取值 $T$。
+> 如果 $L^\*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^\*$ 中的每个定理都取值 $T$。
 >
-> 定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。
+> 定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^\*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。
 
 > **Proof of the adequacy theorem of L:**
 >
-> 假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\\{\sim\mathscr{A}\\}$ 再到一个一致完全扩充 $L^\*$。$\vdash\_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。
+> 假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\\{\sim\mathscr{A}\\}$ 再到一个一致完全扩充 $L^\*$。$\vdash\_{L^\*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。
