@@ -443,7 +443,7 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 
 > **Proposition:**
 >
-> 令 $L^*$ 是 $L$ 的一个一致的扩充，并且 $\mathscr{A}$ 是一个公式，它不是 $L^*$ 的一条定理，那么将 $L^*$ 补充公理 $(\sim\mathscr{A})$ 得到的系统 $L^{**}$ 也是一致的。
+> 令 $L^\*$ 是 $L$ 的一个一致的扩充，并且 $\mathscr{A}$ 是一个公式，它不是 $L^\*$ 的一条定理，那么将 $L^\*$ 补充公理 $(\sim\mathscr{A})$ 得到的系统 $L^{\*\*}$ 也是一致的。
 >
 > **Proof:**
 > 
