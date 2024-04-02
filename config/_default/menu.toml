@@ -22,3 +22,11 @@ url = "https://twitter.com"
 
 [social.params]
 icon = "brand-twitter"
+
+[[social]]
+identifier = "google scholar"
+name = "Google scholar"
+url = "https://scholar.google.com/citations?user=R5Y1xlUAAAAJ&hl=zh-CN&oi=sra"
+
+[social.params]
+icon = "brand-google"

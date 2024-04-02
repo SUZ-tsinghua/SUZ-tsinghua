@@ -467,6 +467,7 @@ $$\\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\\}\do
 >
 > 如果 $L^\*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^\*$ 中的每个定理都取值 $T$。
 >
+> **Proof:**
 > 定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^\*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。
 
 > **Proof of the adequacy theorem of L:**
