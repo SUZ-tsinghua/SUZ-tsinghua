@@ -18,6 +18,7 @@ tags:
 
 第一个科研项目。先在这放个链接，之后再补正文吧。
 
-[Arxiv](https://arxiv.org/abs/2403.17320v2)
+[Arxiv链接](https://arxiv.org/abs/2403.17320v2)
 
+Demo: （可能需要梯子）
 {{< youtube "Ad1clt4Yi4U" >}}
