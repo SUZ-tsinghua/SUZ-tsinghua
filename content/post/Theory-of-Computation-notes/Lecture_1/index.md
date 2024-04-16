@@ -6,6 +6,7 @@ date: 2024-03-26 17:00:00
 lastmod: 2024-03-26 17:00:00
 math: true
 hidden: false
+image: cover.png
 categories:
     - 课程笔记
 tags:
