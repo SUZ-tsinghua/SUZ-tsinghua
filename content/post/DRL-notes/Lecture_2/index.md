@@ -1,6 +1,6 @@
 ---
 title: Deep Reinforcement Learning Lecture 2
-description: From MDP to RL (2)
+description: "Model-Free Estimation: Monte-Carlo and Temporal Difference"
 slug: DRL-notes-2
 date: 2024-07-16 10:00:00
 math: true
@@ -11,7 +11,7 @@ tags:
     - DRL
 ---
 
-# From MDP to RL (2)
+# Model-Free Estimation: Monte-Carlo and Temporal Difference
 
 前一节我们讲过如何进行 Policy Evaluation，但这是基于我们能知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 的前提的，这种方法被称为是 model-based 的。由于大部分情况下我们并不知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$，我们需要 model-free 的方法来进行 Policy Evaluation。但因为 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 往往是带有概率的，model-free 的方法通常只能 estimate value function，而不能精确地进行 Policy Evaluation。显然，在 model-free 的情况下，agent 只能通过与环境交互来得到信息，再利用这些信息得到 value function。
 

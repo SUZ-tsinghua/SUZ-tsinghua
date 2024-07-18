@@ -1,6 +1,6 @@
 ---
 title: Deep Reinforcement Learning Lecture 1
-description: From MDP to RL (1)
+description: MDP, Value Iteration and Policy Iteration
 slug: DRL-notes-1
 date: 2024-07-15 17:00:00
 math: true
@@ -13,7 +13,7 @@ tags:
 
 2024春季学期选了xhz老师的限选课**深度强化学习**，恰巧也在研究这方面的内容，于是打算写个笔记。
 
-# From MDP to RL (1)
+# MDP, Value Iteration and Policy Iteration
 
 ## MDP Basics
 
