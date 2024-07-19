@@ -184,6 +184,8 @@ $$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[R(\tau)\nabla\_{\theta}\sum\_{
 > - $\nabla_{\theta}J(\theta)\approx\frac{1}{|\\{\tau^i\\}|}\sum_{i}\left[R(\tau_i)\sum\_{t}\nabla\_{\theta}\log\pi_{\theta}(a_t^i|s_t^i)\right]$
 > - $\theta\leftarrow \theta+\alpha\nabla_{\theta}J(\theta)$
 
+REINFORCE 的一个问题是，其只能用当前 policy 跑出来的 trajectory 进行策略的更新，即它是 **on-policy** 的。用别的 policy 跑出来的 trajectory 进行更新会导致 MC estimate 错误。这样一种性质使得 REINFORCE 的训练非常慢。下一节课会讲如何改进得到 **off-policy** Policy Gradient。
+
 ### Baseline with REINFORCE
 
 REINFORCE 中采用 MC 的方法进行 estimate，会导致 high variance，我们试图减小 variance。先不考虑整个 trajectory，只考虑一个 step。即减小 $r(s,a)\nabla\_{\theta}\log\pi\_{\theta}(s,a)$ 的方差。
