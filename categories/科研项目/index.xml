@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>科研项目 on suz</title><link>https://suz-tsinghua.github.io/categories/%E7%A7%91%E7%A0%94%E9%A1%B9%E7%9B%AE/</link><description>Recent content in 科研项目 on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Tue, 02 Apr 2024 18:00:00 +0800</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/categories/%E7%A7%91%E7%A0%94%E9%A1%B9%E7%9B%AE/index.xml" rel="self" type="application/rss+xml"/><item><title>Leveraging Symmetry in RL-based Legged Locomotion Control</title><link>https://suz-tsinghua.github.io/p/symmetric-quadruped/</link><pubDate>Tue, 02 Apr 2024 18:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/symmetric-quadruped/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/symmetric-quadruped/cover.png" alt="Featured image of post Leveraging Symmetry in RL-based Legged Locomotion Control" />&lt;h1 id="leveraing-symmetry-in-rl-based-legged-locomotion-control">Leveraing Symmetry in RL-based Legged Locomotion Control
+&lt;/h1>&lt;p>第一个科研项目。先在这放个链接，之后再补正文吧。&lt;/p>
+&lt;p>&lt;a class="link" href="https://arxiv.org/abs/2403.17320v2" target="_blank" rel="noopener"
+>Arxiv链接&lt;/a>&lt;/p>
+&lt;p>Demo: （可能需要梯子）
+&lt;div class="video-wrapper">
+&lt;iframe loading="lazy"
+src="https://www.youtube.com/embed/Ad1clt4Yi4U"
+allowfullscreen
+title="YouTube Video"
+>
+&lt;/iframe>
+&lt;/div>
+&lt;/p></description></item></channel></rss>

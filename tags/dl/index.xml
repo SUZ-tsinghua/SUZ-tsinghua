@@ -1,0 +1,876 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>DL on suz</title><link>https://suz-tsinghua.github.io/tags/dl/</link><description>Recent content in DL on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 19 May 2024 14:00:00 +0800</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/tags/dl/index.xml" rel="self" type="application/rss+xml"/><item><title>Language-Conditioned Mobile Manipulation: 以 TidyBot 为例</title><link>https://suz-tsinghua.github.io/p/tidybot/</link><pubDate>Sun, 19 May 2024 14:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/tidybot/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/cover.png" alt="Featured image of post Language-Conditioned Mobile Manipulation: 以 TidyBot 为例" />&lt;p>本 blog 主要以 TidyBot 这篇工作为例子，简要介绍一下 Language-Conditioned Mobile Manipulation 这个研究领域。本文采取一个从下而上的方式，先从具体的 TidyBot 出发，再去介绍更广的领域。&lt;/p>
+&lt;h2 id="tidybot">TidyBot
+&lt;/h2>&lt;p>简单来说，TidyBot 是一个能 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂乱物品的机器人。&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>https://arxiv.org/abs/2305.05658&lt;/a>&lt;/li>
+&lt;li>项目官网：&lt;a class="link" href="https://tidybot.cs.princeton.edu/" target="_blank" rel="noopener"
+>https://tidybot.cs.princeton.edu/&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/jimmyyhwu/tidybot" target="_blank" rel="noopener"
+>https://github.com/jimmyyhwu/tidybot&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="https://suz-tsinghua.github.io/tidybot_demo.mp4"
+autoplay
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="https://suz-tsinghua.github.io/tidybot_demo.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div>
+&lt;h3 id="tldr">TL;DR
+&lt;/h3>&lt;p>这篇工作的主要目的就是设计一个能够 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂物的机器人。它需要能够识别地上的物体，判断该物体需要被 &lt;em>如何&lt;/em> 收纳到 &lt;em>何处&lt;/em>（如扔到垃圾桶里、放到抽屉里、放到沙发上等）。注意两点要求：&lt;/p>
+&lt;ul>
+&lt;li>个性化：由于不同的人可能有不同的收纳习惯，可能有些人喜欢把衣服放在架子上，有些人则可能喜欢放在抽屉里。
+&lt;img src="https://suz-tsinghua.github.io/p/tidybot/1.png"
+width="1822"
+height="834"
+srcset="https://suz-tsinghua.github.io/p/tidybot/1_hu11827031459779453228.png 480w, https://suz-tsinghua.github.io/p/tidybot/1_hu5399589212461683874.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="218"
+data-flex-basis="524px"
+>
+这意味着机器人不能给出一个广泛的策略（对于所有人来说，都把衣服放到架子上），它必须学习到其主人的喜好，从而指定专门的策略。&lt;/li>
+&lt;li>自动化：一旦设定完成，机器人收纳杂物的过程必须是全自动化的，不能让它的主人在旁边告诉它某物应该收纳到某处。&lt;/li>
+&lt;/ul>
+&lt;p>运用 LLM 的总结推理能力可以很好地解决这两个问题。这篇文章的 methods 非常直接，分为两步：&lt;/p>
+&lt;ul>
+&lt;li>在机器人第一次开始工作之前，先让主人提供几个例子，比如“黄衬衫要被放在抽屉里、深紫色衬衫要被放在柜子里、白色袜子要被放在抽屉里、黑色衬衫要被放在柜子里”。将这些例子告诉 LLM，让其总结出规则，LLM 就会总结出：“浅色的东西需要放在抽屉里，深色的东西需要放在柜子里。”&lt;/li>
+&lt;li>机器人工作过程中，先识别地上的某个物体，将第一步中得到的规则和这个物体是什么告诉 LLM，LLM 就可以告诉机器人这个物体需要被放在什么地方。&lt;/li>
+&lt;/ul>
+&lt;p>对于每个物体该 &lt;em>如何&lt;/em> 被放置也是同理，先给 LLM 提供一些例子，如 &amp;ldquo;pick and place yellow shirt, pick and place dark purple shirt, pick and toss white socks&amp;rdquo;。LLM 可以总结出 &amp;ldquo;pick and place shirts, pick and toss socks&amp;rdquo;，再将 LLM 的 summarization 用于新物体即可。&lt;/p>
+&lt;p>再加上一些物体识别，以及让机器人执行对应的收纳动作，这个个性化、自动化的收纳系统就可以被运用于真实世界中。&lt;/p>
+&lt;h3 id="method">Method
+&lt;/h3>&lt;p>&lt;a class="link" href="#tldr" ># TL;DR&lt;/a> 中已经简略介绍了本工作的 methods，接下来 formally 展示下这样一个收纳系统的 pipeline：&lt;/p>
+&lt;div align="center">
+&lt;img src=pipeline.png width=50% />
+&lt;/div>
+&lt;ul>
+&lt;li>$E_{receptacle}$ 和 $E_{primitive}$ 都是用户的个性化输入，分别代表了每个物品 $o_i$ 需要被收纳到何处 $r_i$，以及需要被如何收纳 $p_i$。&lt;/li>
+&lt;li>接着运用 LLM 将 $E_{receptacle}$ 和 $E_{primitive}$ 总结成 $S_{receptacle}$ 和 $S_{primitive}$。&lt;/li>
+&lt;li>此时需要将 $S_{receptacle}$ 中 LLM 总结出的物体类别 （如浅色衣服、深色衣服）提取出来，以便于视觉系统进行分类。此处 pipeline 中只写了 $S_{receptacle}$，而没写 $S_{primitive}$，或许是默认了二者提取出来的物体类别是一致的，但严谨来说，同时考虑 $S_{receptacle}$ 和 $S_{primitive}$ 应该更合理。将物体类别 $C$ 提取出来的好处在于，后面进行物体分类的时候就可以只考虑较少的类别，不容易分类错误，而且不同的用户的 $C$ 也可以不同，更加 flexible。&lt;/li>
+&lt;li>做好了前置工作，就可以将系统部署到真实的机器人上了，系统会进入以下收纳循环，每一循环收纳一个物品，直到没有物品可以收纳：&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>利用外置摄像头得到地板的俯视图，通过 ViLD 识别出距离机器人最近的物体。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人移动到此物体旁，通过其自身的摄像头得到物体的近距离照片，将近距离照片与 $C$ 告诉 CLIP，让其对物体进行分类，得到类别 $c$。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>让 LLM 根据 $c, S_{receptacle}, S_{primitive}$ 总结出物体该 &lt;em>如何&lt;/em> 被放置到 &lt;em>何处&lt;/em>。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人执行相应的收纳动作。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real_system.png"
+width="1525"
+height="377"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_system_hu18148537030116396249.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_system_hu14811919430971523437.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="404"
+data-flex-basis="970px"
+>&lt;/p>
+&lt;p>涉及到 LLM 的部分，具体 prompt 可以参阅原论文 Appendix A。&lt;/p>
+&lt;h3 id="experiments">Experiments
+&lt;/h3>&lt;h4 id="benchmark-dataset">Benchmark Dataset
+&lt;/h4>&lt;p>为了评估所提出方法的可靠性，作者专门做了一个 benchmark dataset，其中共包含 96 个个性化场景，每个场景里都有一些容器和一些物品，其中有些物品被标注了应该被放到什么容器里，而另一些物品并没被标注。注意，每个场景可能代表了不同的收纳喜好，所以对于同一个物品，不同场景的收纳容器可能大不相同。任务的目的就是根据被标注的物品来预测未被标注的物体应该被放到哪里。&lt;/p>
+&lt;p>在这个数据集上，作者做了一些实验：&lt;a class="link" href="#baseline-comparisons" ># Baseline Comparisons&lt;/a>, &lt;a class="link" href="#ablation-studies" ># Ablation Studies&lt;/a>, &lt;a class="link" href="#human-evaluation" ># Human Evaluation&lt;/a>。&lt;/p>
+&lt;h4 id="baseline-comparisons">Baseline Comparisons
+&lt;/h4>&lt;p>这部分，作者将自己的方法与一些 baseline 作比较，比如只给 LLM 提供标注物体，直接让其预测为被标注物体该被放到哪里，而不经过 summarization 过程；再比如利用 pre-trained text embedding，对于未标注的物体，直接找到与其 embedding 距离最近的标注物体，认为二者应该被收纳到同一个地方。结论就是，作者的方法胜过其他 baseline。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/baseline.png"
+width="1041"
+height="534"
+srcset="https://suz-tsinghua.github.io/p/tidybot/baseline_hu2260679436813115871.png 480w, https://suz-tsinghua.github.io/p/tidybot/baseline_hu7433888565880427837.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="194"
+data-flex-basis="467px"
+>&lt;/p>
+&lt;h4 id="ablation-studies">Ablation Studies
+&lt;/h4>&lt;p>作者一共做了三个方面的 ablation studies：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;ol>
+&lt;li>不利用 user specific preference，直接让 LLM 依据 commonsense 来推断物品应该被放到哪里。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="2">
+&lt;li>让人类来进行 summarization，不用 LLM 做。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="3">
+&lt;li>比较采用不同 LLM 的准确率。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1.png"
+width="658"
+height="291"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu9791429553669372484.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu16712101575763368406.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="226"
+data-flex-basis="542px"
+> &lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2.png"
+width="799"
+height="384"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu4240727006035632664.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu11499249390621271082.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="208"
+data-flex-basis="499px"
+>&lt;/p>
+&lt;p>结论是，让 LLM 进行 summarization 会比直接用 commonsense 有非常大的提升，但相较于直接让人类进行 summarization 仍有不足。这也说明通过提升 LLM 的总结能力还能进一步提升此系统的能力。&lt;/p>
+&lt;p>另一方面，在不同的 LLM 中，text-davinci-003 有较好的效果。&lt;/p>
+&lt;h4 id="human-evaluation">Human Evaluation
+&lt;/h4>&lt;p>作者还招募了一些志愿者，向他们提供 user preference、baseline 给出的收纳建议、自己方法给出的收纳建议，让他们比较自己的方法与 baseline 的结果，哪个更符合 user preference。题目形式如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/question.png"
+width="744"
+height="547"
+srcset="https://suz-tsinghua.github.io/p/tidybot/question_hu15245168944330260646.png 480w, https://suz-tsinghua.github.io/p/tidybot/question_hu16038960857171736720.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="136"
+data-flex-basis="326px"
+>&lt;/p>
+&lt;p>结果显示，作者的方法有 46.9% 的情况被认为更好，而 baseline 只有 19.1% 的情况被认为更好。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/human_evaluation.png"
+width="1604"
+height="275"
+srcset="https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu12242310108710729194.png 480w, https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu7342609013758737524.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="583"
+data-flex-basis="1399px"
+>&lt;/p>
+&lt;h4 id="real-world-experiments">Real-world Experiments
+&lt;/h4>&lt;p>正如 &lt;a class="link" href="#method" ># Method&lt;/a> 中说的，作者还搭建了一个真实的机器人平台，让文章中提出的个性化收纳方法能够落地。作者构造了 8 个真实场景，每个场景包含一些散落在地上的物品以及几个收纳容器，然后让系统根据 &lt;a class="link" href="#method" ># Method&lt;/a> 中的 pipeline 运行。结果显示，系统在 85.0% 情况下都能正确完成收纳任务。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real.png"
+width="1671"
+height="592"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_hu16826072460319586654.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_hu17600697350256475454.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="282"
+data-flex-basis="677px"
+>&lt;/p>
+&lt;h2 id="language-conditioned-mobile-manipulation">Language-Conditioned Mobile Manipulation
+&lt;/h2>&lt;p>TidyBot 属于一个更广的研究领域 Language-Conditioned Mobile Manipulation。这个领域将 CV、NLP、Robotics 结合了起来，要求机器人能够根据人类的自然语言指令去做出相应的行为。&lt;/p>
+&lt;div align="center">
+&lt;img src=cross_field.png width=50% />
+&lt;/div>
+&lt;p>这篇文章为 Language-Conditioned Mobile Manipulation 领域做了个详细的调查：&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/pdf/2312.10807" target="_blank" rel="noopener"
+>https://arxiv.org/pdf/2312.10807&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/hk-zh/language-conditioned-robot-manipulation-models" target="_blank" rel="noopener"
+>https://github.com/hk-zh/language-conditioned-robot-manipulation-models&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="architecture-framework">Architecture Framework
+&lt;/h3>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/framework.png"
+width="1425"
+height="934"
+srcset="https://suz-tsinghua.github.io/p/tidybot/framework_hu8973135417564341417.png 480w, https://suz-tsinghua.github.io/p/tidybot/framework_hu14937730675035186088.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="152"
+data-flex-basis="366px"
+>&lt;/p>
+&lt;p>此领域工作的总体框架如上图所示。主要包括三个模块&lt;/p>
+&lt;ul>
+&lt;li>语言模块。其主要作用是理解用户的语言输入，并转化为机器人动作指导。如 TidyBot 中，用户告诉系统收纳 preference，语言模块就会进行处理，进行 preference 的总结等。&lt;/li>
+&lt;li>感知模块。其主要作用是感知周围环境，例如 TidyBot 中机器人利用自身的相机去识别物体进行分类。&lt;/li>
+&lt;li>控制模块。其主要作用是让机器人执行需要执行的指令。对应到 TidyBot 中，就是机器人去执行 “移动到某处”、“拿起地上的物品”、“把物品放置到某处” 等。在 TidyBot 中，这样的动作是 hard-coded 的，当然也可以采用 reinforcement learning (RL), imitation learing (IL) 等方法得到。&lt;/li>
+&lt;/ul>
+&lt;h3 id="approaches-categorization">Approaches Categorization
+&lt;/h3>&lt;p>Language-Conditioned Mobile Manipulation 的工作主要可以被粗略分为以下几类：&lt;/p>
+&lt;ul>
+&lt;li>Language-conditioned Reinforcement Learning&lt;/li>
+&lt;li>Language-conditioned Imitation Learning&lt;/li>
+&lt;li>Empowered by LLMs &amp;amp; VLMs&lt;/li>
+&lt;/ul>
+&lt;p>当然，有些工作可能可以被同时划分到多种类别中。其中，前两种方法较为传统，没有采用大语言模型等现成工具。第三种方法利用现成的 LLMs 与 VLMs，简化了系统，提高了能力。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/categories.png"
+width="1955"
+height="1212"
+srcset="https://suz-tsinghua.github.io/p/tidybot/categories_hu14519433019373800883.png 480w, https://suz-tsinghua.github.io/p/tidybot/categories_hu12373372102478987912.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="161"
+data-flex-basis="387px"
+>&lt;/p>
+&lt;h4 id="language-conditioned-reinforcement-learning">Language-conditioned Reinforcement Learning
+&lt;/h4>&lt;p>此类工作利用强化学习，通过人为设计等方法，建立一个从自然语言到 reward 的一个映射，当 agent 达到自然语言描述的目标时，它就能得到对应的 reward。Agent 在这个过程中可以学习到一个从自然语言到具体动作的映射。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Lancon-learn: Learning with language to enable generalization in multi-task manipulation &lt;a class="link" href="https://ieeexplore.ieee.org/document/9667188" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hartikainen/metaworld/tree/reward-tweaks-rebase" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Pixl2r: Guiding reinforcement learning using natural language by mapping pixels to rewards &lt;a class="link" href="https://proceedings.mlr.press/v155/goyal21a.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/prasoongoyal/PixL2R" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Learning from symmetry: Meta-reinforcement learning with symmetrical behaviors and language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.10656" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/symmetry/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Meta-reinforcement learning via language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.04924" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/yaoxt3/MILLION" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/million" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Learning language-conditioned robot behavior from offline data and crowd-sourced annotation &lt;a class="link" href="https://proceedings.mlr.press/v164/nair22a/nair22a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Concept2robot: Learning manipulation concepts from instructions and human demonstrations &lt;a class="link" href="https://www.roboticsproceedings.org/rss16/p082.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="language-conditioned-imitation-learning">Language-conditioned Imitation Learning
+&lt;/h4>&lt;p>此类工作利用模仿学习的范式，其不像强化学习那样要求提供 reward，但是需要提供一些正确的行为例子 (expert demonstrations)，agent 会根据这些正确的行为进行学习。具体可以再被细分为 behavior cloning (BC) 和 inverse reinforcement learning (IRL)。&lt;/p>
+&lt;p>BC 就是直接依样画葫芦，expert demonstrations 里怎么做，agent 就怎么做。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Language conditioned imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2005.07648" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="" >[code]&lt;/a> &lt;a class="link" href="https://language-play.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Bc-z: Zero-shot task generalization with robotic imitation learning &lt;a class="link" href="https://arxiv.org/abs/2202.02005" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>What matters in language-conditioned robotic imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2204.06252" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/lukashermann/hulc" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Grounding language with visual affordances over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2210.01911" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/mees/hulc2" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc2.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning with base skill priors under unstructured data &lt;a class="link" href="https://arxiv.org/abs/2305.19075" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hk-zh/spil" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://hk-zh.github.io/spil/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Pay attention!- robustifying a deep visuomotor policy through task-focused visual attention &lt;a class="link" href="https://arxiv.org/abs/1809.10093" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning for robot manipulation tasks &lt;a class="link" href="https://arxiv.org/abs/2010.12083" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>IRL 则需要经历两个步骤，第一步先从 expert demonstrations 和语言命令中学习一个从自然语言命令到 reward 的映射，再通过 RL 的方式学习行为策略（这样看来，此部分与 &lt;a class="link" href="#language-conditioned-reinforcement-learning" ># Language-conditioned Reinforcement Learning&lt;/a> 也有交集）。具体工作：&lt;/p>
+&lt;ul>
+&lt;li>Grounding english commands to reward function &lt;a class="link" href="https://www.roboticsproceedings.org/rss11/p18.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>From language to goals: Inverse reinforcement learning for vision-based instruction following &lt;a class="link" href="https://arxiv.org/abs/1902.07742" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="empowered-by-llms--vlms">Empowered by LLMs &amp;amp; VLMs
+&lt;/h4>&lt;p>前两类方法均需要对文本信息进行学习，而有了 LLM 这样强有力的工具，就可以对系统进行简化。具体而言，可以利用好大语言模型的 planning 和 reasoning 能力。&lt;/p>
+&lt;p>大语言模型的 planning 能力指的是其将复杂任务转化为一系列简单的、机器人能够执行的任务的能力。譬如要求机器人炒菜，直接学习一个炒菜的策略是非常难的，但可以先让 LLM 将炒菜的动作拆分成 洗菜、放油、放菜 等一系列简单的、机器人能够学会的动作，此时再让机器人去执行这些动作就能完成炒菜的任务了。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Sayplan: Grounding large language models using 3d scene graphs for scalable task planning &lt;a class="link" href="https://arxiv.org/abs/2307.06135" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language models as zero-shot planners: Extracting actionable knowledge for embodied agents &lt;a class="link" href="https://arxiv.org/abs/2201.07207" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Describe, explain, plan and select: Interactive planning with large language models enables open-world multi-task agents &lt;a class="link" href="https://arxiv.org/abs/2302.01560" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Progprompt: Generating situated robot task plans using large language models &lt;a class="link" href="https://arxiv.org/abs/2209.11302" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robots that ask for help: Uncertainty alignment for large language model planners &lt;a class="link" href="https://arxiv.org/abs/2307.01928" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Task and motion planning with large language models for object rearrangement &lt;a class="link" href="https://arxiv.org/abs/2303.06247" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Do as i can, not as i say: Grounding language in robotic affordances &lt;a class="link" href="https://arxiv.org/abs/2204.01691" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The 2014 international planning competition: Progress and trends &lt;a class="link" href="https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/2571" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning via deep reinforcement learning: a tabletop object sorting application &lt;a class="link" href="https://ieeexplore.ieee.org/document/8914278" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning and situation handling in open worlds &lt;a class="link" href="https://arxiv.org/abs/2210.01287" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/yding25/GPT-Planner" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cowplanning.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Text2motion: From natural language instructions to feasible plans &lt;a class="link" href="https://arxiv.org/abs/2303.12153" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://sites.google.com/stanford.edu/text2motion" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Large language models as commonsense knowledge for large-scale task planning &lt;a class="link" href="https://arxiv.org/abs/2305.14078" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/1989Ryan/llm-mcts" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://llm-mcts.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Alphablock: Embodied finetuning for vision-language reasoning in robot manipulation &lt;a class="link" href="https://arxiv.org/abs/2305.18898" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Learning to reason over scene graphs: a case study of finetuning gpt-2 into a robot language model for grounded task planning &lt;a class="link" href="https://www.frontiersin.org/articles/10.3389/frobt.2023.1221739/full" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/dnandha/RobLM" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Scaling up and distilling down: Language-guided robot skill acquisition &lt;a class="link" href="https://arxiv.org/abs/2307.14535" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/real-stanford/scalingup" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://www.cs.columbia.edu/~huy/scalingup/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Stap: Sequencing task-agnostic policies &lt;a class="link" href="https://ieeexplore.ieee.org/document/10160220" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/agiachris/STAP" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://sites.google.com/stanford.edu/stap/home" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Inner monologue: Embodied reasoning through planning with language models &lt;a class="link" href="https://arxiv.org/abs/2207.05608" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://innermonologue.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>大语言模型的 reasoning 能力就像 TidyBot 中展示的那样，利用 LLM 去推理某个物品应该被放置到何处，再让机器人去执行特定的策略。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Rearrangement:A challenge for embodied ai &lt;a class="link" href="https://arxiv.org/abs/2011.01975" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The threedworld transport challenge: A visually guided task and motion planning benchmark for physically realistic embodied ai &lt;a class="link" href="https://ieeexplore.ieee.org/document/9812329" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidy up my room: Multi-agent cooperation for service tasks in smart environments &lt;a class="link" href="https://dl.acm.org/doi/abs/10.3233/AIS-190524" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>A quantifiable stratification strategy for tidy-up in service robotics &lt;a class="link" href="https://ieeexplore.ieee.org/document/9542842" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidybot: Personalized robot assistance with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Housekeep: Tidying virtual households using commonsense reasoning &lt;a class="link" href="https://arxiv.org/abs/2205.10712" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Building cooperative embodied agents modularly with large language models &lt;a class="link" href="https://arxiv.org/abs/2307.02485" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Voyager: An open-ended embodied agent with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.16291" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Translating natural language to planning goals with large-language models &lt;a class="link" href="https://arxiv.org/abs/2302.05128" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>在自然语言的基础上，可以再加上视觉工具，比如 TidyBot 中识别物体的部分。利用了 VLMs 的具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Cliport: What and where pathways for robotic manipulation &lt;a class="link" href="https://arxiv.org/abs/2109.12098" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/cliport/cliport" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cliport.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Transporter networks: Rearranging the visual world for robotic manipulation &lt;a class="link" href="https://proceedings.mlr.press/v155/zeng21a/zeng21a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/google-research/ravens" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://transporternets.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Simple but effective: Clip embeddings for embodied ai &lt;a class="link" href="https://openaccess.thecvf.com/content/CVPR2022/papers/Khandelwal_Simple_but_Effective_CLIP_Embeddings_for_Embodied_AI_CVPR_2022_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Instruct2act: Mapping multi-modality instructions to robotic actions with large language model &lt;a class="link" href="https://arxiv.org/abs/2305.11176" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/OpenGVLab/Instruct2Act" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Latte: Language trajectory transformer &lt;a class="link" href="https://arxiv.org/abs/2208.02918" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/arthurfenderbucker/LaTTe-Language-Trajectory-TransformEr" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Palm-e: An embodied multimodal language model &lt;a class="link" href="https://arxiv.org/abs/2303.03378" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://palm-e.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Pretrained language models as visual planners for human assistance &lt;a class="link" href="https://openaccess.thecvf.com/content/ICCV2023/papers/Patel_Pretrained_Language_Models_as_Visual_Planners_for_Human_Assistance_ICCV_2023_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/facebookresearch/vlamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Open-world object manipulation using pre-trained vision-language models &lt;a class="link" href="https://arxiv.org/abs/2303.00905" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://robot-moo.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Robotic skill acquisition via instruction augmentation with vision-language models &lt;a class="link" href="https://arxiv.org/abs/2211.11736" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://instructionaugmentation.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language reward modulation for pretraining reinforcement learning &lt;a class="link" href="https://arxiv.org/abs/2308.12270" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/ademiadeniji/lamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Vision-language models as success detectors &lt;a class="link" href="https://proceedings.mlr.press/v232/du23b.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>Group Equivariant Deep Learning Lecture 1.7</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.7/</link><pubDate>Tue, 23 Jan 2024 12:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.7/</guid><description>&lt;h1 id="lecture-17-group-convolutions-are-all-you-need">Lecture 1.7 Group convolutions are all you need!
+&lt;/h1>&lt;p>这一节要证明的是，对于一个线性映射，如果希望它是 equivariant 的，那它必须是一个 group convolution。&lt;/p>
+&lt;h2 id="classical-fully-connected-layer">Classical fully connected layer
+&lt;/h2>&lt;p>先看传统的全连接层：&lt;/p>
+&lt;p>$$\begin{pmatrix} y_1 \\
+y_2 \\
+y_3 \\
+\vdots
+\end{pmatrix} = \varphi\left(\begin{pmatrix}
+w_{11} &amp;amp; w_{12} &amp;amp; w_{13} &amp;amp; w_{14} &amp;amp; w_{15} &amp;amp; \cdots \\
+w_{21} &amp;amp; w_{22} &amp;amp; w_{23} &amp;amp; w_{24} &amp;amp; w_{25} &amp;amp; \cdots \\
+w_{31} &amp;amp; w_{32} &amp;amp; w_{33} &amp;amp; w_{34} &amp;amp; w_{35} &amp;amp; \cdots \\
+\vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \ddots
+\end{pmatrix}\begin{pmatrix}
+x_1 \\
+x_2 \\
+x_3 \\
+x_4 \\
+x_5 \\
+\vdots
+\end{pmatrix} + \begin{pmatrix}
+b_1 \\
+b_2 \\
+b_3 \\
+\vdots
+\end{pmatrix}\right)$$&lt;/p>
+&lt;p>其中 $\varphi$ 为某个非线性函数。如果希望全连接层是 equivariant 的，则需要类似有如下的形式：&lt;/p>
+&lt;p>$$\begin{pmatrix} y_1 \\
+y_2 \\
+y_3 \\
+\vdots
+\end{pmatrix} = \varphi\left(\begin{pmatrix}
+w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; 0 &amp;amp; 0 &amp;amp; \cdots \\
+0 &amp;amp; w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; 0 &amp;amp; \cdots \\
+0 &amp;amp; 0 &amp;amp; w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; \cdots \\
+\vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \ddots
+\end{pmatrix}\begin{pmatrix}
+x_1 \\
+x_2 \\
+x_3 \\
+x_4 \\
+x_5 \\
+\vdots
+\end{pmatrix} + \begin{pmatrix}
+b_1 \\
+b_2 \\
+b_3 \\
+\vdots
+\end{pmatrix}\right)$$&lt;/p>
+&lt;p>这其实就是一维的卷积。&lt;/p>
+&lt;h2 id="linear-maps-in-continuous-space">Linear maps in continuous space
+&lt;/h2>&lt;p>对于从 $\mathbb{R}^n$ 到 $\mathbb{R}^m$ 的线性映射，我们知道其必须是 matrix-vector multiplication：&lt;/p>
+&lt;p>$$y_j = \sum_i K_{i,j} x_i$$&lt;/p>
+&lt;p>对于一个 feature map $f\in \mathbb{L}_2(X)$，我们也可以将其视为一个 vector，维数就是 $f$ 的定义域 $X$ 的大小 $|X|$。考虑将一个 feature map $f^{in}\in \mathbb{L}_2 (X)$ 线性映射到另一个 feature map $f^{out}\in \mathbb{L}_2 (Y)$，当定义域是连续的时候，仿照 matrix-vector multiplication，可知线性映射有如下形式：&lt;/p>
+&lt;p>$$ f^{out}(y) = (Kf)(y) = \int_X k(y,x) f(x) \mathrm{ d}x $$&lt;/p>
+&lt;p>对于连续空间中的线性映射，有如下定理：&lt;/p>
+&lt;blockquote>
+&lt;p>Theorem (G-convs are all you need):&lt;/p>
+&lt;p>$\mathscr{K}: \mathbb{L}_2(X)\rightarrow \mathbb{L}_2(Y)$ 是一个线性映射，且 $X$ 和 $Y$ 都是群 $G$ 的 homogeneous space。&lt;/p>
+&lt;p>随意取 $y_0\in Y$，令 $H=Stab_G(y_0)$，那么 $Y\equiv G/H$。对于 $\forall y\in Y$，令 $g_y\in G$ 为某个满足 $y=g_y y_0$ 的元素。&lt;/p>
+&lt;p>$\mathscr{K}$ is equivariant iff:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>$\mathscr{K}$ 是一个 group convolution: $[\mathscr{K}f] (y)=\int_{X} \frac{1}{|\det g_y|}k(g_y^{-1}x)f(x)\mathrm{ d}x$&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kernel 满足对称约束: $\forall h\in H, \frac{1}{|\det h|}k(h^{-1}x) = k(x)$&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/blockquote>
+&lt;p>定理中的 $|\det g_y|$ 即为 $g_y$ 的雅可比行列式的绝对值，理论上来说其会随 $x$ 而变，但在大部分实际情况中，$|\det g_y| = 1$。&lt;/p>
+&lt;p>以二维图像的 convolution 为例子来解释一下这个定理。此时 $X$ 与 $Y$ 均为 $\mathbb{R}^2$， $G$ 即为二维 translation group。若希望 linear map 是 equivariant 的，必须有 $[\mathscr{K}f] (y)=\int_{X} k(x - y)f(x)\mathrm{ d}x$ 这样的卷积形式（平移变换的雅可比行列式大小为1）。&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:&lt;/p>
+&lt;p>只证明一边，即 equivariant 的 $\mathscr{K}$ 必须满足定理中的两个条件。&lt;/p>
+&lt;p>已知 $\mathscr{K}$ 具有形式&lt;/p>
+&lt;p>$$[\mathscr{K}f] (y) = \int_X \tilde{k} (y,x)f(x)\mathrm{ d} x \tag{1}$$&lt;/p>
+&lt;p>希望 $\mathscr{K}$ is equivariant，即&lt;/p>
+&lt;p>$$\forall g\in G, \forall f\in\mathbb{L}_2(X),\quad (\mathscr{K}\circ \mathscr{L}_g^{G\rightarrow \mathbb{L}_2(X)})(f)=(\mathscr{L}_g^{G\rightarrow \mathbb{L}_2(Y)}\circ \mathscr{K})(f)$$&lt;/p>
+&lt;p>代入 $\mathscr{K}$ 和 $\mathscr{L}$ 的表达式&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,x) f(x)\mathrm{ d}x$$&lt;/p>
+&lt;p>在 RHS 中用 $g^{-1}x$ 替换 $x$&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,g^{-1}x) f(g^{-1}x)\mathrm{ d}(g^{-1}x)$$&lt;/p>
+&lt;p>代入雅可比行列式&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,g^{-1}x) f(g^{-1}x)\frac{1}{|\det g|}\mathrm{ d}x$$&lt;/p>
+&lt;p>这对任意 $f$ 都要成立，故&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \frac{1}{|\det g|} \tilde{k}(g^{-1}y,g^{-1}x)$$&lt;/p>
+&lt;p>又已知 $G$ acts transitively on $Y$，$\exists g_y,$ s.t. $y=g_y y_0$&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \tilde{k}(g_y y_0,x) = \frac{1}{|\det g_y|} \tilde{k}(y_0,g_y^{-1}x)$$&lt;/p>
+&lt;p>定义 $k(g_y^{-1}x) := \tilde{k}(y_0,g_y^{-1}x)$，则有&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \frac{1}{|\det g_y|} k(g_y^{-1}x)$$&lt;/p>
+&lt;p>代回到 (1) 式中，就得到了&lt;/p>
+&lt;p>$$[\mathscr{K}f] (y)=\int_{X} \frac{1}{|\det g_y|}k(g_y^{-1}x)f(x)\mathrm{ d}x \tag{2}$$&lt;/p>
+&lt;p>$\forall h\in H, k(h^{-1}x) = \tilde{k}(y_0, h^{-1}x) = |\det h| \tilde{k}(h y_0, x) = |\det h| k(x)$，即&lt;/p>
+&lt;p>$$\forall h\in H, \quad \frac{1}{|\det h|}k(h^{-1}x) = k(x) \tag{3}$$&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="例子">例子
+&lt;/h2>&lt;p>我们以几个例子来更好地理解这个定理的内容及应用。&lt;/p>
+&lt;h3 id="classical-convolution">Classical convolution
+&lt;/h3>&lt;p>当 $G$ 为 translation group 的时候，传统的二维图像卷积 kernel 满足对称约束。因为此时 $H=\{e\}$，显然有 $k(ex)=k(x)$。&lt;/p>
+&lt;p>当 $G$ 为 roto-translation group 的时候，传统的二维图像卷积就不满足对称约束了。对于任意 $y_0$ ，roto-translation group 中有很多元素可以保持 $y_0$不变。因此构造出来的 $H$ 中除了 $e$ 还有别的元素，这些元素不能满足 $k(hx)=k(x)$，所以 $G$ 为 roto-translation group 的时候，传统卷积操作不再具有等变性。&lt;/p>
+&lt;h3 id="lifting-convolution--group-convolution">Lifting convolution &amp;amp; Group convolution
+&lt;/h3>&lt;p>Lifting convolution 和 group convolution 的 $Y$ 均为 $SE(2)$，对于 roto-translation group，$H=\{e\}$。所以对称约束始终满足，不对 $k$ 有任何约束。二者均具有等变性。&lt;/p>
+&lt;h2 id="结论">结论
+&lt;/h2>&lt;p>因此，当我们希望构造一个 $G$-equivariant convolution 时，最好的办法就是直接让 $Y=G$，这样的话 $H=\{e\}$，对称约束始终满足，kernel $k$ 不受任何约束，most expressive。&lt;/p>
+&lt;p>Group convolutions are all you need!&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.6</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.6/</link><pubDate>Mon, 22 Jan 2024 18:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.6/</guid><description>&lt;h1 id="lecture-16-group-theory--homogeneousquotient-spaces">Lecture 1.6 Group Theory | Homogeneous/quotient spaces
+&lt;/h1>&lt;p>这一节为后面的内容做准备，再来介绍一下 group theory。&lt;/p>
+&lt;h2 id="group-action">Group action
+&lt;/h2>&lt;p>group action 是一个 operator $\odot: G\times X\rightarrow X$，其满足以下性质：&lt;/p>
+&lt;p>$$\forall g, g^{\prime}\in G, \forall x\in X, \quad g\odot (g^{\prime}\odot x)=(gg^{\prime})\odot x$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action.png"
+width="557"
+height="239"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action_hu9820175796048379539.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action_hu7269655421463152762.png 1024w"
+loading="lazy"
+alt="group action"
+class="gallery-image"
+data-flex-grow="233"
+data-flex-basis="559px"
+>&lt;/p>
+&lt;h2 id="transitive-action">Transitive action
+&lt;/h2>&lt;p>称一个 group action $\odot$ 具有传递性 (transitivity)，当其满足：&lt;/p>
+&lt;p>$$\forall x_0, x\in X, \exists g\in G, \quad x=g\odot x_0$$&lt;/p>
+&lt;p>比如 $(\mathbb{R}^2,+)$ 作用在 $\mathbb{R}^2$ 上，$SE(2)$ 作用在 $\mathbb{R}^2$ 上都是 transitive 的。但 $SO(2)$ 作用在 $\mathbb{R}^2$ 上不是。&lt;/p>
+&lt;h2 id="homogeneous-space">Homogeneous space
+&lt;/h2>&lt;p>如果一个群 $G$ 能够传递地作用在空间 $X$ 上，则称 $X$ 是 $G$ 的一个 homogeneous space。&lt;/p>
+&lt;p>这个性质很重要，因为卷积可以被视为对 kernel 作用 $G$ 中的每个元素后与输入 $f$ 进行点积，只有 $f$ 的定义域是 $G$ 的一个 homogeneous space 的时候，才能保证 $f$ 中的所有信息能被卷积提取出来。&lt;/p>
+&lt;p>比如对于普通的二维卷积操作，正是因为 $\mathbb{R}^2$ 是 $(\mathbb{R}^2,+)$ 的一个 homogeneous space，kernel 才能遍历 $f$ 的每个点。对于 lifting correlation 也是一样，$\mathbb{R}^2$ 是 $SE(2)$ 的一个 homogeneous space。&lt;/p>
+&lt;p>可以定义三维旋转群 $SO(3)$ 作用在三维向量（起点为原点） $\mathbb{R}^3$ 上的 group action，roll 对应向量的伸缩，pitch 和 yaw 对应向量方向的旋转。若将作用后的三维向量投影到三维球面 $S^2$ 上，可以发现 $S^2$ 是 $SO(3)$ 的一个 homogeneous space。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2.png"
+width="694"
+height="537"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2_hu517990817504336910.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2_hu446272120173872799.png 1024w"
+loading="lazy"
+alt="$S^2$ is a homogeneous space of $SO(3)$"
+class="gallery-image"
+data-flex-grow="129"
+data-flex-basis="310px"
+>&lt;/p>
+&lt;h2 id="quotient-space">Quotient space
+&lt;/h2>&lt;p>对于群 $G$ 以及其正规子群 $H$，定义 quotient space/group 为：&lt;/p>
+&lt;p>$$G/H=\left\{\{gh|h\in H\}| g\in G\right\}$$&lt;/p>
+&lt;p>$G/H$ 中的元素是集合。&lt;/p>
+&lt;p>其实在 $SO(3)$ 作用在 $S^2$ 的过程中， roll 并没有起作用（无论向量如何伸缩，都会被投影回 $S^2$），所以有 $S^2\cong SO(3)/SO(2)$。&lt;/p>
+&lt;h2 id="stabilizer">Stabilizer
+&lt;/h2>&lt;p>对于集合 $X$ 中的元素 $x_0$ 以及作用在 $X$ 上的群 $G$，定义 $x_0$ 的 stabilizer 为：&lt;/p>
+&lt;p>$$Stab_G(x_0)=\{g|gx_0=x_0\}$$&lt;/p>
+&lt;p>即那些能让 $x_0$ 保持稳定的元素 $g$。&lt;/p>
+&lt;h2 id="homogeneous-space-equiv-quotient-space">Homogeneous space $\equiv$ Quotient space
+&lt;/h2>&lt;p>&lt;a class="link" href="https://uvagedl.github.io/lectures_pdf/Lecture_1_6_GroupTheory.pdf" target="_blank" rel="noopener"
+>Slides&lt;/a> 中的表述为：Any quotient space is a homogeneous space. Any homogeneous space is a quotient space.&lt;/p>
+&lt;p>显然，quotient space 是一个 homogeneous space，因为 $G$ 可以传递地作用在 $G/H$ 上。&lt;/p>
+&lt;p>但第二句话的表述并不严谨，quotient space 一定是一个 group，但 homogeneous space 不一定是个 group。因此对于一个给定的 homogeneous space，无法构造一个 quotient space，使得二者同构。但可以构造一个 quotient space，使得二者之间存在 bijection。&lt;/p>
+&lt;p>&lt;a class="link" href="https://uvagedl.github.io/GroupConvLectureNotes.pdf" target="_blank" rel="noopener"
+>Lecture notes&lt;/a> 中对第二句话的表述为：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22.png"
+width="842"
+height="62"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22_hu11524263295282780412.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22_hu9697252116417895123.png 1024w"
+loading="lazy"
+alt="任何一个 homogeneous space 都是 quotient space"
+class="gallery-image"
+data-flex-grow="1358"
+data-flex-basis="3259px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:&lt;/p>
+&lt;p>对于任意一个 $x_0\in X$，都可以构造一个映射 $f: G/H \rightarrow X, gH \mapsto gx_0$。&lt;/p>
+&lt;p>这个映射是良定义的，因为如果 $\exists g_1, g_2,$ s.t. $g_1 H=g_2 H$，那么 $\exists h\in H,$ s.t. $g_1=g_2 h$。所以 $g_1 x_0 = g_2 h x_0 = g_2 x_0$。&lt;/p>
+&lt;p>因为 $X$ 是一个 homogeneous space，所以 $f$ 是满射。&lt;/p>
+&lt;p>假设 $g_1 x_0=g_2 x_0$，那么 $g_2^{-1} g_1 x_0 = x_0, g_2^{-1} g_1\in H$，所以 $g_1 H = g_2 H$。$f$ 是单射。&lt;/p>
+&lt;p>$f$ is a bijection.&lt;/p>
+&lt;/blockquote></description></item><item><title>Group Equivariant Deep Learning Lecture 1.5</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.5/</link><pubDate>Mon, 22 Jan 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.5/</guid><description>&lt;h1 id="lecture-15-a-brief-history-of-g-cnns">Lecture 1.5 A brief history of G-CNNs
+&lt;/h1>&lt;p>本节简单讲了下 G-CNN 的发展历程，从 discrete group 一步步到更一般的 group。感兴趣可以自己看：&lt;/p>
+&lt;div class="video-wrapper">
+&lt;iframe loading="lazy"
+src="https://www.youtube.com/embed/kTvow5-eCCQ"
+allowfullscreen
+title="YouTube Video"
+>
+&lt;/iframe>
+&lt;/div>
+&lt;p>&lt;a class="link" href="https://uvagedl.github.io/lectures_pdf/Lecture_1_5_History.pdf" target="_blank" rel="noopener"
+>slides链接&lt;/a>&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.4</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.4/</link><pubDate>Mon, 22 Jan 2024 12:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.4/</guid><description>&lt;h1 id="lecture-14-se2-equivariant-nn-example--histopathology">Lecture 1.4 SE(2) Equivariant NN Example | histopathology
+&lt;/h1>&lt;p>本节以有丝分裂细胞识别为例（即给一张细胞的图片，判断其是否正在进行有丝分裂），构造一个 rotation invariant CNN。对于一张图片的不同旋转版本，网络需要返回同样的输出。&lt;/p>
+&lt;h2 id="invariance">Invariance
+&lt;/h2>&lt;p>我们在 Lecture 1.2 节已经介绍过等变性 (equivariance)，即对于一个 operator $\Phi: X\rightarrow Y$，其具有以下的性质：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$&lt;/p>
+&lt;p>而不变性 (invariance) 则是：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\Phi$$&lt;/p>
+&lt;p>即不论输入在经过 $\Phi$ 之前是否经过 $\rho^X(g)$，其最终输出都是一样的。&lt;/p>
+&lt;h2 id="网络架构">网络架构
+&lt;/h2>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN.png"
+width="1129"
+height="638"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN_hu10333033717328027907.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN_hu16120746009578391603.png 1024w"
+loading="lazy"
+alt="rotation invariant CNN"
+class="gallery-image"
+data-flex-grow="176"
+data-flex-basis="424px"
+>&lt;/p>
+&lt;p>网络架构如上图所示，对于一张图片，将其经过一层 lifting convolution 和几层 group convolution 后，每个 output channel 都只含有一个 $ 1\times |G| $ 的向量。通过这样的操作抹去了 $x, y$，只留下了 $\theta$ 轴。由于中间的每一层都是 equivariant 的，因此对于不同旋转角度的输入，这一层的输出仅仅是在 $\theta$ 轴上有不同的平移。为了消除 $\theta$ 轴向平移的影响，在后面再加一层 projection layer （或者说是 pooling layer），在 $\theta$ 方向取 mean 或 max 等等。&lt;/p>
+&lt;p>此时我们就得到了一个 $1 \times \# \text{ output channels}$ 的向量，此时的输出结果是 roto-invariant 的，可以直接在后面加一个 linear 层进行 classification。&lt;/p>
+&lt;p>也可以在每层之后加一层 pointwise non-linear layer，这显然不会改变 equivariance。&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Note:&lt;/strong> 这样构造出来的 CNN 的网络大小是正比于 $|G|$ 的。比如如果希望构造一个完全 rotational invariant 的网络，$|G|$ 的大小即旋转的度数的个数，是无穷的，这样的网络无法达到效果。这里实现的只是取了几个旋转角度，比如 $0, \frac{\pi}{2}, \pi, \frac{3\pi}{2}$。后续讲的网络可以解决这个问题。&lt;/li>
+&lt;/ul>
+&lt;h2 id="from-rotation-to-scale-equivariant-cnns">From rotation to scale equivariant CNNs
+&lt;/h2>&lt;p>上面我们展示了 roto-translation equivariant CNN 的作用，除此以外，scale equivariant CNN 也有其用处， 比如可以识别不同大小的人脸、不同音量音高的音频。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN.png"
+width="1001"
+height="795"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN_hu17739261351021332129.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN_hu17937914167994125071.png 1024w"
+loading="lazy"
+alt="对不同频率的音频的识别"
+class="gallery-image"
+data-flex-grow="125"
+data-flex-basis="302px"
+>&lt;/p>
+&lt;h2 id="效果">效果
+&lt;/h2>&lt;ul>
+&lt;li>G-CNN 可以&lt;strong>保证&lt;/strong>输出的等变性。&lt;/li>
+&lt;li>G-CNN 可以获得比单纯用 data-augmentation 更好的效果。比如要进行人脸识别，训练集里某一张图片有两张人脸，data-augmentation 可以识别将两张人脸作为一个整体旋转得到的图片，而 G-CNN 可以识别两张人脸分别旋转得到的图片。&lt;/li>
+&lt;li>G-CNN 增加了 sample efficiency。&lt;/li>
+&lt;/ul></description></item><item><title>Group Equivariant Deep Learning Lecture 1.3</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.3/</link><pubDate>Sat, 20 Jan 2024 23:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.3/</guid><description>&lt;h1 id="lecture-13-regular-group-convolutions--template-matching-viewpoint">Lecture 1.3 Regular group convolutions | Template matching viewpoint
+&lt;/h1>&lt;h2 id="cross-correlations">Cross-correlations
+&lt;/h2>&lt;p>定义 kernel $k\in \mathbb{L}_2(\mathbb{R}^2)$ 和二维图像 $f\in \mathbb{L}_2(\mathbb{R}^2)$ 之间的 cross-correlations 为：&lt;/p>
+&lt;p>$$(k\star_{\mathbb{R}^2} f)(\mathbf{x})=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L}_{\mathbf{x}} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>RHS 的标记是定义出来的。&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Note:&lt;/strong> 这其实就是 CNN 中的 convolution，但并不是严格意义上的 convolution，严格意义上的 convolution 为：&lt;/li>
+&lt;/ul>
+&lt;p>$$\int_{\mathbb{R}^2} k(\mathbf{x}-\mathbf{x}^{\prime})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}$$&lt;/p>
+&lt;h2 id="equivariance">Equivariance
+&lt;/h2>&lt;p>Convolutions/cross-correlations 具有平移等变性，即对于 $\forall \mathbf{x}, \mathbf{y}\in \mathbb{R}^2$，有&lt;/p>
+&lt;p>$$\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]=(k\star_{\mathbb{R}^2}\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi.png"
+width="1399"
+height="600"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi_hu8742475310394732435.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi_hu10131090888412463.png 1024w"
+loading="lazy"
+alt="卷积操作具有平移等变性"
+class="gallery-image"
+data-flex-grow="233"
+data-flex-basis="559px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:
+$$LHS=(k\star_{\mathbb{R}^2} f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, \mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$&lt;/p>
+&lt;/blockquote>
+&lt;p>一般情况下，卷积操作对于旋转操作并不具有等变性。&lt;/p>
+&lt;p>$$\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]\neq (k\star_{\mathbb{R}^2}\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi.png"
+width="1400"
+height="614"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi_hu10717081983120023016.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi_hu10970339847413702283.png 1024w"
+loading="lazy"
+alt="卷积操作不具有旋转等变性"
+class="gallery-image"
+data-flex-grow="228"
+data-flex-basis="547px"
+>&lt;/p>
+&lt;h2 id="regular-group-cnn">Regular group CNN
+&lt;/h2>&lt;p>接下来，我们从构造 roto-translation equivariant 的卷积操作入手，一步步搭建 regular group CNN。&lt;/p>
+&lt;h3 id="lifting-correlations">Lifting correlations
+&lt;/h3>&lt;p>首先，cross-correlation 可以写为：&lt;/p>
+&lt;p>$$(k\star_{\mathbb{R}^2} f)(\mathbf{x})=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>类似地，对于 $\forall k, f\in \mathbb{L}_2 (\mathbb{R}^2)$，我们定义 lifting correlations 为：&lt;/p>
+&lt;p>$$(k\tilde{\star} f)(\mathbf{x}, \theta)=(\mathscr{L}_{(\mathbf{x},\theta)}^{SE(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} \mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>这就相当于将 kernel $k$ 的每一种旋转以及每一种平移都与 $f$ 做一次点积操作，最后得到一个 3D feature map。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation.png"
+width="1026"
+height="345"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation_hu17348265910634858841.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation_hu3255836081765936797.png 1024w"
+loading="lazy"
+alt="Lifting correlations"
+class="gallery-image"
+data-flex-grow="297"
+data-flex-basis="713px"
+>&lt;/p>
+&lt;p>Lifing correlations 具有 roto-translation 等变性，即（省略上标）：&lt;/p>
+&lt;p>$$\mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} (k\tilde{\star} f)(\mathbf{x}, \theta) = (k\tilde{\star} \mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} f)(\mathbf{x}, \theta)$$&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:
+$$LHS=(k\tilde{\star} f)(\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)=(\mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} \mathscr{L}_{\mathbf{x}} \mathscr{L}_{\theta} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}} \mathscr{L}_{\theta} k, \mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi.png"
+width="1054"
+height="499"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi_hu12123238164148467618.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi_hu3644318984779435014.png 1024w"
+loading="lazy"
+alt="lifting correlations are roto-translation equivariant"
+class="gallery-image"
+data-flex-grow="211"
+data-flex-basis="506px"
+>&lt;/p>
+&lt;h3 id="group-correlations">Group correlations
+&lt;/h3>&lt;p>Lifting correlations 可以学到 low-level features，比如要匹配人脸，某个 kernel 可能学到了眼睛，某个 kernel 可能学到了鼻子。如果此时直接对 $\theta$ 轴进行投影，各部分不同的朝向可能会导致相同的投影，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces.png"
+width="624"
+height="206"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces_hu5102834507659032544.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces_hu16520580369128861777.png 1024w"
+loading="lazy"
+alt="直接投影可能会导致很多奇怪的图被投影到同样的 feature map"
+class="gallery-image"
+data-flex-grow="302"
+data-flex-basis="726px"
+>&lt;/p>
+&lt;p>所以需要后续的 layers 用其他 kernels 来匹配全局信息。对于 $\forall k, y \in \mathbb{L}_2 (SE(2))$，定义 group correlations 为：&lt;/p>
+&lt;p>$$(k\star f)(\mathbf{x}, \theta)=(\mathscr{L}_{(\mathbf{x},\theta)}^{SE(2)\rightarrow \mathbb{L}_2 (SE(2))} k, f)_{\mathbb{L}_2 (SE(2))}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (SE(2))} \mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2 (SE(2))} k, f)_{\mathbb{L}_2 (SE(2))}$$&lt;/p>
+&lt;p>Group correlations 将两个 3D feature maps 映射为一个 3D feature map。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation.png"
+width="1057"
+height="354"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation_hu9320970284264679197.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation_hu7316074508991261303.png 1024w"
+loading="lazy"
+alt="Group correlations"
+class="gallery-image"
+data-flex-grow="298"
+data-flex-basis="716px"
+>&lt;/p>
+&lt;p>类似可以证明，group correlations 也是 roto-translation equivalent 的。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi.png"
+width="1069"
+height="495"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi_hu4887098216288403875.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi_hu12335850599239461762.png 1024w"
+loading="lazy"
+alt="group correlations are roto-translation equivariant"
+class="gallery-image"
+data-flex-grow="215"
+data-flex-basis="518px"
+>&lt;/p>
+&lt;h3 id="网络架构">网络架构
+&lt;/h3>&lt;p>将上面说的 lifting correlations 和 group correlations 连起来，就得到了一个 regular group CNN 最简单的样子。可以在后面再加上 projection layer 等层，将 $\theta$ 轴去掉，得到一个二维图像。我们构造了一个对 roto-translation 具有等变性的 CNN，当然也可以以类似的方法构造对 scale-translation 具有等变性的 CNN，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN.png"
+width="1440"
+height="810"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN_hu7355816838190124956.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN_hu9817354966023399787.png 1024w"
+loading="lazy"
+alt="一个最基本的 regular group CNN"
+class="gallery-image"
+data-flex-grow="177"
+data-flex-basis="426px"
+>&lt;/p>
+&lt;p>当然，我们目前只得到了一个二维图像，下一节会以细胞识别为例子，构造一个完整的 regular group CNN。&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.2</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.2/</link><pubDate>Sat, 20 Jan 2024 22:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.2/</guid><description>&lt;h1 id="lecture-12-group-theory--the-basics">Lecture 1.2 Group Theory | The basics
+&lt;/h1>&lt;p>先介绍一下群论里的一些概念。&lt;/p>
+&lt;h2 id="group">Group
+&lt;/h2>&lt;p>一个群 (group) $(G, \cdot)$ 是一个元素集合 $G$ 加上定义在 $G$ 中元素上的二元运算 $\cdot$。二元运算 $\cdot$ 满足以下四条性质：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Closure:&lt;/strong> 对于 $\forall g, h \in G$, 它们的积 $g\cdot h\in G$。&lt;/li>
+&lt;li>&lt;strong>Associativity:&lt;/strong> 对于 $\forall g,h,i \in G, \cdot$ 满足结合律，$g\cdot (h\cdot i)=(g\cdot h)\cdot i$。&lt;/li>
+&lt;li>&lt;strong>Indentity element:&lt;/strong> 存在一个 identity element $e\in G$，满足对于 $\forall g\in G, e\cdot g=g\cdot e=g$。&lt;/li>
+&lt;li>&lt;strong>Inverse element:&lt;/strong> 对于 $\forall g\in G$，其都有 inverse element $g^{-1}\in G$ s.t. $g^{-1}\cdot g=g \cdot g^{-1}=e$。&lt;/li>
+&lt;/ul>
+&lt;h3 id="translation-group-mathbbr2-">Translation group $(\mathbb{R}^2, +)$
+&lt;/h3>&lt;p>Translation group 中的元素即为 $\mathbb{R}^2$ 中的点，对于 $g=(\mathbf{x}), g^{\prime}=(\mathbf{x}^{\prime})$，其中 $\mathbf{x},\mathbf{x}^{\prime}\in \mathbb{R}^2$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(\mathbf{x}+\mathbf{x}^{\prime})$$
+$$g^{-1}=(-\mathbf{x})$$&lt;/p>
+&lt;p>Translation group 中的一个元素可以被视为一个平移变换 （Lecture 1.6 中会细讲）。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group.png"
+width="579"
+height="227"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group_hu4850602503814547752.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group_hu9632744535022678962.png 1024w"
+loading="lazy"
+alt="translation group"
+class="gallery-image"
+data-flex-grow="255"
+data-flex-basis="612px"
+>&lt;/p>
+&lt;h3 id="roto-translation-group-se2-2d-special-euclidean-motion-group">Roto-translation group $SE(2)$ (2D Special Euclidean motion group)
+&lt;/h3>&lt;p>$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}_{\theta} )$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}_{\theta} \in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}_{\theta}) , g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}} )$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}_{\theta}) \cdot (\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})=(\mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}_{\theta+\theta^{\prime}} )$$&lt;/p>
+&lt;p>$$g^{-1}=(-\mathbf{R}_{\theta}^{-1} \mathbf{x}, \mathbf{R}_{\theta}^{-1} )$$&lt;/p>
+&lt;p>$SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变换。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29.png"
+width="570"
+height="223"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29_hu8157567678559539875.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29_hu9047402899836187602.png 1024w"
+loading="lazy"
+alt="SE(2) group"
+class="gallery-image"
+data-flex-grow="255"
+data-flex-basis="613px"
+>&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>矩阵表示：&lt;/strong> $SE(2)$ 中的元素也可以用矩阵表示：&lt;/li>
+&lt;/ul>
+&lt;p>$$g=(\mathbf{x}, \mathbf{R}_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}_{\theta} &amp;amp; \mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix} = \begin{pmatrix} \cos\theta &amp;amp; -\sin\theta &amp;amp; x\\ \sin\theta &amp;amp; \cos\theta &amp;amp; y\\ 0 &amp;amp; 0 &amp;amp; 1 \end{pmatrix}$$&lt;/p>
+&lt;p>$$\begin{pmatrix} \mathbf{R}_{\theta} &amp;amp; \mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}_{\theta^{\prime}} &amp;amp; \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}_{\theta+\theta^{\prime}} &amp;amp; \mathbf{R}_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}$$&lt;/p>
+&lt;h3 id="scale-translation-group-mathbbr2rtimesmathbbr">Scale-translation group $\mathbb{R}^2\rtimes\mathbb{R}^+$
+&lt;/h3>&lt;p>$\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的每个元素 $g=(\mathbf{x},s)$ 由一个二维向量 $\mathbf{x}\in\mathbb{R}^2$ 以及一个正标量 $s\in \mathbb{R}^+$ 组成。对于 $g=(\mathbf{x},s), g^{\prime}=(\mathbf{x}^{\prime}, s^{\prime})$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(s\mathbf{x}^{\prime}+\mathbf{x}, ss^{\prime})$$&lt;/p>
+&lt;p>$$g^{-1}=\left(-\frac{1}{s}\mathbf{x}, \frac{1}{s}\right)$$&lt;/p>
+&lt;p>$\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的一个元素可以被视为一个缩放变换加上一个平移变换。&lt;/p>
+&lt;h3 id="affine-groups-gmathbbrdrtimes-h">Affine groups $G=\mathbb{R}^{d}\rtimes H$
+&lt;/h3>&lt;p>Affine groups 是某个 group $H$ 和 $\mathbb{R}^d$ 的半直积。对于 $g=(\mathbf{x},h), g^{\prime}=(\mathbf{x}^{\prime}, h^{\prime})$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(h\cdot\mathbf{x}^{\prime}+\mathbf{x}, h\cdot h^{\prime})$$
+$$g^{-1}=\left(-h^{-1}\cdot\mathbf{x}, h^{-1}\right)$$&lt;/p>
+&lt;p>上面说的 $SE(2)=\mathbb{R}^2\rtimes SO(2)$ 和 $\mathbb{R}^2\rtimes\mathbb{R}^+$ 都属于 affine groups。Affine groups 中的一个元素可以被视为一个变换 $h$ 加上一个平移变换。&lt;/p>
+&lt;h2 id="representations">Representations
+&lt;/h2>&lt;p>一个 representation $\rho: G\rightarrow GL(V)$ 是从 $G$ 到 $GL(V)$ 的一个群同态 (group homomorphism)。&lt;/p>
+&lt;ul>
+&lt;li>$GL_n$ 就是由所有 $n\times n$ 的可逆矩阵组成的群，群运算即为矩阵乘法。&lt;/li>
+&lt;/ul>
+&lt;p>这就是说 $\rho(g)$ 是由 $g\in G$ 决定的线性变换，它作用在一个向量 $\mathbf{v}\in V$ 上，具有性质：&lt;/p>
+&lt;p>$$\rho(g^{\prime})\circ\rho(g)[\mathbf{v}]=\rho(g^{\prime}\cdot g)[\mathbf{v}]$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation.png"
+width="582"
+height="242"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation_hu12677593421651654986.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation_hu14243957777481512555.png 1024w"
+loading="lazy"
+alt="representation is homomorphic"
+class="gallery-image"
+data-flex-grow="240"
+data-flex-basis="577px"
+>&lt;/p>
+&lt;h3 id="left-regular-representations">Left-regular representations
+&lt;/h3>&lt;p>一个 left-regular representation $\mathscr{L}_g$ 作用在一个函数 $f$ 上，定义为：&lt;/p>
+&lt;p>$$\mathscr{L}_g [f](x):=f(g^{-1}\cdot x)$$&lt;/p>
+&lt;p>这么说有点抽象，举个例子。$f\in \mathbb{L}_2(\mathbb{R}^2)$ 是一个二维图像，它给 $\mathbb{R}^2$ 上的每个点赋值。$g\in G=SE(2)$ 可以被看做是一个平移变换加上一个旋转变换。对于二维平面上的一个点 $\mathbf{y}\in\mathbb{R}^2$，可以算出：&lt;/p>
+&lt;p>$$\mathscr{L}_g [f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}_{-\theta}(\mathbf{y}-\mathbf{x}))$$&lt;/p>
+&lt;p>即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。在这种情况下 $\mathscr{L}_g $ 也可以写做 $\mathscr{L}_g^{SE(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)}$。这就是说，在给定 $f$ 的情况下，$\mathscr{L}$ 会将 $g\in SE(2)$ 转成一个二维图像 $f^{\prime}\in \mathbb{L}_2 (\mathbb{R}^2)$。&lt;/p>
+&lt;p>Left-regular representations 满足性质：&lt;/p>
+&lt;p>$$\mathscr{L}_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}_{g^{\prime}\cdot g}$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep.png"
+width="592"
+height="275"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep_hu9495275467218321512.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep_hu2396734437732884717.png 1024w"
+loading="lazy"
+alt="left regular representation"
+class="gallery-image"
+data-flex-grow="215"
+data-flex-basis="516px"
+>&lt;/p>
+&lt;h2 id="equivariance">Equivariance
+&lt;/h2>&lt;p>如果一个 operator $\Phi: X\rightarrow Y$ （如一个神经网络）满足以下条件，则说其具有等变性 (equivariance)：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$&lt;/p>
+&lt;p>即，先作用 $\Phi$ 与后作用 $\Phi$ 得到的效果是一样的。比如 $g$ 表示一个平移变换，$\Phi$ 表示用 CNN 从图片中提取特征。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance.png"
+width="438"
+height="373"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance_hu815101802900198437.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance_hu7591912822231533592.png 1024w"
+loading="lazy"
+alt="equivariance"
+class="gallery-image"
+data-flex-grow="117"
+data-flex-basis="281px"
+>&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.1</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.1/</link><pubDate>Sat, 20 Jan 2024 20:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.1/</guid><description>&lt;p>最近在做一个将对称性与 RL 结合的工作，其中将 PPO 里的 actor-critic 网络换成了具有对称性的 EMLP (equivariant MLP)。EMLP 的效果就是，对于具有对称性的输入，其保证输出也具有对称性。EMLP 利用 &lt;a class="link" href="https://github.com/QUVA-Lab/escnn" target="_blank" rel="noopener"
+>escnn&lt;/a> 库实现。我在 escnn 库的 README.md 里找到了 Amsterdam 大学的一个暑期课程 &lt;a class="link" href="https://uvagedl.github.io/" target="_blank" rel="noopener"
+>An Introduction to Group Equivariant Deep Learning&lt;/a>，感觉是个很有趣的领域，于是打算学习一下并记点笔记。&lt;/p>
+&lt;h1 id="lecture-1-regular-group-convolutional-neural-networks">Lecture 1 Regular group convolutional neural networks
+&lt;/h1>&lt;h1 id="lecture-11-introduction">Lecture 1.1 Introduction
+&lt;/h1>&lt;p>其实 DL 中的许多问题都要求对于以某种方式对称后的输入，网络的输出也具有某种对称性（或不变性）。比如对于肿瘤细胞的识别：给定一张细胞的图片，要求判断其是否为恶性肿瘤细胞。我们希望图像旋转后，判断的结果保持不变。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells.png"
+width="141"
+height="231"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells_hu6767862435531511341.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells_hu3765818790516971711.png 1024w"
+loading="lazy"
+alt="细胞图，第二个由第一个旋转得来"
+class="gallery-image"
+data-flex-grow="61"
+data-flex-basis="146px"
+>&lt;/p>
+&lt;p>一个最直接的办法就是 data augmentation，对于训练集中的一张图片，将其经过若干种旋转后的图片都加到训练集中。尽管这样可以在一定程度上解决问题，但是这种方法仍没有完全保证输出关于对称输入的不变性 (invariance)，而且其将有限的网络 capacity 用于学习对称性上，在相同的参数量下可能会造成 capacity 的下降。因此我们希望直接在网络层面保证对称性。&lt;/p>
+&lt;p>我们已经知道 CNN 具有平移对称性，即对于平移一定距离的输入，CNN 的输出也具有相同方向、相同距离的平移。但如下图所示， CNN 并不具备旋转对称性。其中 input 即为输入的图像，feature map 是 CNN 的原始输出，stabilized view 是将 feature map 转回到原来的角度。对于旋转后的图像，CNN 的输出并不稳定，即 stabilized view 并不保持不变。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn.gif"
+width="1024"
+height="366"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn_hu8671059584752854937.gif 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn_hu11427629099715979999.gif 1024w"
+loading="lazy"
+alt="Conventional CNN output"
+class="gallery-image"
+data-flex-grow="279"
+data-flex-basis="671px"
+>&lt;/p>
+&lt;p>我们希望构造一个 CNN 网络结构 (Group equivariant CNN)，使得 CNN 具有旋转对称性，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield.gif"
+width="1024"
+height="366"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield_hu15065802252989535204.gif 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield_hu16806462780593154617.gif 1024w"
+loading="lazy"
+alt="Equivariant CNN output"
+class="gallery-image"
+data-flex-grow="279"
+data-flex-basis="671px"
+>&lt;/p></description></item></channel></rss>

@@ -1,0 +1,2920 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>suz</title><link>https://suz-tsinghua.github.io/</link><description>Recent content on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sat, 31 Aug 2024 07:00:00 +0000</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>Deep Reinforcement Learning Lecture 6</title><link>https://suz-tsinghua.github.io/p/drl-notes-6/</link><pubDate>Sat, 31 Aug 2024 07:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-6/</guid><description>&lt;h1 id="proximal-policy-optimization">Proximal Policy Optimization
+&lt;/h1>&lt;p>Proximal Policy Optimization (PPO) 的 objective function:&lt;/p>
+&lt;p>$$\max_{\theta}\left( \mathbb{E}_t\left[\frac{\pi_{\theta}(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)} A^{\pi_{\text{old}}}_t\right] - \beta \mathbb{E}_t\left[\textbf{KL}[\pi_{\theta_{\text{old}}}(\cdot|s_t), \pi_{\theta}(\cdot|s_t)]\right]\right)$$&lt;/p>
+&lt;p>其中第二项是为了保证 $\pi$ 在更新时不要发生太大的变化，这样可以让训练更稳定。&lt;/p>
+&lt;h2 id="adaptive-kl-penalty">Adaptive KL Penalty
+&lt;/h2>&lt;p>系数 $\beta$ 是可以调节的，用于调节 KL penalty 的比重，也可以 adaptively 调节。比如令&lt;/p>
+&lt;p>$$d = \mathbb{E}_t\left[\textbf{KL}[\pi_{\theta_{\text{old}}}(\cdot|s_t), \pi_{\theta}(\cdot|s_t)]\right]$$&lt;/p>
+&lt;p>再设定一个目标 $d_{\text{targ}}$，&lt;/p>
+&lt;ul>
+&lt;li>当 $d&amp;lt;d_{\text{targ}}/1.5$ 时，$\beta\leftarrow \beta/2$。&lt;/li>
+&lt;li>当 $d&amp;gt;d_{\text{targ}}\times 1.5$ 时，$\beta\leftarrow \beta\times 2$。&lt;/li>
+&lt;/ul>
+&lt;h3 id="ppo-with-clipped-objective">PPO with Clipped Objective
+&lt;/h3>&lt;p>为了让训练更加稳定，对 $r_t=\frac{\pi_{\theta}(a_t|s_t)}{\pi_{\theta_{\text{old}}}}$ 进行 clip：&lt;/p>
+&lt;p>$$L^{\text{CLIP}}=\mathbb{E}_t\left[\min \left(r_t A^{\pi_{\text{old}}}_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) A^{\pi_{\text{old}}}_t\right)\right]$$&lt;/p>
+&lt;h3 id="ppo-in-practice">PPO in Practice
+&lt;/h3>&lt;p>一般在使用时，会在 CLIP 项后额外加两项，而 KL divergence 则作为调节 learning rate 的判据 （KL小就调大 lr，KL大就调小 lr）。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-6/ppo.png"
+width="1701"
+height="548"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-6/ppo_hu18306677165486188349.png 480w, https://suz-tsinghua.github.io/p/drl-notes-6/ppo_hu5735245097465197443.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="310"
+data-flex-basis="744px"
+>&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 5</title><link>https://suz-tsinghua.github.io/p/drl-notes-5/</link><pubDate>Sun, 21 Jul 2024 07:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-5/</guid><description>&lt;h1 id="actor-critic">Actor-Critic
+&lt;/h1>&lt;h2 id="off-policy-policy-gradient">Off-Policy Policy Gradient
+&lt;/h2>&lt;p>上节中我们提到，REINFORCE 中：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>等式右边的期望 $\mathbb{E}_{\tau}$ 是对当前 policy $\pi_{\theta}$ 而言的。因此在更新 policy 时只能采用当前 policy 跑出来的 trajectory 数据，不能用过往 policy 或者任意别的 policy 跑出来的 trajectory。而这使得 REINFORCE 的训练样本量较小，训练速度较慢。我们现在希望用某种方法使得 REINFORCE 能够使用别的 trajectory 数据。&lt;/p>
+&lt;h3 id="importance-sampling">Importance Sampling
+&lt;/h3>&lt;p>假设现在有一个随机变量 $x$，其概率密度函数 $p(x)$，我们希望估计函数 $f(x)$ 的均值 $\mathbb{E}_{x\sim p(x)}[f(x)]$。如果我们拥有一些符合概率密度函数 $p(x)$ 的 samples $\{x_i\}$ 则可以通过 Monte-Carlo 的办法进行直接估计：&lt;/p>
+&lt;p>$$\mathbb{E}_{x\sim p(x)}[f(x)]\approx \frac{1}{|{x_i}|} \sum_{i} f(x_i)$$&lt;/p>
+&lt;p>但实际情况是，我们拥有的 samples $\{x_i\}$ 并不符合 $p(x)$，而是符合另一概率密度函数 $q(x)$，则可以用以下 Monte-Carlo 的办法估计：&lt;/p>
+&lt;p>$$\mathbb{E}_{x\sim p(x)}[f(x)]=\int f(x) p(x) dx =\int f(x) \frac{p(x)}{q(x)} q(x) dx \approx \frac{1}{|{x_i}|} \sum_{i} f(x_i) \frac{p(x_i)}{q(x_i)}$$&lt;/p>
+&lt;p>这种方法称为 Importance Sampling。&lt;/p>
+&lt;h3 id="off-policy-pg">Off-Policy PG
+&lt;/h3>&lt;p>利用 Importance Sampling，在更新策略时我们可以使用别的 policy 跑出来的 trajectory，假设我们利用 $\pi_{\theta^{\prime}}$ 跑出来的数据来更新 $\pi_{\theta}$。&lt;/p>
+&lt;p>$$\begin{align*}
+\nabla_{\theta}J(\theta)&amp;amp;=\mathbb{E}_{\tau\sim p_{\theta}}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi_{\theta}(a_t|s_t)\right]\\
+&amp;amp;=\mathbb{E}_{\tau\sim p^{\prime}_{\theta}}\left[\frac{p_{\theta}(\tau)}{p_{\theta}^{\prime}(\tau)}R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi_{\theta}(a_t|s_t)\right]\\
+\end{align*}$$&lt;/p>
+&lt;p>其中：&lt;/p>
+&lt;p>$$\frac{p_{\theta}(\tau)}{p_{\theta}^{\prime}(\tau)}=\frac{\mu(s_0)\prod_{t=0}^{T-1}\left[\pi_{\theta}(a_t|s_t)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]}{\mu(s_0)\prod_{t=0}^{T-1}\left[\pi_{\theta^{\prime}}(a_t|s_t)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]}=\frac{\prod_{t=0}^{T-1}\left[\pi_{\theta}(a_t|s_t)\right]}{\prod_{t=0}^{T-1}\left[\pi_{\theta^{\prime}}(a_t|s_t)\right]}$$&lt;/p>
+&lt;h2 id="actor-critic-1">Actor-Critic
+&lt;/h2>&lt;p>事实上，我们除了可以选取 $\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$ 来作为 $\nabla_{\theta}J(\theta)$，还有许多别的选择：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient.png"
+width="1702"
+height="1016"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient_hu12674062784506064854.png 480w, https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient_hu9820593768097020010.png 1024w"
+loading="lazy"
+alt="A general form of policy gradient methods. (Schulman et al., 2016, https://arxiv.org/abs/1506.02438)"
+class="gallery-image"
+data-flex-grow="167"
+data-flex-basis="402px"
+>&lt;/p>
+&lt;p>我们接下来考虑形式：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[\sum_{t=0}^{T-1}(Q^{\pi}(s_t, a_t)-V^{\pi}(s_t))\nabla_{\theta}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>其中 $V^{\pi}(s_t)$ 即为上一讲说到的 baseline，可以起到降低 variance 的作用。&lt;/p>
+&lt;p>由于 $V^{\pi}$ 并不能轻易得到，我们在原先已有神经网络 $\pi_{\theta}$ 的基础上再加一个神经网络 $V^{\pi}_{\phi}$。用新的神经网络 $V^{\pi}_{\phi}$ 去拟合 $V^{\pi}$。我们需要同时学习这两个神经网络。直观上来看，由于新的神经网络表征的是 value function，它相当于对原有的 policy 网络 $\pi_{\theta}$ 进行评判，因此我们把这类方法称为 actor-critic，$\pi_{\theta}$ 是 actor，$V^{\pi}_{\phi}$ 是 critic。&lt;/p>
+&lt;h3 id="batch-actor-critic-algorithm">Batch Actor-Critic Algorithm
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Batch Actor-Critic Algorithm (Without Discount):&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>在机器人或别的智能体上跑 $\pi_{\theta}$，得到很多 trajectories 数据。&lt;/li>
+&lt;li>用收集到的数据更新 $V^{\pi}_{\phi}$ 网络。&lt;/li>
+&lt;li>对收集到的每个 transition $(s, a, r, s^{\prime})$， 计算出估计的 advantage function $A^{\pi}(s,a)=r(s,a)+V^{\pi}_{\phi}(s^{\prime})-V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>算出梯度 $\nabla_{\theta}J(\theta)\approx \frac{1}{N} \sum_i A^{\pi}(s_i,a_i)\nabla_{\theta} \log\pi_{\theta}(a_i|s_i)$。&lt;/li>
+&lt;li>更新参数 $\theta\leftarrow \theta + \alpha \nabla_{\theta}J(\theta)$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>但如果我们不想收集完一整个 episode 的数据再更新，而是想要每个 step 都能更新一次怎么办？我们可以用 TD update 来更新 $V^{\pi}_{\phi}$，并且再加入 discount。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Batch Actor-Critic Algorithm:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>在机器人或别的智能体上跑 $\pi_{\theta}$，得到一个 step 的数据 $(s, a, r, s^{\prime})$。&lt;/li>
+&lt;li>以 $r+\gamma V^{\pi}_{\phi}(s^{\prime})$ 为目标更新 $V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>计算出估计的 advantage function $A^{\pi}(s,a)=r(s,a)+V^{\pi}_{\phi}(s^{\prime})-V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>算出梯度 $\nabla_{\theta}J(\theta)\approx \frac{1}{N} \sum_i A^{\pi}(s_i,a_i)\nabla_{\theta} \log\pi_{\theta}(a_i|s_i)$。&lt;/li>
+&lt;li>更新参数 $\theta\leftarrow \theta + \alpha \nabla_{\theta}J(\theta)$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="ddpg">DDPG
+&lt;/h3>&lt;p>我们知道，在 DQN 中，$Q$ 的更新需要用到 target: $r+\gamma\max_{a^{\prime}}Q(s^{\prime},a^{\prime})$。由于要对 $a^{\prime}$ 取最大值，DQN 不能直接被应用到 continuous action 的情况。那是否有办法将其应用到 continuous action 的情况呢？提供几种可能的解决方法：&lt;/p>
+&lt;ul>
+&lt;li>Solution 1: 取 $N$ 个 $a$ 的samples，取其中的最大值，即认为 $\max_{a^{\prime}}Q(s^{\prime},a^{\prime})\approx \max{Q(s^{\prime},a^{\prime}_1), Q(s^{\prime},a^{\prime}_2), &amp;hellip;, Q(s^{\prime},a^{\prime}_N)}$。但这样取出来的值可能和真正的最大值差的非常大，尤其是 action space 很大的时候。&lt;/li>
+&lt;li>Solution 2：参数化 $Q$ 时用 $Q_{\phi}(s,a)=-\frac{1}{2}(a-\mu_{\phi}(s))^{T}P_{\phi}(s)(a-\mu_{\phi}(s))+V_{\phi}(s)$。这样可以直接得出 $\arg\max Q$ 和 $\max Q$，但由于限制了表达形式，会让 $Q$ less expressive。&lt;/li>
+&lt;li>Solution 3：每次求 $\max_{a^{\prime}}Q(s^{\prime},a^{\prime})$ 都做 gradient ascent。这样太慢了。&lt;/li>
+&lt;li>Solution 4：直接学习一个 $\mu_{\theta}(s)$ s.t. $\mu_{\theta}(s)\approx\argmax_a Q(s,a)$。&lt;/li>
+&lt;/ul>
+&lt;p>顺着 solution 4，我们得到一个新的算法 Deep Deterministic Policy Gradient (DDPG)。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>DDPG:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>每一步的 action 从 $\mu_{\theta}(s)$+noise 中 sample，得到很多 transitions $(s_i, a_i, s_i^{\prime}, r_i)$，将他们存到 buffer $\mathcal{B}$ 中。&lt;/li>
+&lt;li>随机从 $\mathcal{B}$ 中 sample 得到 $N$ 个 transitions $(s_j, a_j, s_j^{\prime}, r_j)$。&lt;/li>
+&lt;li>用 target network 得到 $y_j=r_j+\gamma Q_{\phi^{\prime}}(s_j^{\prime},\mu_{\theta^{\prime}}(s_j^{\prime}))$。&lt;/li>
+&lt;li>Update $Q_{\phi}$ to minimize the loss funciton $L=\frac{1}{N}\sum_j(y_j-Q_{\phi}(s_j, a_j))^2$。&lt;/li>
+&lt;li>Update the actor network $\mu_{\theta}(s)$ by $\theta\leftarrow \theta+\beta\frac{1}{N}\sum_j\frac{d\mu}{d\theta}(s_j)\frac{dQ}{da}(s_j, \mu_{\theta}(s_j))$。&lt;/li>
+&lt;li>用不管什么方法，更新 target network。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="td3">TD3
+&lt;/h3>&lt;p>Twin Delayed DDPG (TD3) 通过在 DDPG 的基础上进行改进得来。它多加了 3 个技巧：&lt;/p>
+&lt;h4 id="clipped-double-q-learning">Clipped Double Q-learning
+&lt;/h4>&lt;p>这是说，采用两套 networks $(Q_{\phi_1}, \mu_{\theta_1}), (Q_{\phi_2}, \mu_{\theta_2})$。在更新两套 networks 时，分别采用：&lt;/p>
+&lt;p>$$y_1=r+\gamma \min_i Q_{\phi_i}(s^{\prime}, \mu_{\theta_1}(s^{\prime}))$$
+$$y_2=r+\gamma \min_i Q_{\phi_i}(s^{\prime}, \mu_{\theta_2}(s^{\prime}))$$&lt;/p>
+&lt;p>这有助于解决 overestimation of $Q$。&lt;/p>
+&lt;h4 id="delayed-policy-updates">Delayed Policy Updates
+&lt;/h4>&lt;p>因为 $Q$ network 和 $\mu$ network 是耦合的，也就是说当 policy 较差的时候， $Q$ 由于 overestimation 也会变差；而 $Q$ 变差了又会得到更差的 policy。因此降低 $\mu$ network 的更新频率，每次先固定 $\mu$，更新多次 $Q$ 直到其较为稳定，这时再去更新 $\mu$。&lt;/p>
+&lt;h4 id="target-policy-smoothing">Target Policy Smoothing
+&lt;/h4>&lt;p>计算 $y$ 时，将 $\mu_{\theta^{\prime}}(s^{\prime})$ 替换为 $clip(\mu_{\theta^{\prime}}(s^{\prime})+clip(\epsilon, -c, c), a_{low}, a_{high})$。这样可以让 policy 函数更加 smooth，这是基于相近的 state 本就应该有相近的 action 的假设的。&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 4</title><link>https://suz-tsinghua.github.io/p/drl-notes-4/</link><pubDate>Fri, 19 Jul 2024 08:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-4/</guid><description>&lt;h1 id="advanced-dqn-and-policy-gradient">Advanced DQN and Policy Gradient
+&lt;/h1>&lt;h2 id="dqn-variants">DQN Variants
+&lt;/h2>&lt;p>本节我们先来介绍一下 DQN 的几种 variants。&lt;/p>
+&lt;h3 id="double-dqn">Double DQN
+&lt;/h3>&lt;p>在加入 Target Network 后，DQN 的 loss function 为：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>在 $Q(s, a; w)$ 收敛的过程中，我们可以将其视为一个随机变量，其值随着 $w$ 的变化而上下浮动，以真值 $\hat{Q}(s,a)$ 为期望。由于采用了 Experience Replay，同一个 transition 会在 $w$ 不同的时候被多次计算，我们实际上在以：&lt;/p>
+&lt;p>$$\mathbb{E}_{w^-}\left[r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)\right]$$&lt;/p>
+&lt;p>为 target 优化 $Q(s_t, a_t; w)$。根据不等式：&lt;/p>
+&lt;p>$$\mathbb{E}(\max(X_1, X_2, &amp;hellip;))\geq \max(\mathbb{E}(X_1), \mathbb{E}(X_2), &amp;hellip;)$$&lt;/p>
+&lt;p>我们能得到：&lt;/p>
+&lt;p>$$\mathbb{E}_{w^-}\left[r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)\right]\geq r_t+\gamma \max_{a^{\prime}} \hat{Q}(s_{t+1}, a^{\prime})$$&lt;/p>
+&lt;p>不等式右边才是我们想要的 target，因此可见 DQN 往往会存在 overestimation 的问题。我们使用的 target 会比实际的 target 大。&lt;/p>
+&lt;p>解决方法是我们用当前的 $Q$-network $w$ 来选择最好的 action，但用之前的 $Q$-network $w^-$ 来 evaluate action，即：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma Q\left(s_{t+1}, \argmax_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w); w^-\right)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>这个方法被称为 Double DQN。&lt;/p>
+&lt;p>显然，$Q\left(s_{t+1}, \argmax_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w); w^-\right)\leq \max_{a^{\prime}}Q\left(s_{t+1}, a^{\prime}; w^-\right)$。因此相较于 DQN，Double DQN 可以在一定程度上缓解 overestimation 带来的影响。并且当 $w^-$ 和 $w$ 收敛之后，不等式会取等。&lt;/p>
+&lt;h3 id="prioritized-experience-replay">Prioritized Experience Replay
+&lt;/h3>&lt;p>由于 DQN 对 replay buffer 里的 samples 学习好坏程度并不相同，有些 samples 学习得较好，有些则学习得较差。如果每次从 buffer 中取 samples 都完全随机的话，有可能会 overfit 到一些 samples 上，而另一些 samples 则几乎没学到。这样就会让训练效果变差，训练速度变慢。&lt;/p>
+&lt;p>解决方法是每次根据学习得好坏来对 replay buffer 进行加权采样。Store experience in priority queue according to DQN error：&lt;/p>
+&lt;p>$$\left|r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right|$$&lt;/p>
+&lt;p>对 error 进行一些函数变换之后作为 sample 的权重。这个方法被称作 Prioritized Experience Replay。&lt;/p>
+&lt;h3 id="dueling-dqn">Dueling DQN
+&lt;/h3>&lt;p>我们定义 advantage function：&lt;/p>
+&lt;p>$$A^{\pi}(s,a)=Q^{\pi}(s,a)-V^{\pi}(s)$$&lt;/p>
+&lt;p>用来衡量 state $s$ 下，action $a$ 相较于其他的 actions 好多少。&lt;/p>
+&lt;p>Dueling DQN 将 $Q$-network 分为两个 channel，一个 channel 用来学习只与 state 有关的 value function $V(s;w)$；另一个 channel 学习 advantage function $A(s,a;w)$。计算 $Q$ 时将二者加起来：&lt;/p>
+&lt;p>$$Q(s,a;w)=V(s;w)+A(s,a;w)$$&lt;/p>
+&lt;p>其中 $V(s;w)$ 与 $A(s,a;w)$ 共享部分结构，如下图所示。网络的输入是 $s$ 的 vector representation，输出是大小为 $|A|$ 的向量。$V(s;w)$ 的输出在图中呈现为单个数。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/dueling.jpg"
+width="624"
+height="344"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/dueling_hu7026778928025059580.jpg 480w, https://suz-tsinghua.github.io/p/drl-notes-4/dueling_hu8892534989995122532.jpg 1024w"
+loading="lazy"
+alt="The Architecture of Dueling DQN"
+class="gallery-image"
+data-flex-grow="181"
+data-flex-basis="435px"
+>&lt;/p>
+&lt;h3 id="n-step-return">$n$-Step Return
+&lt;/h3>&lt;p>我们先前一直用的都是 1-step return 作为 target，当然也可以用 $n$-step return：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(R_t^{n}+\gamma^n\max_{a^{\prime}}Q(s_{t+n}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;h3 id="rainbow">Rainbow
+&lt;/h3>&lt;p>&lt;a class="link" href="https://arxiv.org/abs/1710.02298" target="_blank" rel="noopener"
+>Rainbow&lt;/a> 这篇工作总结比较了 DQN 的许多变种，并同时运用了这些 tricks 来得到较好的效果。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/rainbow.png"
+width="711"
+height="468"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/rainbow_hu16392776797459743248.png 480w, https://suz-tsinghua.github.io/p/drl-notes-4/rainbow_hu2209319984347038257.png 1024w"
+loading="lazy"
+alt="Rainbow"
+class="gallery-image"
+data-flex-grow="151"
+data-flex-basis="364px"
+>&lt;/p>
+&lt;h2 id="policy-gradient">Policy Gradient
+&lt;/h2>&lt;p>相较于 $Q$-learning，DQN 已经在一定程度上解决了 $|S|$ 与 $|A|$ 较大的问题，但还不够，从 $Q$ function 得到 policy 需要对 $Q(s,a) \forall a$ 进行比较，这相当耗时。为了在更大的空间里进行 RL，我们希望直接参数化 policy：&lt;/p>
+&lt;p>$$\pi_{\theta}(s,a)=\mathbb{P}[a|s,\theta]$$&lt;/p>
+&lt;h3 id="three-types-of-rl-methods">Three Types of RL Methods
+&lt;/h3>&lt;p>RL 可以根据是否学习参数化的 value/$Q$ function，是否学习参数化的 policy 分为三大类&lt;/p>
+&lt;ul>
+&lt;li>Value Based: Learn Value/$Q$ Function, Implicit Policy.&lt;/li>
+&lt;li>Policy Based: No Value Function, Learn Policy.&lt;/li>
+&lt;li>Actor-Critic: Learn Value Function, Learn Policy.&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/value-policy.png"
+width="348"
+height="218"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/value-policy_hu10201127908205460900.png 480w, https://suz-tsinghua.github.io/p/drl-notes-4/value-policy_hu8778164666726168570.png 1024w"
+loading="lazy"
+alt="Tree types of RL methods"
+class="gallery-image"
+data-flex-grow="159"
+data-flex-basis="383px"
+>&lt;/p>
+&lt;p>我们之前讲的方法都属于 Value Based，这部分会介绍 Policy Based Method，而下一节会讲 Actor-Critic。&lt;/p>
+&lt;h3 id="policy-parameterization">Policy Parameterization
+&lt;/h3>&lt;p>先讲如何 parameterize $\pi_{\theta}$。&lt;/p>
+&lt;h4 id="softmax-policy">Softmax Policy
+&lt;/h4>&lt;p>$$\pi_{\theta}(s,a)\propto e^{\phi(s,a)^{\top}\theta}$$&lt;/p>
+&lt;p>其中 $\phi(s,a)$ 是 $s,a$ 的 features，也可以用 neural networks 表示。&lt;/p>
+&lt;p>定义 score function 为 $\nabla_{\theta}\log \pi_{\theta}(s,a)$ （后面的推导中会看到为何要这么定义）。那么 softmax policy 的 score function 为：&lt;/p>
+&lt;p>$$\nabla_{\theta}\log \pi_{\theta}(s,a)=\phi(s,a)-\mathbb{E}_{\pi_{\theta}}[\phi(s,\cdot)]$$&lt;/p>
+&lt;h4 id="gaussian-policy">Gaussian Policy
+&lt;/h4>&lt;p>一个更广泛运用的 parameterized policy 是 Gaussian Policy，其只适用于 continuous actions。&lt;/p>
+&lt;p>Action 的均值为 $\mu(s)=\phi(s)^{\top}\theta$，其中 $\phi(s)$ 是 $s$ 的 features，也可以用 neural networks 表示。&lt;/p>
+&lt;p>Action 的方差为 $\sigma^2$，可以是固定的，也可以是 parameterized 的。&lt;/p>
+&lt;p>Action 从高斯分布中采样，$a\sim \mathcal{N}(\mu(s), \sigma^2)$。&lt;/p>
+&lt;p>Score function:&lt;/p>
+&lt;p>$$\nabla_{\theta}\log \pi_{\theta}(s,a)=\frac{(a-\mu(s))\phi(s)}{\sigma^2}$$&lt;/p>
+&lt;h3 id="policy-objective-functions">Policy Objective Functions
+&lt;/h3>&lt;p>既然要学习参数化的 policy $\pi_{\theta}(s,a)$，那么该如何衡量 policy 的好坏，如何定义 objective function to maximize。一种可行的定义方法是 average reward per time-step：&lt;/p>
+&lt;p>$$J_{avR}(\theta)=\sum_{s}d^{\pi_{\theta}}(s)\sum_a\pi_{\theta}(s,a)r(s,a)$$&lt;/p>
+&lt;p>这里，$d^{\pi_{\theta}}$ 是 MDP 在 $\pi_{\theta}$ 下的稳定分布。&lt;/p>
+&lt;p>不过，在 model-free 的情况下我们无法得知 $d^{\pi_{\theta}}$，另一种较为直接的办法就是 maximize expected return of trajectories：&lt;/p>
+&lt;p>$$J(\theta)=\mathbb{E}_{\tau}[R(\tau)]$$&lt;/p>
+&lt;h3 id="gradient-of-objective-functions">Gradient of Objective Functions
+&lt;/h3>&lt;p>为了更新 policy，我们需要对 objective funcion 进行 gradient ascent：&lt;/p>
+&lt;p>$$\Delta \theta = \alpha \nabla_{\theta}J(\theta)$$&lt;/p>
+&lt;p>接下来就对这个导数进行推导。&lt;/p>
+&lt;p>$$\begin{align*}
+\nabla_{\theta}J(\theta)&amp;amp;=\nabla_{\theta}\sum_{\tau}\mathbb{P}(\tau|\theta)R(\tau)\\
+&amp;amp;=\sum_{\tau}R(\tau)\nabla_{\theta}\mathbb{P}(\tau|\theta)\\
+&amp;amp;=\sum_{\tau}R(\tau)\mathbb{P}(\tau|\theta)\frac{\nabla_{\theta}\mathbb{P}(\tau|\theta)}{\mathbb{P}(\tau|\theta)}\\
+&amp;amp;=\sum_{\tau}R(\tau)\mathbb{P}(\tau|\theta)\nabla_{\theta}\log\mathbb{P}(\tau|\theta)\\
+&amp;amp;=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\log\mathbb{P}(\tau|\theta)\right]
+\end{align*}$$&lt;/p>
+&lt;p>假设 $\tau = s_0, a_0, r_0, s_1, a_1, &amp;hellip;, s_{T-1}, a_{T-1}, r_{T-1}, s_T$，那么有：&lt;/p>
+&lt;p>$$\mathbb{P}(\tau|\theta)=\mu(s_0)\prod_{t=0}^{T-1}\left[\pi(a_t|s_t,\theta)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]$$&lt;/p>
+&lt;p>其中 $\mu(s_0)$ 是 initial distribution。取对数：&lt;/p>
+&lt;p>$$\log\mathbb{P}(\tau|\theta)=\log\mu(s_0)+\sum_{t=0}^{T-1}\left[\log\pi(a_t|s_t,\theta)+\log\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]$$&lt;/p>
+&lt;p>求导：&lt;/p>
+&lt;p>$$\nabla_{\theta}\log\mathbb{P}(\tau|\theta)=\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)$$&lt;/p>
+&lt;p>代入原式中，得到：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>在已知 $\tau$ 以及 $\pi$ 的情况下，括号中的内容可以直接算出。Expectation 则可以用 MC 来 estimate。&lt;/p>
+&lt;h3 id="reinforce">REINFORCE
+&lt;/h3>&lt;p>根据以上的推导，得出了一个 MC-based, policy-based RL method：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>REINFORCE:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>sample {$\tau^i$} from $\pi_{\theta}$ (run the policy)&lt;/li>
+&lt;li>$\nabla_{\theta}J(\theta)\approx\frac{1}{|\{\tau^i\}|}\sum_{i}\left[R(\tau_i)\sum_{t}\nabla_{\theta}\log\pi_{\theta}(a_t^i|s_t^i)\right]$&lt;/li>
+&lt;li>$\theta\leftarrow \theta+\alpha\nabla_{\theta}J(\theta)$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>REINFORCE 的一个问题是，其只能用当前 policy 跑出来的 trajectory 进行策略的更新，即它是 &lt;strong>on-policy&lt;/strong> 的。用别的 policy 跑出来的 trajectory 进行更新会导致 MC estimate 错误。这样一种性质使得 REINFORCE 的训练非常慢。下一节课会讲如何改进得到 &lt;strong>off-policy&lt;/strong> Policy Gradient。&lt;/p>
+&lt;h3 id="baseline-with-reinforce">Baseline with REINFORCE
+&lt;/h3>&lt;p>REINFORCE 中采用 MC 的方法进行 estimate，会导致 high variance，我们试图减小 variance。先不考虑整个 trajectory，只考虑一个 step。即减小 $r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)$ 的方差。&lt;/p>
+&lt;p>注意到，$\forall B(s)$ irrelevant with $a$：&lt;/p>
+&lt;p>$$\begin{align*}
+\mathbb{E}_{\pi_{\theta}}\left[B(s)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]&amp;amp;=\sum_{a}\pi_{\theta}(s,a)B(s)\nabla_{\theta}\log\pi_{\theta}(s,a)\\
+&amp;amp;=\sum_{a}B(s)\nabla_{\theta}\pi_{\theta}(s,a)\\
+&amp;amp;=B(s)\nabla_{\theta}\sum_{a}\pi_{\theta}(s,a)\\
+&amp;amp;=B(s)\nabla_{\theta}1\\
+&amp;amp;=0
+\end{align*}$$&lt;/p>
+&lt;p>故而用 $\mathbb{E}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$ 来代替 $\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$ 并不会影响 expectation。并且我们可以证明，当 $B(s)$ 合适的时候，$\text{Var}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right] &amp;lt; \text{Var}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$：&lt;/p>
+&lt;p>$$\begin{align*}
+&amp;amp;\text{Var}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right] - \text{Var}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]\\
+=&amp;amp;\mathbb{E}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2 - \mathbb{E}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2\\
+=&amp;amp;\mathbb{E}_{\pi_{\theta}}\left[\left(B(s)^2-2r(s,a)B(s)\right)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]\\
+=&amp;amp;B(s)^2\mathbb{E}_{\pi_{\theta}}\left[\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2-2B(s)\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]
+\end{align*}$$&lt;/p>
+&lt;p>这是个二次函数，当 $B(s)=\frac{\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]}{\mathbb{E}_{\pi_{\theta}}\left[\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2}$ 时，两个 Variance 的差取最小值，小于0。&lt;/p>
+&lt;p>$B(s)$ 称为 baseline。在 REINFORCE 中，选择一个合适的 constant baseline 也可以 reduce variance：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[(R(\tau)-B)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 3</title><link>https://suz-tsinghua.github.io/p/drl-notes-3/</link><pubDate>Thu, 18 Jul 2024 09:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-3/</guid><description>&lt;h1 id="q-learning-and-deep-q-learning">Q-Learning and Deep Q-Learning
+&lt;/h1>&lt;h2 id="from-estimation-to-policy">From Estimation to Policy
+&lt;/h2>&lt;h3 id="policy-evaluation-for-qsa">Policy Evaluation for $Q(s,a)$
+&lt;/h3>&lt;p>在上一节中，我们学习了在 model-free 的情况下，如何进行 Policy Evaluation。我们知道，Policy Iteration 除了 Policy Evaluation，还有一步 Policy Improvement。这里先来看下如何在 model-free 的情况下进行 Policy Improvement。最初的 Policy Iteration 中 Policy Improvement 的方法是：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V(s^{\prime})]$$&lt;/p>
+&lt;p>但这种方法要求知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$。另一种方法是，在 Policy Evaluation 的时候，我们并不去计算 $V(s)$，而是计算 $Q(s,a)$。这样就可以直接通过：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a Q(s,a)$$&lt;/p>
+&lt;p>来进行 Policy Improvement。$Q(s,a)$ 也满足 Bellman Equation：&lt;/p>
+&lt;p>$$Q(s,a)=\sum_{s^{\prime}}T(s,a,s^{\prime})(R(s,a,s^{\prime})+\gamma\max_{a^{\prime}}Q(s^{\prime}, a^{\prime}))$$&lt;/p>
+&lt;p>因此用 MC、TD 对 $Q$ 进行 Policy Evaluation 的方法与对 $V$ 进行 Policy Evaluation 的方法类似，这里不再详细阐述。&lt;/p>
+&lt;h3 id="exploration-vs-exploitation">Exploration v.s. Exploitation
+&lt;/h3>&lt;p>当然，完全根据以上得到的 $Q$ 进行 Policy Iteration 是不可取的。我们来看这样一个简单的例子：&lt;/p>
+&lt;p>假设一个 MDP 只有一个 state $s$，在这个 state 上有两个 actions $a_1, a_2$。$R(s,a_1)$ 有 100 个样本，均取值为 1；而 $R(s,a_2)$ 仅有一个样本，取值为 0。那么根据以上的 Policy Iteration，得出的 policy 会永远选择 $a_1$。但实际上由于选择 $a_2$ 的样本数较少，我们不能确定 $\mathbb{E}(R(s,a_2))&amp;lt;\mathbb{E}(R(s,a_1))$。所以只用以上的方法进行 RL，很可能无法学到 optimal policy。有时候也需要选择当前看来并不是最优的 action 来拓展眼界。&lt;/p>
+&lt;p>永远选择当前最优策略的行动方法称为 exploitation，而在上面所说的例子中，我们可以在某些时候选择当前看来并不是最好的 solution $a_2$，这种行为叫做 exploration。&lt;/p>
+&lt;ul>
+&lt;li>Exploration: Get more information about the world. 可能有些更好地选择 agent 之前并不知道，它需要勇于尝试未知的事物才能得到更好的 reward。&lt;/li>
+&lt;li>Exploitation: To try to get reward. RL 的目的毕竟还是得到更高的 reward，在大多数情况下，我们更希望是一个“保守派”，选择目前最优的策略以期得到较高的 reward。&lt;/li>
+&lt;/ul>
+&lt;p>剩下的问题就是，该在什么时候选择 exploration，什么时候选择 exploitation，这种决定何时选择 exploration 何时选择 exploitation 的策略被称为 exploration/exploitation policy。 一个数学上十分简单的 exploration/exploitaton policy 是 $\epsilon$-greedy exploration，即有 $1-\epsilon$ 的概率选择 greedy action (exploitation)，有 $\epsilon$ 的概率 act randomly (exploration)。由于 exploration 的时候也有可能选到 greedy action，policy 可以被写成：&lt;/p>
+&lt;p>$$\pi(a|s)=\begin{cases} \epsilon/|A|+1-\epsilon &amp;amp;\text{if } a=\argmax_{a^{\prime}\in A}Q(s,a^{\prime})\\
+\epsilon/|A| &amp;amp; \text{otherwise}\end{cases}$$&lt;/p>
+&lt;p>有些 exploration/exploitation policy 具有一种特殊的性质，这种性质被称为 &lt;strong>Greedy in the Limit with Infinite Exploration (GLIE)&lt;/strong>。顾名思义，这类 exploration/exploitation policy 当 explore 得足够多的时候会收敛到 fully exploitation policy。更严谨地说，当所有的 state-action pair 都被 explore 了无数遍时，&lt;/p>
+&lt;p>$$\lim_{k\to\infty} N_k(s,a)=\infty$$&lt;/p>
+&lt;p>要求 exploration/exploitation policy 收敛到 greedy policy，&lt;/p>
+&lt;p>$$\lim_{k\to\infty}\pi_k(a|s)=\mathbf{1}\left(a=\argmax_{a^{\prime}\in A}Q_k(s,a^{\prime})\right)$$&lt;/p>
+&lt;p>这里，$k$ 代表走了多少个 step。For example, $\epsilon$-greedy policy is &lt;strong>GLIE&lt;/strong> if $\epsilon_k=\frac{1}{k}$. 另一个 &lt;strong>GLIE&lt;/strong> 的例子是 Boltzman Exploration：&lt;/p>
+&lt;p>$$\pi(a|s)=\frac{\exp(Q(s,a)/T)}{\sum_{a^{\prime}\in A}\exp(Q(s,a^{\prime})/T)}$$&lt;/p>
+&lt;p>要求 $T\to 0$。&lt;/p>
+&lt;h3 id="q-learning">$Q$ Learning
+&lt;/h3>&lt;p>总结一下之前所学的内容：&lt;/p>
+&lt;ul>
+&lt;li>我们先学了 Value Iteration, Policy Iteration 等。&lt;/li>
+&lt;li>但是由于大部分情况下我们并不知道 transition/reward functions，我们需要 MC, TD 等方法来 estimate value function。&lt;/li>
+&lt;li>用 value function 来得到 policy 还是需要 transition/reward functions，所以我们用 TD 来 estimate $Q$ 而非 value function。&lt;/li>
+&lt;li>即使采用了 $Q$ function，我们的学习过程仍然是 passive 的，有些未曾涉足的区域会永远被忽视。因此需要 explore，我们采用某种 exploration/exploitation policy。&lt;/li>
+&lt;/ul>
+&lt;p>通过以上的过程，我们几乎已经创造出了 $Q$ Learning。Formally:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>$Q$-Learning&lt;/strong>:&lt;/p>
+&lt;ul>
+&lt;li>Start with initial $Q$-function (e.g. all zeros).&lt;/li>
+&lt;li>Every time take an action from an exploration/exploitation &lt;strong>GLIE&lt;/strong> policy. This action gives a transition $s_t,a_t,r_t,s_{t+1}$. Perform TD update for the $Q$ function:
+$$Q(s_t,a_t)\leftarrow Q(s_t, a_t)+\alpha\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime})-Q(s_t, a_t)\right)$$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>$Q$-learning converges to the optimal $Q$-value function in the limit with probability 1, if every state-action pair is visited infinitely often. 即 $Q$-learning 在某条件下一定能收敛到最优解。&lt;/p>
+&lt;p>由于每一步的 update 并不依赖真实的 $a_{t+1}$，我们称 $Q$ Learning 是 &lt;strong>off-policy&lt;/strong> 的。$Q$ Learning 的一种 &lt;strong>on-policy&lt;/strong> 的变种是 State-Action-Reward-State-Action (SARSA)，即把每步 update 替换为：&lt;/p>
+&lt;p>$$Q(s_t,a_t)\leftarrow Q(s_t, a_t)+\alpha\left(r_t+\gamma Q(s_{t+1}, a_{t+1})-Q(s_t, a_t)\right)$$&lt;/p>
+&lt;h2 id="function-approximation">Function Approximation
+&lt;/h2>&lt;p>尽管 $Q$ Learning 非常强大，但它也有其局限性。$Q$ Learning 中，我们需要存储 $Q$ function，其定义域大小正比于 $|S|\times|A|$，因此 $Q$ Learning 只能适用于 $|S|$ 和 $|A|$ 很小的情况，不能适用于围棋 ($\sim 10^{170}$ states), 机器人 (continuous state space) 等领域。&lt;/p>
+&lt;p>一个解决方法是，我们并不去计算 $V$ 或是 $Q$ 在定义域上每个点的值，而是用一个参数化的函数去 approximate $V, Q$。这样我们就只需要储存函数的参数，而不用存 $V, Q$ 的每一个函数值。&lt;/p>
+&lt;p>有许多办法可以 approximate functions，比如 Decision Tree, Linear combinations of features 等。我们着重考虑 differentiable 的方法，比如用 neural networks。&lt;/p>
+&lt;p>我们先以 $V$ 为例子，我们的目标是找到一个参数 vector $w$, 使得以下 loss 尽可能小：&lt;/p>
+&lt;p>$$J(w)=\mathbb{E}_{\pi} \left[(v_{\pi}(S)-\hat{v}(S,w))^2\right]$$&lt;/p>
+&lt;p>其中，$v_{\pi}$ 是要近似的函数，$\hat{v}$ 是我们的参数化函数。&lt;/p>
+&lt;p>Gradient Descent:&lt;/p>
+&lt;p>$$\Delta w = -\frac{1}{2}\alpha\nabla_{w}J(w) = \alpha \mathbb{E}_{\pi}\left[(v_{\pi}(S)-\hat{v}(S,w)) \nabla_{w} \hat{v}(S,w)\right]$$&lt;/p>
+&lt;p>添加的系数 $\frac{1}{2}$ 只是为了把求导出来的 2 给约掉。如果我们只用一个 sample，即 SGD，则式子变为：&lt;/p>
+&lt;p>$$\Delta w = \alpha (v_{\pi}(S)-\hat{v}(S,w)) \nabla_{w} \hat{v}(S,w)$$&lt;/p>
+&lt;p>其中，$v_{\pi}(S)$ 可以用上一节中讲的 MC、TD 表示，比如：&lt;/p>
+&lt;p>$$v_{\pi}(S)=G_t\quad MC$$&lt;/p>
+&lt;p>$$v_{\pi}(S)=R_{t}+\gamma \hat{v}(S_{t+1},w)\quad TD(0)$$&lt;/p>
+&lt;p>$$v_{\pi}(S)=G_t^{\lambda}\quad TD(\lambda)$$&lt;/p>
+&lt;h2 id="deep-q-learning">Deep $Q$ Learning
+&lt;/h2>&lt;p>与 $V$ 一样，$Q$ 也可以被 neural nets approximate。Deep $Q$ Learning 就是 $Q$-learning with non-linear approximators：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Deep $Q$-Learning&lt;/strong>:&lt;/p>
+&lt;ul>
+&lt;li>Start with initial parameter values.&lt;/li>
+&lt;li>Every time take an action from an exploration/exploitation &lt;strong>GLIE&lt;/strong> policy. This action gives a transition $s_t,a_t,r_t,s_{t+1}$. Perform TD update for the parameters. Do gradient descent on the following loss function:
+$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w)-Q(s_t, a_t; w)\right)^2$$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>与 $Q$-learning 不同，deep $Q$-learning 并没有收敛保证，但 empirically 它是能用的。为了 DQN (Deep Q Network) 能训得更好，还需要加一些其他的 tricks。&lt;/p>
+&lt;h3 id="trick-1-experience-replay">Trick 1. Experience Replay
+&lt;/h3>&lt;p>由于每几个 step 的 states 是类似的，比如 $s_t, s_{t+1}, &amp;hellip;, s_{t+n}$，DQN 在用这些 transition 进行更新时很可能会 overfit 到 state space 的这个区域。我们可以用 Experience Replay 来解决这个问题，即每次得到一个 transition $(s_t, a_t, r_t, s_{t+1})$，都将其存到 replay memory $D$ 中，每次要更新 network 时就从 $D$ 中取一个 mini-batch 出来进行更新。&lt;/p>
+&lt;h3 id="trick-2-target-q-network">Trick 2. Target $Q$ Network
+&lt;/h3>&lt;p>在 DQN 的 loss function 中，我们可以发现每次更新 $w$ 都会同时更新 target $(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w))$ 和 $Q$-network $(Q(s_t, a_t; w))$。但是同时更新二者容易造成训练不稳定，我们可以让 target 更新得慢一点，即每次更新时用 loss：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>其中，$w^-$ 是较早几个 steps 的参数，等到 $w$ 更新了几个 steps 之后再去更新 $w^-$，而不是每个 step 都去更新 $w^-$。&lt;/p>
+&lt;h3 id="trick-3-reward-clipping">Trick 3. Reward Clipping
+&lt;/h3>&lt;p>有些 step 的 reward 非常大，使得 gradient 也很大，容易造成训练不稳定。我们实际计算时，将 reward clip 到某个合适的范围，比如 [-1, 1]。&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 2</title><link>https://suz-tsinghua.github.io/p/drl-notes-2/</link><pubDate>Tue, 16 Jul 2024 10:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-2/</guid><description>&lt;h1 id="model-free-estimation-monte-carlo-and-temporal-difference">Model-Free Estimation: Monte-Carlo and Temporal Difference
+&lt;/h1>&lt;p>前一节我们讲过如何进行 Policy Evaluation，但这是基于我们能知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 的前提的，这种方法被称为是 model-based 的。由于大部分情况下我们并不知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$，我们需要 model-free 的方法来进行 Policy Evaluation。但因为 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 往往是带有概率的，model-free 的方法通常只能 estimate value function，而不能精确地进行 Policy Evaluation。显然，在 model-free 的情况下，agent 只能通过与环境交互来得到信息，再利用这些信息得到 value function。&lt;/p>
+&lt;h2 id="model-free-estimation-monte-carlo-learning">Model-free Estimation: Monte-Carlo Learning
+&lt;/h2>&lt;p>我们想要做的事情是在已知很多 episodes of experience under policy $\pi$ 的情况下，学出 $v_{\pi}$。Episodes of experience 用 trajectories 来表示：&lt;/p>
+&lt;p>$$s_1, a_1, r_1, s_2, a_2, r_2, &amp;hellip;, s_T, a_T, r_T, s_{T+1} \sim \pi$$&lt;/p>
+&lt;p>即在 $s_t$ 状态时做出 action $a_t$，转移到 $s_{t+1}$ 的同时得到 reward $r_t$。定义时刻 $t$ 的 return 为：&lt;/p>
+&lt;p>$$G_t=r_{t}+\gamma r_{t+1} + \gamma^2 r_{t+2} + &amp;hellip; +\gamma^{T-t} r_T$$&lt;/p>
+&lt;p>那么就可以用 Monte-Carlo 的方法估计出 $v_{\pi}(s)$：&lt;/p>
+&lt;p>$$v_{\pi}(s)=\mathbb{E}_{\pi}[G_t|S_t=s]$$&lt;/p>
+&lt;p>即对任意一个状态 $s$，需要在样本中找到每一个 $s$，计算每一个 $s$ 对应的 return $G_t$，再将其进行平均。实际计算中，可以存这么几个量：&lt;/p>
+&lt;ul>
+&lt;li>Increment counter $N(s)\leftarrow N(s)+1$&lt;/li>
+&lt;li>Increment total return $S(s)\leftarrow S(s)+G_t$&lt;/li>
+&lt;li>Estimated Value $V(s)=S(s)/N(s)$&lt;/li>
+&lt;/ul>
+&lt;p>当 $N(s)\to \infty$ 的时候，$V(s)\to v_{\pi}(s)$。&lt;/p>
+&lt;p>存了以上 $N(s)$ 和 $V(s)$ 之后，当获取到新的样本时，就可以通过以下式子直接得出新的 $N(s)$ 和 $V(s)$:&lt;/p>
+&lt;p>$$N(s)\leftarrow N(s)+1$$
+$$V(s)\leftarrow \frac{(N(s)-1)V(s)+G_t}{N(s)}$$&lt;/p>
+&lt;p>MC Learning 的好处在于它非常简单，但是它要求每个 episode sample 都必须要终止，否则无法得到 $G_t$。并且它由于没有利用 Bellman Equation，对样本的利用效率非常低，需要大量样本才能得到比较好的近似值。&lt;/p>
+&lt;h2 id="model-free-estimation-temporal-difference-learning">Model-free Estimation: Temporal Difference Learning
+&lt;/h2>&lt;p>TD 与 MC 不同，它并不要求每个 episode sample 都是终止的。TD 每得到一个 transition 就会进行一次更新：&lt;/p>
+&lt;p>$$V(S_t)\leftarrow V(S_t)+\alpha(R_t+\gamma V(S_{t+1})-V(S_t))$$&lt;/p>
+&lt;p>这种更新方法被称为 TD(0)（后面还会介绍 TD($\lambda$)）。式子中 $\alpha$ 被称为 learning rate，$R_t+\gamma V(S_{t+1})$ 被称为 TD target，$\delta_t=R_t+\gamma V(S_{t+1})-V(S_t)$ 被称为 TD error。&lt;/p>
+&lt;p>相较于 MC，TD 利用了 Bellman Equation。因为当 $\alpha$ 很小，样本量很大的时候，$V(s)$ 会趋向于平衡点 $\sum_{s^{\prime}}T(s,\pi(s),s^{\prime})[R(s,\pi(s),s^{\prime})+\gamma V(s^{\prime})]$，这就是 Bellman Equation 中给定的 $V(s)$。&lt;/p>
+&lt;h2 id="对比-mc-与-td">对比 MC 与 TD
+&lt;/h2>&lt;h3 id="bias-and-variance">Bias and Variance
+&lt;/h3>&lt;p>先来比较两种方法的 bias 和 variance。MC 中 $G_t$ 是实际值 $v_{\pi}(s_t)$ 的 unbiased estimate。而 TD 中，尽管 $R_{t+1}+\gamma v_{\pi}(s_{t+1})$ 也是 $v_{\pi}(s_t)$ 的 unbiased estimate，但我们实际计算时不知道 $v_{\pi}(s_{t+1})$，而是用的当前值 $V(s_{t+1})$。$R_{t+1}+\gamma V(s_{t+1})$ 是 $v_{\pi}(s_t)$ 的 biased estimate。&lt;/p>
+&lt;p>但另一方面，TD 的 variance 是比 MC 要小的。所以 MC has high variance, zero bias；TD has low variance, some bias。&lt;/p>
+&lt;h3 id="initial-value">Initial Value
+&lt;/h3>&lt;p>TD(0) 在计算时需要给定 initial value $V(s)$，由于之后的更新是依赖于当前的 $V(s)$ 的，所以 initial value 如果给得不好会影响 TD(0) 的收敛速度。而 MC 中 initial value 的影响则较小。&lt;/p>
+&lt;h3 id="sample-efficiency">Sample Efficiency
+&lt;/h3>&lt;p>由于利用了 Bellman Equation，TD 的对样本的利用较 MC 来说更为充分，所以在样本比较少的时候可以选择用 TD。&lt;/p>
+&lt;h3 id="visualization">Visualization
+&lt;/h3>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/MC.png"
+width="748"
+height="484"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/MC_hu1746506231710650691.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/MC_hu7615492740886265233.png 1024w"
+loading="lazy"
+alt="MC Visualization"
+class="gallery-image"
+data-flex-grow="154"
+data-flex-basis="370px"
+>&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/TD.png"
+width="772"
+height="466"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/TD_hu4411611430607166636.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/TD_hu9970765329820358223.png 1024w"
+loading="lazy"
+alt="TD Visualization"
+class="gallery-image"
+data-flex-grow="165"
+data-flex-basis="397px"
+>&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/VI.png"
+width="781"
+height="537"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/VI_hu11165952852152721916.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/VI_hu18140508691770503701.png 1024w"
+loading="lazy"
+alt="Value Iteration Visualization"
+class="gallery-image"
+data-flex-grow="145"
+data-flex-basis="349px"
+>&lt;/p>
+&lt;p>三种方法 MC，TD，Value Iteration 的 visualization 如上图所示。可以看出，MC 每次更新利用了一个 trajectory 从头到尾的数据，而 TD 则利用只利用了一个 step 的数据。我们将 MC 与 TD 的更新式子写成类似的形式：&lt;/p>
+&lt;ul>
+&lt;li>MC: $V(S_t)\leftarrow V(S_t)+\alpha(G_t-V(S_t))$，其中 $G_t=R_{t}+\gamma R_{t+1} + \gamma^2 R_{t+2} + &amp;hellip; +\gamma^{T-t} R_T$, $\alpha = \frac{1}{N(S_t)}$。&lt;/li>
+&lt;li>TD: $V(S_t)\leftarrow V(S_t)+\alpha(R_{t+1}+\gamma V(S_{t+1})-V(S_t))$。&lt;/li>
+&lt;/ul>
+&lt;p>我们定义从 $S_t$ 开始走过 $n$ 步的 return，$n$-step return 为：
+$$G_t^{(n)}=R_{t}+\gamma R_{t+1} + &amp;hellip; + \gamma^{n-1} R_{t+n-1} + \gamma^{n} V(S_{t+n})$$&lt;/p>
+&lt;p>那么 MC 可以被写成：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(\infty)}-V(S_t))$$&lt;/p>
+&lt;p>TD 可以被写成：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(1)}-V(S_t))$$&lt;/p>
+&lt;p>当然 $n$ 除了取 1 和 $\infty$ 还可以取别的值，即 $n$-step TD：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(n)}-V(S_t))$$&lt;/p>
+&lt;h2 id="tdlambda-combination-of-td-and-mc">TD($\lambda$): Combination of TD and MC
+&lt;/h2>&lt;p>我们并不好决定在何时用 TD，何时用 MC。如果当前估计的 $V(s)$ 已经很好了，可以用 TD；但如果当前的值不好，用 MC 更合适。但是否有一种方法，可以将 MC 与 TD 的优点结合起来呢？可以采用 TD($\lambda$)。&lt;/p>
+&lt;p>先介绍 $\lambda$-return $G_{t}^{\lambda}$，其将所有的 $n$-step return 结合起来：&lt;/p>
+&lt;p>$$G_t^{\lambda}=(1-\lambda)\sum_{n=1}^{\infty}\lambda^{n-1}G_t^{(n)}$$&lt;/p>
+&lt;p>基于 $G_t^{\lambda}$ 提出 TD($\lambda$)：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{\lambda}-V(S_t))$$&lt;/p>
+&lt;p>通过整合所有的 $n$-step return，TD($\lambda$) 在 bias 和 variance 之间做出了一个折中，使得二者均不会太大。&lt;/p>
+&lt;p>可以看出，$\lambda=0$ 时，TD($\lambda$) 退化为了 TD(0)。&lt;/p>
+&lt;h3 id="computation-trick">Computation Trick
+&lt;/h3>&lt;p>看起来，TD($\lambda$) 似乎丢失了 TD(0) 一个很好的特性。TD(0) 并不需要一整个 episode 的数据，只需要得知当前的一个 transition 就可以进行一次更新，而 TD($\lambda$) 似乎需要整个 episode 的数据才能得到 $G_t^{\lambda}$ 从而完成一次更新。事实上，这个问题可以通过计算上的 trick 来解决。&lt;/p>
+&lt;p>正常的计算思路是，在 update $V(S_t)$ 时，去查看所有 $\tau&amp;gt;t$ 时刻的 transition，然后对 $t$ 时刻的 value function 进行更新。这种方法是 forward 的，但事实上也可以采取 backward 的计算方法，即得到 $\tau$ 时刻的 transition 时，去更新所有 $t&amp;lt;\tau$ 时刻的 value function。先重写 $G_t^{\lambda}-V(S_t)$：&lt;/p>
+&lt;p>$$\begin{align*}
+G_t^{\lambda}-V(S_t)=-V(S_t)&amp;amp;+(1-\lambda)\lambda^0(R_t+\gamma V(S_{t+1}))\\
+&amp;amp;+(1-\lambda)\lambda^1(R_t+\gamma R_{t+1}+\gamma^2 V(S_{t+2}))\\
+&amp;amp;+(1-\lambda)\lambda^2(R_t+\gamma R_{t+1}+\gamma^2 R_{t+2}+\gamma^3 V(S_{t+3}))\\
+&amp;amp;+ &amp;hellip; \\
+=-V(S_t)&amp;amp;+(\gamma\lambda)^0(R_t+\gamma V(S_{t+1})-\gamma\lambda V(S_{t+1}))\\
+&amp;amp;+(\gamma\lambda)^1(R_{t+1}+\gamma V(S_{t+2})-\gamma\lambda V(S_{t+2}))\\
+&amp;amp;+(\gamma\lambda)^2(R_{t+2}+\gamma V(S_{t+3})-\gamma\lambda V(S_{t+3}))\\
+&amp;amp;+ &amp;hellip; \\
+=(\gamma\lambda)^0&amp;amp;(R_t+\gamma V(S_{t+1})-V(S_t))\\
+&amp;amp;+(\gamma\lambda)^1(R_{t+1}+\gamma V(S_{t+2})-V(S_{t+1}))\\
+&amp;amp;+(\gamma\lambda)^2(R_{t+2}+\gamma V(S_{t+3})-V(S_{t+2}))\\
+&amp;amp;+ &amp;hellip; \\
+=\delta_t&amp;amp;+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+ &amp;hellip;
+\end{align*}$$&lt;/p>
+&lt;p>所以 backward 的计算方法是，在得到 $\tau$ 时刻的 transition 时，先计算出相应的 $\delta_{\tau}$，再对所有 $t&amp;lt;\tau$ 时刻的 value function 进行一次更新：
+$$V(S_t)\leftarrow V(S_t)+\alpha\delta_{\tau}(\gamma\lambda)^{\tau-t}$$&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 1</title><link>https://suz-tsinghua.github.io/p/drl-notes-1/</link><pubDate>Mon, 15 Jul 2024 17:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-1/</guid><description>&lt;p>2024春季学期选了xhz老师的限选课&lt;strong>深度强化学习&lt;/strong>，恰巧也在研究这方面的内容，于是打算写个笔记。&lt;/p>
+&lt;h1 id="mdp-value-iteration-and-policy-iteration">MDP, Value Iteration and Policy Iteration
+&lt;/h1>&lt;h2 id="mdp-basics">MDP Basics
+&lt;/h2>&lt;h3 id="definition-of-mdp">Definition of MDP
+&lt;/h3>&lt;p>Markov Decision Process (MDP) 是一个决策过程数学模型，直观地来说：一个智能体 (agent) 处在一个环境中，环境处于不同的状态 (state)；每一步，agent 可以得知环境的部分或全部 state 信息，这部分信息称为 agent 的观测 (observation)；通过 observation，agent 每一步会作出决策，给出一个动作 (action)；这个动作会影响环境，环境有概率转移到另一个 state；同时，环境根据潜在的奖励函数 (rewards) 来给 agent 提供奖励。Formally:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An MDP is a 4-tuple $(S, A, T, R)$:&lt;/p>
+&lt;ul>
+&lt;li>$S$ is a set of states called the &lt;em>state space&lt;/em>.&lt;/li>
+&lt;li>$A$ is a set of actions called the &lt;em>action space&lt;/em>.&lt;/li>
+&lt;li>$T(s, a, s^{\prime})=Pr(s_{t+1}=s^{\prime}|s_t=s, a_t=a)$ is the probability that action $a$ at $s$ leads to $s^{\prime}$, called the &lt;em>transition fuction&lt;/em> (also &lt;em>model&lt;/em> or &lt;em>dynamics&lt;/em>).&lt;/li>
+&lt;li>$R(s, a, s^{\prime})$ is the immediate &lt;em>reward&lt;/em> received after transitioning from state $s$ to state $s^{\prime}$, due to action $a$.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>当然这只是最简单的定义，还可以根据情况的不同引入额外的东西。比如系统初始状态的分布函数 (&lt;em>initial state distribution&lt;/em>)，一个一旦到达就直接停止的结束状态 (&lt;em>terminal state&lt;/em>)。再比如某些情况下，环境可能是 partially observable 的，agent 无法观测到环境的整个 state (比如打扑克的时候，你无法看到对方手上的牌，这是 partially observable 的，但是下围棋的时候，你可以看到棋盘上所有的东西，这是 fully observable 的)，此时需要在定义中引入 a set of observations $O$，此时的 MDP 称为 Partially Observable MDP (POMDP)。&lt;/p>
+&lt;p>定义中 Markov 的意思是：给定当前状态之后，未来与过去就无关了，即 $Pr(s_{t+1}|s_t, a_t, s_{t-1}, a_{t-1}, &amp;hellip;, s_0)=Pr(s_{t+1}|s_t, a_t)$。可以认为过去的信息都被浓缩到当前的 state 中了。&lt;/p>
+&lt;h3 id="an-example">An Example
+&lt;/h3>&lt;p>用一个简单的例子来加深理解:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/grid_world.png"
+width="486"
+height="439"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/grid_world_hu4615231692853378775.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/grid_world_hu13349423474860228102.png 1024w"
+loading="lazy"
+alt="An example of MDP"
+class="gallery-image"
+data-flex-grow="110"
+data-flex-basis="265px"
+>&lt;/p>
+&lt;p>比如一个 agent 位于这样一个 grid world 中&lt;/p>
+&lt;ul>
+&lt;li>每一时刻的 state 就是 agent 的位置。&lt;/li>
+&lt;li>action 是上下左右。&lt;/li>
+&lt;li>$T$ 我们定义为，有 80% 的可能，agent 的 transition 与其 action 一致；有 10% 的可能，无论什么 action，agent 都往左；有 10% 的可能，无论什么 action，agent 都往右。&lt;/li>
+&lt;li>只有在 agent 吃到钻石的时候才会有 reward。&lt;/li>
+&lt;/ul>
+&lt;h3 id="policy">Policy
+&lt;/h3>&lt;p>以上我们主要关注环境，接下来我们看 agent，我们将 agent 从 state/observation 得到 action 的决策称为 policy:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>Policy $\pi$ 是一个条件概率密度函数 $\pi(a|s)$，表示 agent 在 state $s$ 时采取 action $a$ 的概率。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="utility">Utility
+&lt;/h3>&lt;p>RL 的目标是学出一个好的 policy，那么这个 “好的” 该如何进行评价。直观来看，我们可以将 agent 放在某个 initial state，让其根据自己的 policy 进行运动固定的步数，或是等到最后结束。那么问题就到了，agent 跑出的这个序列 $(s_0, a_0, r_0, s_1, a_1, r_1, &amp;hellip;, s_t, a_t, r_t)$ (称为 trajectory) 该如何评价。我们引入 Reward Hypothesis, 即MDP中所有的目标都应被 reward 定义，而不牵扯到其他的量。那么可以将 trajectory 中的 rewards 单独抽出来 $(r_0, r_1, r_2, &amp;hellip;, r_t)$。我们希望有一个函数 (Utility) 能够将这个 rewards 序列映射成一个标量，这样有助于比较不同 trajectories 的优劣。&lt;/p>
+&lt;p>一种方法是直接加起来，即 additive utilities: $U([r_0, r_1, r_2, &amp;hellip;]) = r_0+r_1+r_2 + &amp;hellip;$&lt;/p>
+&lt;p>考虑到现实生活中，当下的 reward 往往比之后的 reward 更具有价值 (当下给你一块钱往往优于两天后给你一块钱)，一个更常用的 utility 是 discounted utilities: $U([r_0, r_1, r_2, &amp;hellip;]) = r_0+\gamma r_1+\gamma^2 r_2 + &amp;hellip;$。其中 $\gamma$ 称为 discounted factor。&lt;/p>
+&lt;h3 id="optimal-quantities">Optimal Quantities
+&lt;/h3>&lt;p>直观上定义 optimal quantities:&lt;/p>
+&lt;ul>
+&lt;li>Optimal policy: $\pi^*(s)$ = optimal action from state $s$.&lt;/li>
+&lt;li>Optimal value/utility of a state $s$: $V^*(s)$ = expected utility starting from $s$ and acting optimally.&lt;/li>
+&lt;li>Optimal Q value: $Q^*(s,a)$ = expected utility taking action $a$ from state $s$ and acting optimally.&lt;/li>
+&lt;/ul>
+&lt;p>Formally 可以递归地定义这些量：&lt;/p>
+&lt;p>$$\pi^{*}(s)=\argmax_a Q^{*}(s,a)$$
+$$V^{*}(s)=\max_a Q^{*}(s,a)$$
+$$Q^{*}(s,a)=\sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>从以上两个式子我们可以消去 $Q^{*}$ 得到 $V^{*}$ 满足的等式：&lt;/p>
+&lt;p>$$V^{*}(s)=\max_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>称为 Bellman Equation。&lt;/p>
+&lt;h2 id="value-iteration">Value Iteration
+&lt;/h2>&lt;p>RL 的最终目标是得到 $\pi^{*}$，我们可以利用 $V^{*}$ 来得到 $\pi^{*}$。一种可行的用来得到 $V^{*}$ 的方法称为 Value Iteration，其利用了 Bellman Equation。&lt;/p>
+&lt;p>假设 MDP 在 $k$ 步后结束，定义 $s$ 的 optimal value 为 $V^{*}_k(s)$，那么有：&lt;/p>
+&lt;p>$$V_0^{*}(s)=0$$
+$$V_{k+1}^{*}(s)=\max_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V_k^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>迭代计算直至收敛，即可得到 $V_{\infty}^{*}=V^{*}$。&lt;/p>
+&lt;p>VI 有两个问题：&lt;/p>
+&lt;ul>
+&lt;li>VI 每一步的时间复杂度为 $O(S^2A)$，因此仅仅适用于 discrete case，并且要求 $S$ 和 $A$ 均比较小，无法适用于连续空间。&lt;/li>
+&lt;li>Policy 往往会比 Value 收敛得更早，如果能够提前发现 policy 已经收敛会更好。&lt;/li>
+&lt;/ul>
+&lt;h2 id="policy-iteration">Policy Iteration
+&lt;/h2>&lt;h3 id="policy-evaluation">Policy Evaluation
+&lt;/h3>&lt;p>上面介绍的 $V^{*}$ 是 optimal policy 的 value function，我们也可以给定一个 policy $\pi$，计算其对应的 value function $V^{\pi}$，这个计算过程称为 Policy Evaluation。&lt;/p>
+&lt;p>$$V^{\pi}(s) = \text{expected total discounted rewards starting in } s \text{ and following } \pi$$&lt;/p>
+&lt;p>计算过程类似于 Value Iteration，也是从相应的 Bellman Equation 入手进行迭代计算：&lt;/p>
+&lt;p>$$V^{\pi}(s)=\sum_{s^{\prime}}T(s,\pi(s),s^{\prime})[R(s,\pi(s),s^{\prime})+\gamma V^{\pi}(s^{\prime})]$$&lt;/p>
+&lt;p>Policy Evaluation 一步花费时间 $O(S^2)$。&lt;/p>
+&lt;h3 id="policy-improvement">Policy Improvement
+&lt;/h3>&lt;p>假设我们知道一个 MDP 的 value function, 如何得到在这个 value function 下的 optimal policy。显然可以在某个状态 $s$ 遍历所有的 action $a$，看哪个 $a$ 的收益最大，即：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V(s^{\prime})]$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement.png"
+width="388"
+height="292"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement_hu14245069186618032335.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement_hu5568883509343015072.png 1024w"
+loading="lazy"
+alt="Value function of a grid world"
+class="gallery-image"
+data-flex-grow="132"
+data-flex-basis="318px"
+>&lt;/p>
+&lt;p>这个过程就是 policy improvement。&lt;/p>
+&lt;h3 id="policy-iteration-1">Policy Iteration
+&lt;/h3>&lt;p>结合 Policy Evaluation 和 Policy Improvement，我们可以用另一种方法（不同于 Value Iteration）来得到 $\pi^*$。&lt;/p>
+&lt;p>循环以下两步直至 policy 收敛：&lt;/p>
+&lt;ul>
+&lt;li>Step 1: Policy Evaluation。对当前的 policy 进行 policy evaluation。&lt;/li>
+&lt;li>Step 2: Policy Improvement。对 Step 1 中得到的 value function 进行 policy improvement，得到新的 policy。&lt;/li>
+&lt;/ul>
+&lt;p>这就是 Policy Iteration。PI 也可以得到 optimal $\pi^*$，并且在一些情况下比 VI 收敛得更快。&lt;/p>
+&lt;h2 id="mdp-to-reinforcement-learning">MDP to Reinforcement Learning
+&lt;/h2>&lt;p>不管是 VI 还是 PI，都要求我们知道 MDP 的 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$。但是在现实中的大部分情况，我们并不能准确地知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$，尤其是 $T$，因此需要引入 RL。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/RL.png"
+width="774"
+height="328"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/RL_hu2981708100594716212.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/RL_hu12781544691208971070.png 1024w"
+loading="lazy"
+alt="Reinforcement Learning"
+class="gallery-image"
+data-flex-grow="235"
+data-flex-basis="566px"
+>&lt;/p>
+&lt;p>RL 的主要思想是：&lt;/p>
+&lt;ul>
+&lt;li>环境会为 agent 的 action 提供 reward 进行反馈。&lt;/li>
+&lt;li>Agent 的所有 utility 都被 reward 定义。&lt;/li>
+&lt;li>Agent 的目标是 maximize expected rewards。&lt;/li>
+&lt;li>学习只能基于 agent 获取到的 observations, actions, rewards 等信息（不知道真实的 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$）。&lt;/li>
+&lt;/ul></description></item><item><title>2024 Spring Deep Reinforcement Learning Course Project Demo</title><link>https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/</link><pubDate>Tue, 25 Jun 2024 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/cover.png" alt="Featured image of post 2024 Spring Deep Reinforcement Learning Course Project Demo" />&lt;h1 id="2024春-深度强化学习-课程项目--cyberdog2-quadrupedal-and-bipedal-dribbling">2024春 深度强化学习 课程项目 —— Cyberdog2 Quadrupedal and Bipedal Dribbling
+&lt;/h1>&lt;p>我们用强化学习在 Cyberdog2 上实现了四足与二足的运球，其中四足运球被部署到了真机上。&lt;/p>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="https://suz-tsinghua.github.io/drl_project_demo.mp4"
+autoplay
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="https://suz-tsinghua.github.io/drl_project_demo.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div></description></item><item><title>Language-Conditioned Mobile Manipulation: 以 TidyBot 为例</title><link>https://suz-tsinghua.github.io/p/tidybot/</link><pubDate>Sun, 19 May 2024 14:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/tidybot/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/cover.png" alt="Featured image of post Language-Conditioned Mobile Manipulation: 以 TidyBot 为例" />&lt;p>本 blog 主要以 TidyBot 这篇工作为例子，简要介绍一下 Language-Conditioned Mobile Manipulation 这个研究领域。本文采取一个从下而上的方式，先从具体的 TidyBot 出发，再去介绍更广的领域。&lt;/p>
+&lt;h2 id="tidybot">TidyBot
+&lt;/h2>&lt;p>简单来说，TidyBot 是一个能 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂乱物品的机器人。&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>https://arxiv.org/abs/2305.05658&lt;/a>&lt;/li>
+&lt;li>项目官网：&lt;a class="link" href="https://tidybot.cs.princeton.edu/" target="_blank" rel="noopener"
+>https://tidybot.cs.princeton.edu/&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/jimmyyhwu/tidybot" target="_blank" rel="noopener"
+>https://github.com/jimmyyhwu/tidybot&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="https://suz-tsinghua.github.io/tidybot_demo.mp4"
+autoplay
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="https://suz-tsinghua.github.io/tidybot_demo.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div>
+&lt;h3 id="tldr">TL;DR
+&lt;/h3>&lt;p>这篇工作的主要目的就是设计一个能够 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂物的机器人。它需要能够识别地上的物体，判断该物体需要被 &lt;em>如何&lt;/em> 收纳到 &lt;em>何处&lt;/em>（如扔到垃圾桶里、放到抽屉里、放到沙发上等）。注意两点要求：&lt;/p>
+&lt;ul>
+&lt;li>个性化：由于不同的人可能有不同的收纳习惯，可能有些人喜欢把衣服放在架子上，有些人则可能喜欢放在抽屉里。
+&lt;img src="https://suz-tsinghua.github.io/p/tidybot/1.png"
+width="1822"
+height="834"
+srcset="https://suz-tsinghua.github.io/p/tidybot/1_hu11827031459779453228.png 480w, https://suz-tsinghua.github.io/p/tidybot/1_hu5399589212461683874.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="218"
+data-flex-basis="524px"
+>
+这意味着机器人不能给出一个广泛的策略（对于所有人来说，都把衣服放到架子上），它必须学习到其主人的喜好，从而指定专门的策略。&lt;/li>
+&lt;li>自动化：一旦设定完成，机器人收纳杂物的过程必须是全自动化的，不能让它的主人在旁边告诉它某物应该收纳到某处。&lt;/li>
+&lt;/ul>
+&lt;p>运用 LLM 的总结推理能力可以很好地解决这两个问题。这篇文章的 methods 非常直接，分为两步：&lt;/p>
+&lt;ul>
+&lt;li>在机器人第一次开始工作之前，先让主人提供几个例子，比如“黄衬衫要被放在抽屉里、深紫色衬衫要被放在柜子里、白色袜子要被放在抽屉里、黑色衬衫要被放在柜子里”。将这些例子告诉 LLM，让其总结出规则，LLM 就会总结出：“浅色的东西需要放在抽屉里，深色的东西需要放在柜子里。”&lt;/li>
+&lt;li>机器人工作过程中，先识别地上的某个物体，将第一步中得到的规则和这个物体是什么告诉 LLM，LLM 就可以告诉机器人这个物体需要被放在什么地方。&lt;/li>
+&lt;/ul>
+&lt;p>对于每个物体该 &lt;em>如何&lt;/em> 被放置也是同理，先给 LLM 提供一些例子，如 &amp;ldquo;pick and place yellow shirt, pick and place dark purple shirt, pick and toss white socks&amp;rdquo;。LLM 可以总结出 &amp;ldquo;pick and place shirts, pick and toss socks&amp;rdquo;，再将 LLM 的 summarization 用于新物体即可。&lt;/p>
+&lt;p>再加上一些物体识别，以及让机器人执行对应的收纳动作，这个个性化、自动化的收纳系统就可以被运用于真实世界中。&lt;/p>
+&lt;h3 id="method">Method
+&lt;/h3>&lt;p>&lt;a class="link" href="#tldr" ># TL;DR&lt;/a> 中已经简略介绍了本工作的 methods，接下来 formally 展示下这样一个收纳系统的 pipeline：&lt;/p>
+&lt;div align="center">
+&lt;img src=pipeline.png width=50% />
+&lt;/div>
+&lt;ul>
+&lt;li>$E_{receptacle}$ 和 $E_{primitive}$ 都是用户的个性化输入，分别代表了每个物品 $o_i$ 需要被收纳到何处 $r_i$，以及需要被如何收纳 $p_i$。&lt;/li>
+&lt;li>接着运用 LLM 将 $E_{receptacle}$ 和 $E_{primitive}$ 总结成 $S_{receptacle}$ 和 $S_{primitive}$。&lt;/li>
+&lt;li>此时需要将 $S_{receptacle}$ 中 LLM 总结出的物体类别 （如浅色衣服、深色衣服）提取出来，以便于视觉系统进行分类。此处 pipeline 中只写了 $S_{receptacle}$，而没写 $S_{primitive}$，或许是默认了二者提取出来的物体类别是一致的，但严谨来说，同时考虑 $S_{receptacle}$ 和 $S_{primitive}$ 应该更合理。将物体类别 $C$ 提取出来的好处在于，后面进行物体分类的时候就可以只考虑较少的类别，不容易分类错误，而且不同的用户的 $C$ 也可以不同，更加 flexible。&lt;/li>
+&lt;li>做好了前置工作，就可以将系统部署到真实的机器人上了，系统会进入以下收纳循环，每一循环收纳一个物品，直到没有物品可以收纳：&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>利用外置摄像头得到地板的俯视图，通过 ViLD 识别出距离机器人最近的物体。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人移动到此物体旁，通过其自身的摄像头得到物体的近距离照片，将近距离照片与 $C$ 告诉 CLIP，让其对物体进行分类，得到类别 $c$。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>让 LLM 根据 $c, S_{receptacle}, S_{primitive}$ 总结出物体该 &lt;em>如何&lt;/em> 被放置到 &lt;em>何处&lt;/em>。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人执行相应的收纳动作。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real_system.png"
+width="1525"
+height="377"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_system_hu18148537030116396249.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_system_hu14811919430971523437.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="404"
+data-flex-basis="970px"
+>&lt;/p>
+&lt;p>涉及到 LLM 的部分，具体 prompt 可以参阅原论文 Appendix A。&lt;/p>
+&lt;h3 id="experiments">Experiments
+&lt;/h3>&lt;h4 id="benchmark-dataset">Benchmark Dataset
+&lt;/h4>&lt;p>为了评估所提出方法的可靠性，作者专门做了一个 benchmark dataset，其中共包含 96 个个性化场景，每个场景里都有一些容器和一些物品，其中有些物品被标注了应该被放到什么容器里，而另一些物品并没被标注。注意，每个场景可能代表了不同的收纳喜好，所以对于同一个物品，不同场景的收纳容器可能大不相同。任务的目的就是根据被标注的物品来预测未被标注的物体应该被放到哪里。&lt;/p>
+&lt;p>在这个数据集上，作者做了一些实验：&lt;a class="link" href="#baseline-comparisons" ># Baseline Comparisons&lt;/a>, &lt;a class="link" href="#ablation-studies" ># Ablation Studies&lt;/a>, &lt;a class="link" href="#human-evaluation" ># Human Evaluation&lt;/a>。&lt;/p>
+&lt;h4 id="baseline-comparisons">Baseline Comparisons
+&lt;/h4>&lt;p>这部分，作者将自己的方法与一些 baseline 作比较，比如只给 LLM 提供标注物体，直接让其预测为被标注物体该被放到哪里，而不经过 summarization 过程；再比如利用 pre-trained text embedding，对于未标注的物体，直接找到与其 embedding 距离最近的标注物体，认为二者应该被收纳到同一个地方。结论就是，作者的方法胜过其他 baseline。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/baseline.png"
+width="1041"
+height="534"
+srcset="https://suz-tsinghua.github.io/p/tidybot/baseline_hu2260679436813115871.png 480w, https://suz-tsinghua.github.io/p/tidybot/baseline_hu7433888565880427837.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="194"
+data-flex-basis="467px"
+>&lt;/p>
+&lt;h4 id="ablation-studies">Ablation Studies
+&lt;/h4>&lt;p>作者一共做了三个方面的 ablation studies：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;ol>
+&lt;li>不利用 user specific preference，直接让 LLM 依据 commonsense 来推断物品应该被放到哪里。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="2">
+&lt;li>让人类来进行 summarization，不用 LLM 做。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="3">
+&lt;li>比较采用不同 LLM 的准确率。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1.png"
+width="658"
+height="291"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu9791429553669372484.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu16712101575763368406.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="226"
+data-flex-basis="542px"
+> &lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2.png"
+width="799"
+height="384"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu4240727006035632664.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu11499249390621271082.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="208"
+data-flex-basis="499px"
+>&lt;/p>
+&lt;p>结论是，让 LLM 进行 summarization 会比直接用 commonsense 有非常大的提升，但相较于直接让人类进行 summarization 仍有不足。这也说明通过提升 LLM 的总结能力还能进一步提升此系统的能力。&lt;/p>
+&lt;p>另一方面，在不同的 LLM 中，text-davinci-003 有较好的效果。&lt;/p>
+&lt;h4 id="human-evaluation">Human Evaluation
+&lt;/h4>&lt;p>作者还招募了一些志愿者，向他们提供 user preference、baseline 给出的收纳建议、自己方法给出的收纳建议，让他们比较自己的方法与 baseline 的结果，哪个更符合 user preference。题目形式如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/question.png"
+width="744"
+height="547"
+srcset="https://suz-tsinghua.github.io/p/tidybot/question_hu15245168944330260646.png 480w, https://suz-tsinghua.github.io/p/tidybot/question_hu16038960857171736720.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="136"
+data-flex-basis="326px"
+>&lt;/p>
+&lt;p>结果显示，作者的方法有 46.9% 的情况被认为更好，而 baseline 只有 19.1% 的情况被认为更好。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/human_evaluation.png"
+width="1604"
+height="275"
+srcset="https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu12242310108710729194.png 480w, https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu7342609013758737524.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="583"
+data-flex-basis="1399px"
+>&lt;/p>
+&lt;h4 id="real-world-experiments">Real-world Experiments
+&lt;/h4>&lt;p>正如 &lt;a class="link" href="#method" ># Method&lt;/a> 中说的，作者还搭建了一个真实的机器人平台，让文章中提出的个性化收纳方法能够落地。作者构造了 8 个真实场景，每个场景包含一些散落在地上的物品以及几个收纳容器，然后让系统根据 &lt;a class="link" href="#method" ># Method&lt;/a> 中的 pipeline 运行。结果显示，系统在 85.0% 情况下都能正确完成收纳任务。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real.png"
+width="1671"
+height="592"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_hu16826072460319586654.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_hu17600697350256475454.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="282"
+data-flex-basis="677px"
+>&lt;/p>
+&lt;h2 id="language-conditioned-mobile-manipulation">Language-Conditioned Mobile Manipulation
+&lt;/h2>&lt;p>TidyBot 属于一个更广的研究领域 Language-Conditioned Mobile Manipulation。这个领域将 CV、NLP、Robotics 结合了起来，要求机器人能够根据人类的自然语言指令去做出相应的行为。&lt;/p>
+&lt;div align="center">
+&lt;img src=cross_field.png width=50% />
+&lt;/div>
+&lt;p>这篇文章为 Language-Conditioned Mobile Manipulation 领域做了个详细的调查：&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/pdf/2312.10807" target="_blank" rel="noopener"
+>https://arxiv.org/pdf/2312.10807&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/hk-zh/language-conditioned-robot-manipulation-models" target="_blank" rel="noopener"
+>https://github.com/hk-zh/language-conditioned-robot-manipulation-models&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="architecture-framework">Architecture Framework
+&lt;/h3>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/framework.png"
+width="1425"
+height="934"
+srcset="https://suz-tsinghua.github.io/p/tidybot/framework_hu8973135417564341417.png 480w, https://suz-tsinghua.github.io/p/tidybot/framework_hu14937730675035186088.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="152"
+data-flex-basis="366px"
+>&lt;/p>
+&lt;p>此领域工作的总体框架如上图所示。主要包括三个模块&lt;/p>
+&lt;ul>
+&lt;li>语言模块。其主要作用是理解用户的语言输入，并转化为机器人动作指导。如 TidyBot 中，用户告诉系统收纳 preference，语言模块就会进行处理，进行 preference 的总结等。&lt;/li>
+&lt;li>感知模块。其主要作用是感知周围环境，例如 TidyBot 中机器人利用自身的相机去识别物体进行分类。&lt;/li>
+&lt;li>控制模块。其主要作用是让机器人执行需要执行的指令。对应到 TidyBot 中，就是机器人去执行 “移动到某处”、“拿起地上的物品”、“把物品放置到某处” 等。在 TidyBot 中，这样的动作是 hard-coded 的，当然也可以采用 reinforcement learning (RL), imitation learing (IL) 等方法得到。&lt;/li>
+&lt;/ul>
+&lt;h3 id="approaches-categorization">Approaches Categorization
+&lt;/h3>&lt;p>Language-Conditioned Mobile Manipulation 的工作主要可以被粗略分为以下几类：&lt;/p>
+&lt;ul>
+&lt;li>Language-conditioned Reinforcement Learning&lt;/li>
+&lt;li>Language-conditioned Imitation Learning&lt;/li>
+&lt;li>Empowered by LLMs &amp;amp; VLMs&lt;/li>
+&lt;/ul>
+&lt;p>当然，有些工作可能可以被同时划分到多种类别中。其中，前两种方法较为传统，没有采用大语言模型等现成工具。第三种方法利用现成的 LLMs 与 VLMs，简化了系统，提高了能力。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/categories.png"
+width="1955"
+height="1212"
+srcset="https://suz-tsinghua.github.io/p/tidybot/categories_hu14519433019373800883.png 480w, https://suz-tsinghua.github.io/p/tidybot/categories_hu12373372102478987912.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="161"
+data-flex-basis="387px"
+>&lt;/p>
+&lt;h4 id="language-conditioned-reinforcement-learning">Language-conditioned Reinforcement Learning
+&lt;/h4>&lt;p>此类工作利用强化学习，通过人为设计等方法，建立一个从自然语言到 reward 的一个映射，当 agent 达到自然语言描述的目标时，它就能得到对应的 reward。Agent 在这个过程中可以学习到一个从自然语言到具体动作的映射。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Lancon-learn: Learning with language to enable generalization in multi-task manipulation &lt;a class="link" href="https://ieeexplore.ieee.org/document/9667188" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hartikainen/metaworld/tree/reward-tweaks-rebase" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Pixl2r: Guiding reinforcement learning using natural language by mapping pixels to rewards &lt;a class="link" href="https://proceedings.mlr.press/v155/goyal21a.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/prasoongoyal/PixL2R" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Learning from symmetry: Meta-reinforcement learning with symmetrical behaviors and language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.10656" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/symmetry/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Meta-reinforcement learning via language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.04924" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/yaoxt3/MILLION" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/million" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Learning language-conditioned robot behavior from offline data and crowd-sourced annotation &lt;a class="link" href="https://proceedings.mlr.press/v164/nair22a/nair22a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Concept2robot: Learning manipulation concepts from instructions and human demonstrations &lt;a class="link" href="https://www.roboticsproceedings.org/rss16/p082.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="language-conditioned-imitation-learning">Language-conditioned Imitation Learning
+&lt;/h4>&lt;p>此类工作利用模仿学习的范式，其不像强化学习那样要求提供 reward，但是需要提供一些正确的行为例子 (expert demonstrations)，agent 会根据这些正确的行为进行学习。具体可以再被细分为 behavior cloning (BC) 和 inverse reinforcement learning (IRL)。&lt;/p>
+&lt;p>BC 就是直接依样画葫芦，expert demonstrations 里怎么做，agent 就怎么做。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Language conditioned imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2005.07648" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="" >[code]&lt;/a> &lt;a class="link" href="https://language-play.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Bc-z: Zero-shot task generalization with robotic imitation learning &lt;a class="link" href="https://arxiv.org/abs/2202.02005" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>What matters in language-conditioned robotic imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2204.06252" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/lukashermann/hulc" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Grounding language with visual affordances over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2210.01911" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/mees/hulc2" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc2.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning with base skill priors under unstructured data &lt;a class="link" href="https://arxiv.org/abs/2305.19075" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hk-zh/spil" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://hk-zh.github.io/spil/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Pay attention!- robustifying a deep visuomotor policy through task-focused visual attention &lt;a class="link" href="https://arxiv.org/abs/1809.10093" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning for robot manipulation tasks &lt;a class="link" href="https://arxiv.org/abs/2010.12083" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>IRL 则需要经历两个步骤，第一步先从 expert demonstrations 和语言命令中学习一个从自然语言命令到 reward 的映射，再通过 RL 的方式学习行为策略（这样看来，此部分与 &lt;a class="link" href="#language-conditioned-reinforcement-learning" ># Language-conditioned Reinforcement Learning&lt;/a> 也有交集）。具体工作：&lt;/p>
+&lt;ul>
+&lt;li>Grounding english commands to reward function &lt;a class="link" href="https://www.roboticsproceedings.org/rss11/p18.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>From language to goals: Inverse reinforcement learning for vision-based instruction following &lt;a class="link" href="https://arxiv.org/abs/1902.07742" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="empowered-by-llms--vlms">Empowered by LLMs &amp;amp; VLMs
+&lt;/h4>&lt;p>前两类方法均需要对文本信息进行学习，而有了 LLM 这样强有力的工具，就可以对系统进行简化。具体而言，可以利用好大语言模型的 planning 和 reasoning 能力。&lt;/p>
+&lt;p>大语言模型的 planning 能力指的是其将复杂任务转化为一系列简单的、机器人能够执行的任务的能力。譬如要求机器人炒菜，直接学习一个炒菜的策略是非常难的，但可以先让 LLM 将炒菜的动作拆分成 洗菜、放油、放菜 等一系列简单的、机器人能够学会的动作，此时再让机器人去执行这些动作就能完成炒菜的任务了。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Sayplan: Grounding large language models using 3d scene graphs for scalable task planning &lt;a class="link" href="https://arxiv.org/abs/2307.06135" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language models as zero-shot planners: Extracting actionable knowledge for embodied agents &lt;a class="link" href="https://arxiv.org/abs/2201.07207" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Describe, explain, plan and select: Interactive planning with large language models enables open-world multi-task agents &lt;a class="link" href="https://arxiv.org/abs/2302.01560" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Progprompt: Generating situated robot task plans using large language models &lt;a class="link" href="https://arxiv.org/abs/2209.11302" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robots that ask for help: Uncertainty alignment for large language model planners &lt;a class="link" href="https://arxiv.org/abs/2307.01928" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Task and motion planning with large language models for object rearrangement &lt;a class="link" href="https://arxiv.org/abs/2303.06247" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Do as i can, not as i say: Grounding language in robotic affordances &lt;a class="link" href="https://arxiv.org/abs/2204.01691" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The 2014 international planning competition: Progress and trends &lt;a class="link" href="https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/2571" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning via deep reinforcement learning: a tabletop object sorting application &lt;a class="link" href="https://ieeexplore.ieee.org/document/8914278" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning and situation handling in open worlds &lt;a class="link" href="https://arxiv.org/abs/2210.01287" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/yding25/GPT-Planner" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cowplanning.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Text2motion: From natural language instructions to feasible plans &lt;a class="link" href="https://arxiv.org/abs/2303.12153" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://sites.google.com/stanford.edu/text2motion" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Large language models as commonsense knowledge for large-scale task planning &lt;a class="link" href="https://arxiv.org/abs/2305.14078" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/1989Ryan/llm-mcts" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://llm-mcts.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Alphablock: Embodied finetuning for vision-language reasoning in robot manipulation &lt;a class="link" href="https://arxiv.org/abs/2305.18898" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Learning to reason over scene graphs: a case study of finetuning gpt-2 into a robot language model for grounded task planning &lt;a class="link" href="https://www.frontiersin.org/articles/10.3389/frobt.2023.1221739/full" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/dnandha/RobLM" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Scaling up and distilling down: Language-guided robot skill acquisition &lt;a class="link" href="https://arxiv.org/abs/2307.14535" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/real-stanford/scalingup" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://www.cs.columbia.edu/~huy/scalingup/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Stap: Sequencing task-agnostic policies &lt;a class="link" href="https://ieeexplore.ieee.org/document/10160220" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/agiachris/STAP" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://sites.google.com/stanford.edu/stap/home" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Inner monologue: Embodied reasoning through planning with language models &lt;a class="link" href="https://arxiv.org/abs/2207.05608" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://innermonologue.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>大语言模型的 reasoning 能力就像 TidyBot 中展示的那样，利用 LLM 去推理某个物品应该被放置到何处，再让机器人去执行特定的策略。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Rearrangement:A challenge for embodied ai &lt;a class="link" href="https://arxiv.org/abs/2011.01975" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The threedworld transport challenge: A visually guided task and motion planning benchmark for physically realistic embodied ai &lt;a class="link" href="https://ieeexplore.ieee.org/document/9812329" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidy up my room: Multi-agent cooperation for service tasks in smart environments &lt;a class="link" href="https://dl.acm.org/doi/abs/10.3233/AIS-190524" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>A quantifiable stratification strategy for tidy-up in service robotics &lt;a class="link" href="https://ieeexplore.ieee.org/document/9542842" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidybot: Personalized robot assistance with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Housekeep: Tidying virtual households using commonsense reasoning &lt;a class="link" href="https://arxiv.org/abs/2205.10712" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Building cooperative embodied agents modularly with large language models &lt;a class="link" href="https://arxiv.org/abs/2307.02485" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Voyager: An open-ended embodied agent with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.16291" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Translating natural language to planning goals with large-language models &lt;a class="link" href="https://arxiv.org/abs/2302.05128" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>在自然语言的基础上，可以再加上视觉工具，比如 TidyBot 中识别物体的部分。利用了 VLMs 的具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Cliport: What and where pathways for robotic manipulation &lt;a class="link" href="https://arxiv.org/abs/2109.12098" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/cliport/cliport" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cliport.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Transporter networks: Rearranging the visual world for robotic manipulation &lt;a class="link" href="https://proceedings.mlr.press/v155/zeng21a/zeng21a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/google-research/ravens" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://transporternets.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Simple but effective: Clip embeddings for embodied ai &lt;a class="link" href="https://openaccess.thecvf.com/content/CVPR2022/papers/Khandelwal_Simple_but_Effective_CLIP_Embeddings_for_Embodied_AI_CVPR_2022_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Instruct2act: Mapping multi-modality instructions to robotic actions with large language model &lt;a class="link" href="https://arxiv.org/abs/2305.11176" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/OpenGVLab/Instruct2Act" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Latte: Language trajectory transformer &lt;a class="link" href="https://arxiv.org/abs/2208.02918" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/arthurfenderbucker/LaTTe-Language-Trajectory-TransformEr" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Palm-e: An embodied multimodal language model &lt;a class="link" href="https://arxiv.org/abs/2303.03378" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://palm-e.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Pretrained language models as visual planners for human assistance &lt;a class="link" href="https://openaccess.thecvf.com/content/ICCV2023/papers/Patel_Pretrained_Language_Models_as_Visual_Planners_for_Human_Assistance_ICCV_2023_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/facebookresearch/vlamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Open-world object manipulation using pre-trained vision-language models &lt;a class="link" href="https://arxiv.org/abs/2303.00905" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://robot-moo.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Robotic skill acquisition via instruction augmentation with vision-language models &lt;a class="link" href="https://arxiv.org/abs/2211.11736" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://instructionaugmentation.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language reward modulation for pretraining reinforcement learning &lt;a class="link" href="https://arxiv.org/abs/2308.12270" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/ademiadeniji/lamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Vision-language models as success detectors &lt;a class="link" href="https://proceedings.mlr.press/v232/du23b.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>Theory of Computation Lecture 4</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/</link><pubDate>Wed, 17 Apr 2024 15:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/cover.png" alt="Featured image of post Theory of Computation Lecture 4" />&lt;h1 id="lecture-4-context-free-grammar">Lecture 4 Context-Free Grammar
+&lt;/h1>&lt;h2 id="context-free-grammar">Context-Free Grammar
+&lt;/h2>&lt;p>We have already known that REGEXPs can &lt;em>generate&lt;/em> languages. Now we introduce another way to generate languages: &lt;em>Context-free grammar (CFG)&lt;/em>.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>CFG&lt;/em> is a 4-tuple $(V, \Sigma, R, S)$:&lt;/p>
+&lt;ul>
+&lt;li>$V$ is a set of &lt;em>variables&lt;/em>.&lt;/li>
+&lt;li>$\Sigma$ is a set of &lt;em>terminals&lt;/em>.&lt;/li>
+&lt;li>$R$ is a set of &lt;em>rules&lt;/em> (a rule consists of a variable and a sting in $(V\cup \Sigma)^*$).&lt;/li>
+&lt;li>$S$ is the &lt;em>start variable&lt;/em>.&lt;/li>
+&lt;/ul>
+&lt;p>We say $uAv$ &lt;em>yields&lt;/em> $uwv$ ($uAv \Rightarrow uwv$) if $A\to w$ is a rule in $R$.&lt;/p>
+&lt;p>We say $u$ &lt;em>derives&lt;/em> $v$ ($u \Rightarrow^* v$) if $\exists u_1, u_2, \cdots, u_k$ such that $u\Rightarrow u_1\Rightarrow u_2\Rightarrow\cdots\Rightarrow u_k \Rightarrow v$.&lt;/p>
+&lt;/blockquote>
+&lt;p>总的来说，CFG 就是从 $S$ 开始，每次从现在的字符串中选择一个 variable，依据某个 rule 将其替换为一个 string，直到没有 variable 为止。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>The &lt;em>language&lt;/em> of a CFG $G$ is defined as:&lt;/p>
+&lt;p>$$L(G)=\{w\in \Sigma^* | S\Rightarrow^* w\}$$&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="cfg-is-more-powerful-than-dfa">CFG is more powerful than DFA
+&lt;/h2>&lt;p>要证明 CFG is &lt;strong>strictly&lt;/strong> more powerful than DFA，要从两方面入手：&lt;/p>
+&lt;ul>
+&lt;li>(1) 存在 language，可以用 CFG 表达，但不是 regular language。&lt;/li>
+&lt;li>(2) 任意 regular language 都可以用 CFG 表达。&lt;/li>
+&lt;/ul>
+&lt;p>对于 (1)，上节课已知 $L=\{0^n1^n | n\geq 0\}$ is nonregular，但可以用 CFG $S\to 0S1|\epsilon$ 得到。&lt;/p>
+&lt;p>对于 (2)，即要证明：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>Given a DFA $A=(Q,\Sigma,\delta,q_0,F)$, we can find a CFG $A^{\prime}=(V,\Sigma^{\prime},R,S)$, such that $L(A)=L(A^{\prime})$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>对 $A$ 的每个 state $q_i$，在 $V$ 中引入一个变量 $R_i$。&lt;/li>
+&lt;li>如果 $\delta(q_i,a)=q_j$，就在 $R$ 中引入 rule $R_i\to a R_j$。&lt;/li>
+&lt;li>$q_0$ 是 starting state，那么 $R_0$ 就是 start variable。&lt;/li>
+&lt;li>如果 $q_i$ 是一个 accepting state，就在 $R$ 中加入 rule $R_i\to\epsilon$。&lt;/li>
+&lt;/ul>
+&lt;p>这样构造出来的 $A^{\prime}$ 满足 $L(A)=L(A^{\prime})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>An example:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1.png"
+width="1351"
+height="243"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1_hu8015602755011015200.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1_hu11338169947987226798.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="555"
+data-flex-basis="1334px"
+>&lt;/p>
+&lt;h2 id="parse-trees-and-ambiguity">Parse Trees and Ambiguity
+&lt;/h2>&lt;p>可以用一个 parse tree 来表示从 start variable 生成一个 string of terminals 的过程：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>Parse tree:&lt;/p>
+&lt;ul>
+&lt;li>Each &lt;em>internal node&lt;/em> labeled with a &lt;em>variable&lt;/em>.&lt;/li>
+&lt;li>Each &lt;em>leaf&lt;/em> labeled with a &lt;em>terminal&lt;/em>.&lt;/li>
+&lt;li>The children of a node represent the rule that was applied.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>An example:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree.png"
+width="1343"
+height="499"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree_hu14319360060515793385.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree_hu10302481771897833312.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="269"
+data-flex-basis="645px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A CFG is called &lt;em>ambiguous&lt;/em> if a string has two distinct parse trees.&lt;/p>
+&lt;/blockquote>
+&lt;p>直观上来说，ambiguous 指的就是存在歧义，比如 $a+a\times a$，如果不定义 + 和 $\times$ 的计算顺序，就有可能先算 +，也可能先算 $\times$。&lt;/p>
+&lt;p>ambiguous 并不等同于 “存在两种 derivations”，因为两种 derivations 可能对应同一个 parse tree。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>Leftmost derivation&lt;/em>: 每一步替换当前 string 最左边的那个 variable。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>ambiguous 等价于存在两种 leftmost derivations。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A CFL (context free language, 即可以用某个 CFG 生成的 language) is called &lt;em>inherently ambiguous&lt;/em> if every CFG of it is ambiguous.&lt;/p>
+&lt;/blockquote>
+&lt;p>An example of inherently ambiguous CFL:&lt;/p>
+&lt;p>$$L=\{w | w=a^ib^jc^k, i,j,k\geq 1 \text{ and } i=j \text{ or } i=k\}$$&lt;/p>
+&lt;h2 id="closure-properties">Closure Properties
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>CFLs are closed under Union, Concatenation, Kleene Star.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>只需要在原先的 CFG 之上引入新的 start variable，用新的 start variable 去生成旧的 start variables即可。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>CFLs are NOT closed under intersection. But CFLs are closed under intersection with REGULAR languages.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>$$L = \{w : w \in \{0, 1\}^*, w \text{ is a palindrome, and } w \text{ contains fewer 0s than 1s }\}$$&lt;/p>
+&lt;p>这是两个 CFL 的 intersection，可以用后面将要介绍的 pumping lemma 证明它不是 CFL。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="pushdown-automaton-pda">Pushdown Automaton (PDA)
+&lt;/h2>&lt;p>Regular language 在句法上可以用 REGEXP 生成，在计算模型上可以被 DFA、NFA 识别。CFL 在句法上可以用 CFG 生成，现引入新的计算模型 PDA 来识别 CFL。&lt;/p>
+&lt;p>由于 CFL 是 regular language 的扩充，PDA 也应该是 NFA 的扩充。事实上，PDA 就是为 NFA 多提供了一个无穷大的 stack，PDA 读取 input 的时候，可以从 stack 中 push 或 pop 一个 symbol。&lt;/p>
+&lt;p>PDA 做的事情就是，每次读取一个 input（可能是 $\epsilon$），并从 stack 顶部 pop 出一个 symbol（可能是 $\epsilon$），然后 transit to a new state and push a symbol to the top of the stack（可能是 $\epsilon$）。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>pushdown automaton (PDA)&lt;/em> is a 6-tuple $(Q, \Sigma, \Gamma, \delta, q_0, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$ is the input alphabet.&lt;/li>
+&lt;li>$\Gamma$ is the stack alphabet.&lt;/li>
+&lt;li>$q_0$ in $Q$ is the initial state.&lt;/li>
+&lt;li>$F \subseteq Q$ is a set of final states.&lt;/li>
+&lt;li>$\delta$ is the transition function.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$\delta : Q \times (\Sigma \cup \{\epsilon\}) \times (\Gamma \cup \{\epsilon\}) \to 2^{Q \times (\Gamma \cup \{\epsilon\})}$&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>PDA $(Q, \Sigma, \Gamma, \delta, q_0, F)$ &lt;em>accepts&lt;/em> string $w \in \Sigma^*$ if:&lt;/p>
+&lt;ul>
+&lt;li>$w$ can be written as $x_1 x_2 \cdots x_m$, each $x_i \in \Sigma \cup \{\epsilon\}$.&lt;/li>
+&lt;li>$\exists r_0, r_1, \cdots, r_m \in Q$, a sequence of $m+1$ states.&lt;/li>
+&lt;li>$\exists s_0, s_1, \cdots, s_m \in \Gamma^*$, stack contents.&lt;/li>
+&lt;li>such that&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q, s_0=\epsilon$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$(r_i, b) \in \delta(r_{i-1},x_i, a)$, where $s_{i-1}=ta$ and $s_i=tb$ for $1 \leq i \leq m$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_m\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>可以通过构造 PDA 的方法证明
+$$L=\{ww^R\}$$
+$$L=\{w:w=w^R\}$$
+$$L=\{w: w \text{ has the same number of 0s and 1s}\}$$
+$$L=\{w: w \text{ has two 0-blocks with same number of 0s}\}$$
+都可以被 PDA 识别。&lt;/p>
+&lt;h2 id="equivalence-of-cfg-and-pda">Equivalence of CFG and PDA
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>A language L is context-free if and only if it is accepted by some pushdown automaton.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1) From CFG to PDA. 思路就是用 PDA 来模拟 leftmost derivation。将每时每刻的 string 倒序放在 stack中，如果 stack 的顶部是 terminal，就和 input 比较，相同则 pop out，不同则 reject；如果 stack 顶部是 variable，就做 leftmost derivation。&lt;/p>
+&lt;p>例子：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2.png"
+width="1274"
+height="661"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2_hu11201913059252227659.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2_hu4140085318789904323.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="192"
+data-flex-basis="462px"
+>&lt;/p>
+&lt;p>Formally:
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3.png"
+width="1018"
+height="562"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3_hu7313319200416720763.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3_hu7394908644265965931.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="181"
+data-flex-basis="434px"
+>&lt;/p>
+&lt;p>用图来表示 PDA 就是：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4.png"
+width="1242"
+height="496"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4_hu6820510545641362402.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4_hu11289169759666547080.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="250"
+data-flex-basis="600px"
+>&lt;/p>
+&lt;p>(2) From PDA to CFG. 总的思路就是，先令 PDA 只有一个 accept state，并且 accept 之前会清空 stack。然后 CFG 的一个 variable 就是一个字符串的集合，使得 PDA 读取集合中的字符串能从某个 state 转移到另一个 state，同时保持 stack 不变。&lt;/p>
+&lt;p>Formally:
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5.png"
+width="1727"
+height="486"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5_hu13865199756874930705.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5_hu8929055594026879799.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="355"
+data-flex-basis="852px"
+>&lt;/p>
+&lt;p>CFG 的 rules 如下：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6.png"
+width="1327"
+height="750"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6_hu543238877473941916.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6_hu11033487897053469898.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="176"
+data-flex-basis="424px"
+>&lt;/p>
+&lt;p>并不给出详细的证明，直观理解即可。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="chomsky-normal-form-and-cyk-algorithm">Chomsky Normal Form and CYK algorithm
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A context-free grammar is in &lt;em>Chomsky normal form&lt;/em> if every rule is of the form:&lt;/p>
+&lt;ul>
+&lt;li>$A \to BC$&lt;/li>
+&lt;li>$A \to a$&lt;/li>
+&lt;/ul>
+&lt;p>其中，$A, B, C$ 是任意 variables，$a$ 是任意非 $\epsilon$ 的 terminal。$B, C$ 不能是 start variable。允许 $S\to \epsilon$。&lt;/p>
+&lt;/blockquote>
+&lt;p>任意 CFG 都可以转换成 CNF 的形式，课件的 91-98 页讲得很清楚，还举了个例子。&lt;/p>
+&lt;p>将任意 CFG 转成 CNF 之后，我们就可以用 &lt;em>Cocke–Younger–Kasami algorithm&lt;/em> 来判断某个特定的 string 能否被某个特定的 CFG 生成。假设 string 为 $s[1:n]$，CFG 有 $r$ 个 variables $R$，其中 $R_1$ 是 start variable。总的思路是，构造一个 $n\times n\times r$ 的表格 $T$，其中 $T[i,j,k]$ 表示 $s[i:j]$ 能否由 $R_k$ 生成，然后依据 $j-i$ 从小到大的顺序 DP 地判断 $s[i:j]$ 能否被 $R_k$ 生成。最后，$s$ 能被生成当且仅当 $T[1,n,1]$ 为真。&lt;/p>
+&lt;h2 id="pumping-lemma-for-cfl">Pumping Lemma for CFL
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>If $A$ is a context-free language, then there is a number $p$ (the pumping length)
+where, if $s$ is any string in $A$ of length at least $p$, then $s$ may be divides into 5
+pieces $s=uvxyz$, satisfying:&lt;/p>
+&lt;ul>
+&lt;li>For each $i\geq 0, uv^ixy^iz \in A$&lt;/li>
+&lt;li>$|vy|&amp;gt; 0$&lt;/li>
+&lt;li>$|vxy|\leq p$&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>用 CFG 来证明，假设 CFG 有 $a$ 个 variables，rules 右手边的 symbols 最长为 $b$ 个。考察 parse tree，当 parse tree 从 root 到 leaf 最深的 path 长度为 $v+2$ 时，至少有一个 variable $N$ 出现了两次，假设 $S\Rightarrow^* uNz\Rightarrow uvNyz\Rightarrow uvxyz$，那么显然也可以有 $S\Rightarrow^* uNz\Rightarrow uvNyz\Rightarrow uvvNyyz\Rightarrow uvvxyyz$。可以算出 $p$ 是 $b,v$ 的一个函数。
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7.png"
+width="948"
+height="865"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7_hu2178050390804505139.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7_hu12986633172289653424.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="109"
+data-flex-basis="263px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;p>可以用 pumping lemma 证明，$\{a^n b^n c^n | n\geq 0\}, \{ww|w\in\{0,1\}^*\}, \{a^i b^j c^k | 0\leq i\leq j\leq k\}$ 都不是 context-free 的。&lt;/p></description></item><item><title>Theory of Computation Lecture 3</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/</link><pubDate>Tue, 16 Apr 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/cover.png" alt="Featured image of post Theory of Computation Lecture 3" />&lt;h1 id="lecture-3-finite-automata">Lecture 3 Finite Automata
+&lt;/h1>&lt;p>计算理论剩下的笔记会是 exam-oriented 的，因为系统地写一篇笔记确实太过耗时。&lt;/p>
+&lt;h2 id="deterministic-finite-automaton-dfa">Deterministic Finite Automaton (DFA)
+&lt;/h2>&lt;h3 id="dfa-and-regular-languages">DFA and Regular Languages
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>DFA&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$\delta: Q\times \Sigma \to Q$ is the transition function.&lt;/li>
+&lt;li>$q\in Q$ is the start state.&lt;/li>
+&lt;li>$F\subset Q$ is the set of accepting states.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>DFA 做的事情就是从 start state 开始，每次从输出序列中获取下一个 symbol，依据 transition function 转成另一个state，直到 inputs 被获取完，判断此时的 state 是否为 accepting state。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A DFA $M$ &lt;em>accepts&lt;/em> the input $w$ if:&lt;/p>
+&lt;ul>
+&lt;li>$M=(Q,\Sigma,\delta,q,F)$.&lt;/li>
+&lt;li>$w=w_1 w_2\cdots w_n$, each $w_i\in \Sigma$ for $1\leq i\leq n$.&lt;/li>
+&lt;li>$\exists (r_0, r_1, \cdots, r_n)$, each $r_i\in Q$ for $0\leq i\leq n$ s.t.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q$, the start state.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_i = \delta (r_{i-1}, w_i)$, for $1\leq i\leq n$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_n\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>每个 DFA 都存在一些 inputs 的集合，使其 accepts，定义这个集合为 DFA 的 language。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>Language&lt;/em> is a (possibly infinite) set of strings over some alphabet.&lt;/p>
+&lt;p>$L(M) = \{w | M \text{ accepts } w\}$ is the language &lt;em>recognized&lt;/em> by M.&lt;/p>
+&lt;/blockquote>
+&lt;p>A DFA always recognizes one language!&lt;/p>
+&lt;p>If it accepts no strings, it recognize the “empty language” $\emptyset$.&lt;/p>
+&lt;p>DFA 可以做一些简单的任务，比如判断一个 binary number 是否可以被 3 整除（只需要用 states 存目前被 3 除的余数即可），比如判断一个字母序列是否包含 b（检测到 b 就进入 accepting state）。由此我们可以定义 regular languages：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>Regular languages&lt;/em> is the set of all languages recognized by some DFA.&lt;/p>
+&lt;/blockquote>
+&lt;p>所以只要一个 language 能被某个 DFA 识别，那它就是一个 regular language。&lt;/p>
+&lt;h3 id="regular-languages-are-closed-under-complementation-intersection-and-union">Regular Languages are Closed under Complementation, Intersection and Union
+&lt;/h3>&lt;p>对于一个或几个 regular language(s)，我们可以由它们构造新的 language，使得新的 language 也是 regular language。比如 complementation: $L^{\prime}=\bar{L}$. 即我们现在已知存在某个 DFA $M$ 使得 $L=L(M)$, 我们是否能找到一个 DFA $M^{\prime}$ 使得 $L(M^{\prime})=\bar(L(M))$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under complementation.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>根据 $M$, 构造一新的 DFA $M^{\prime}$，二者完全一样，除了 $M^{\prime}$ 的 accepting states 是 $M$ 的 accepting states 的补集。这样的话一个 input 能被 $M$ 识别当且仅当其不能被 $M^{\prime}$ 识别。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under intersection.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>假设我们现在有两个 DFAs $M_1=(Q_1, \Sigma, \delta_1, s_1, F_1), M_2=(Q_2, \Sigma, \delta_2, s_2, F_2)$，构造一新 DFA $M_3=(Q_1\times Q_2, \Sigma, \delta_1\times \delta_2, (s_1,s_2), F_3)$。即 $M_3$ 的状态空间是 $Q_1$ 和 $Q_2$ 的直积，在两个分量空间中分别作 transition。$(q_1, q_2)\in F_3$ 当且仅当 $q_1\in F_1, q_2\in F_2$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under uniton.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用 DeMorgan’s Law $X\cup Y = \overline{(\bar{X}\cap\bar{Y})}$，也可以用与上一 theorem 类似的构造。&lt;/p>
+&lt;/blockquote>
+&lt;p>定义 regular operations on languages:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>
+A &amp;amp; B are two (possibly infinite) sets of strings. Define regular operations on them:&lt;/p>
+&lt;ul>
+&lt;li>Union: $A \cup B = \{x | x\in A \text{ or } x\in B\}$.&lt;/li>
+&lt;li>Concatenation: $A\circ B = \{xy | x\in A \text{ and } y\in B\}$.&lt;/li>
+&lt;li>Star: $A^* = \{x_1 x_2 \cdots x_k | k\geq 0 \text{ and all } x_i\in A\}$.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>note: the empty string $\epsilon (k=0)$ is always in $A^*$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>我们已知 regular languages is closed under union，但对剩下两种 operations，很难直接构造出合适的 DFA，需要先引入新的概念。&lt;/p>
+&lt;h2 id="nondeterministic-finite-automaton-nfa">Nondeterministic Finite Automaton (NFA)
+&lt;/h2>&lt;h3 id="nfa">NFA
+&lt;/h3>&lt;p>NFA 与 DFA 类似，但它&lt;/p>
+&lt;ul>
+&lt;li>可以不获取输入自发转变状态（也可以被视作获取空字符 $\epsilon$）。&lt;/li>
+&lt;li>在某个状态获取某个输入之后，转变成的新状态有很多种可能。&lt;/li>
+&lt;/ul>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An &lt;em>NFA&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$\delta: Q\times \Sigma_{\epsilon} \to 2^Q$ is the transition function.&lt;/li>
+&lt;li>$q\in Q$ is the start state.&lt;/li>
+&lt;li>$F\subset Q$ is the set of accepting states.&lt;/li>
+&lt;/ul>
+&lt;p>这里，$\Sigma_{\epsilon}=\Sigma\cup\{\epsilon\}$，$2^Q$ 是 $Q$ 的所有子集组成的集合，叫做 $Q$ 的 power set。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An NFA $N$ &lt;em>accepts&lt;/em> the input $w\in \Sigma^*$ if:&lt;/p>
+&lt;ul>
+&lt;li>$N=(Q,\Sigma,\delta,q,F)$.&lt;/li>
+&lt;li>$w$ can be written as $x_1 x_2\cdots x_n$, each $x_i\in \Sigma_{\epsilon}$ for $1\leq i\leq n$.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>注意这里用的是 &amp;ldquo;can be written&amp;rdquo; 而不是 &amp;ldquo;=&amp;quot;，因为 $&amp;ldquo;abba&amp;rdquo;$ can be written as $&amp;ldquo;a\epsilon bb \epsilon a&amp;rdquo;$。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>$\exists (r_0, r_1, \cdots, r_n)$, each $r_i\in Q$ for $0\leq i\leq n$ s.t.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q$, the start state.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_i \in \delta (r_{i-1}, x_i)$, for $1\leq i\leq n$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_n\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="equivalence-of-nfa-and-dfa">Equivalence of NFA and DFA
+&lt;/h3>&lt;p>可以证明 NFA 与 DFA 是等价的，即对任意 NFA 都可以找到一个 DFA，使得二者的 language 相同；对任意 DFA 也可以找到一个 NFA，使得二者的 language 相同。后者是显然的，因为任意 DFA 本身就可以被视为一个 NFA。我们现在要证明前者。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>For any NFA $N$, there is a DFA $M$ such that $L(N) = L(M)$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>总的思想就是：at all times, M keeps track of the set of states that N could be in.&lt;/p>
+&lt;p>(1) 先对 $N$ 中不存在 $\epsilon$ 的情况证明：&lt;/p>
+&lt;p>若 $N=(Q,\Sigma,\delta,q,F)$，令 $M=(Q^{\prime}, \Sigma, \delta^{\prime}, q^{\prime}, F^{\prime})$:&lt;/p>
+&lt;ul>
+&lt;li>$Q^{\prime}=2^{Q}$&lt;/li>
+&lt;li>$\delta^{\prime}(R,a)=\cup_{r\in R}\delta(r,a)$。其中 $R\in 2^{Q}, a\in \Sigma$。&lt;/li>
+&lt;li>$q^{\prime}=\{q\}$&lt;/li>
+&lt;li>$F^{\prime}=\{R\in Q^{\prime} | R\cap F\neq \emptyset\}$&lt;/li>
+&lt;/ul>
+&lt;p>(2) 对于存在 $\epsilon$ 的情况，可以将 $\epsilon$ 后的 state 并入前面的 state。Formally:&lt;/p>
+&lt;p>令 $E(R)=\{r\in Q | r \text{ is reachable from } R \text{ using zero on more } \epsilon \text{-transitions}\}$.&lt;/p>
+&lt;ul>
+&lt;li>$Q^{\prime}=2^{Q}$&lt;/li>
+&lt;li>$\delta^{\prime}(R,a)=\cup_{r\in R}E(\delta(r,a))$。其中 $R\in 2^{Q}, a\in \Sigma$。&lt;/li>
+&lt;li>$q^{\prime}=E(\{q\})$&lt;/li>
+&lt;li>$F^{\prime}=\{R\in Q^{\prime} | R\cap F\neq \emptyset\}$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>一个 NFA 需要 $\log_2 |Q|$ bits 来存 states，与其等价的 DFA 需要 $\log_2 |Q^{\prime}| = |Q|$ bits 来存 states。可以举出一个 NFA 的例子，证明这样的 exponential blowup 在某些情况下是必须的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Example:&lt;/strong>&lt;/p>
+&lt;p>$\Sigma=\{a,b\}, L_k=\{w\in\{a,b\}^* | \text{ the } k \text{-th symbol from the end is } b\}$. There is a $(k+1)$-state NFA recognizing $L_k$.&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1.png"
+width="1284"
+height="233"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1_hu12285616191936858880.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1_hu10540943677457612510.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="551"
+data-flex-basis="1322px"
+>&lt;/p>
+&lt;p>Then we prove that any DFA with $&amp;lt; 2^k$ states can not recognize $L_k$.&lt;/p>
+&lt;p>We prove by contradiction.&lt;/p>
+&lt;p>(1) Assume there is a DFA $M$ with $|Q| = 2^k - 1$.&lt;/p>
+&lt;p>(2) Imagine running $M$ on each input $w\in\{a,b\}^k$.&lt;/p>
+&lt;p>(3) By the pigeonhole principle, $\exists w \neq w^{\prime}\in\{a,b\}^k$ s.t. after reading $w$ and $w^{\prime}$, $M$ is in the same state.&lt;/p>
+&lt;p>(4) Let $j+1$ be the first position where $w$ and $w^{\prime}$ differ.&lt;/p>
+&lt;p>(5) Run $M$ on $wa^j$ and $w^{\prime}a^j$. $M$ is supposed to be in the same state. But $w\notin L_k, w^{\prime}\in L_k$. A contradiction.&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2.png"
+width="1138"
+height="220"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2_hu7648609160853684226.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2_hu8192488999227300051.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="517"
+data-flex-basis="1241px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="regular-languages-are-closed-under-concatenation-and-star">Regular Languages are Closed under Concatenation and Star
+&lt;/h3>&lt;p>先介绍定理：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>For any NFA $N_1$, there is an NFA $N_2$ such that $L(N_1) = L(N_2)$ and $N_2$ has exactly one accept state.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>把 $N_1$ 中所有的 accepting states 用 $\epsilon$ 连到一个新的 accepting states。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under concatenation.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>对于 $N_1, N_2$ 构造 $N_3$ 使得 $L(N_3)=L(N_1)\circ L(N_2)$。只需要把 $N_1$ 的 accepting states 都用 $\epsilon$ 连到 $N_2$ 的 starting state 就行。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under star。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>如下图构造 $L(N_2)=L(N_1)^*$:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3.png"
+width="1055"
+height="516"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3_hu4782533735029558264.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3_hu11922664207413084886.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="204"
+data-flex-basis="490px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="equivalence-of-nfas-dfas-and-regular-expressions">Equivalence of NFAs, DFAs and Regular Expressions
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>regular expression (REGEXP)&lt;/em> 是用以下方式表示的一个集合：
+从 $\{a\}, \{\epsilon\}, \emptyset$ 开始，通过 $(R_1\cup R_2), (R_1\circ R_2), (R_1^*)$ 构成。&lt;/p>
+&lt;p>简化：省略 $\circ$，定义计算顺序 $^*, \circ, \cup$。&lt;/p>
+&lt;/blockquote>
+&lt;p>接下来证明 REGEXP 和 NFA 等价。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>(1) The language of any REGEXP is recognized by an NFA.&lt;/p>
+&lt;p>(2) The language of any NFA can be represented by a REGEXP.&lt;/p>
+&lt;/blockquote>
+&lt;p>(1) 是显然的，因为 regular languages are closed under $\cup, \circ, ^*$。&lt;/p>
+&lt;p>(2) 不显然，需要引入新概念。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>GNFA (Generalized NFA)&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q_{start}, q_{accept})$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$q_{start}$ is the start state.&lt;/li>
+&lt;li>$q_{accept}$ is the accept state.&lt;/li>
+&lt;li>$\delta: (Q\backslash \{q_{accept}\}) \times (Q\backslash \{q_{start}\}) \to REGEXP$ is the transition function.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>简单地说，GNFA 就是 NFA，只不过 transition 用 REGEXP 表达。显然 GNFA 和 NFA 等价。&lt;/p>
+&lt;p>故而，证明 (2) 的思路为：任意一个 NFA 都可以用一个 GNFA 表示，任意一个 GNFA 都可以被缩减为只有两个 states，所以等价于一个 REGEXP。第一步和第三步显然。第二步逐个删去 state 即可，图解：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4.png"
+width="1101"
+height="376"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4_hu17395546765287011142.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4_hu15323961194027872921.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="292"
+data-flex-basis="702px"
+>&lt;/p>
+&lt;h2 id="nonregular-languages">Nonregular Languages
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Example:&lt;/strong>&lt;/p>
+&lt;p>\{0^n 1^n|n\geq 0\} is nonregular.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>Assume it&amp;rsquo;s regular, the DFA recognizing it consists of $p$ states. Then by the pigeonhole principle, there exists $i,j$ such that after reading $0^i, 0^j$, the DFA is in the same state. So if it accepts $0^i 1^i$, it must accept $0^j 1^i$, which is a contradiction.&lt;/p>
+&lt;/blockquote>
+&lt;p>用这种思想，可以引入 pumping lemma:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Pumping Lemma:&lt;/strong>&lt;/p>
+&lt;p>If $A$ is a regular language, then there is a number $p$ (the pumping length) where, if $s$ is any string in $A$ of length at least $p$, then $s$ can be divided into $s=xyz$, satisfying:&lt;/p>
+&lt;ul>
+&lt;li>For each $i\geq 0, xy^i z \in A$&lt;/li>
+&lt;li>$|y|&amp;gt;0$&lt;/li>
+&lt;li>$|xy|\leq p$&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>令 $p$ 是 DFA 的状态数，再用上面那个例子中类似的思想即可。&lt;/p>
+&lt;/blockquote>
+&lt;p>可以用 pumping lemma 判断 nonregular language。如果不满足 pumping lemma，那么肯定是 nonregular language。思路就是，假设有个 $p$，再从 language 中找反例。&lt;/p>
+&lt;p>可以证明 $\{ww|w\in \{0,1\}^*\}, \{1^{n^2}|n\geq 0\}, \{0^i 1^j|i&amp;gt;j\}$ 都是 nonregular language。&lt;/p></description></item><item><title>Leveraging Symmetry in RL-based Legged Locomotion Control</title><link>https://suz-tsinghua.github.io/p/symmetric-quadruped/</link><pubDate>Tue, 02 Apr 2024 18:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/symmetric-quadruped/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/symmetric-quadruped/cover.png" alt="Featured image of post Leveraging Symmetry in RL-based Legged Locomotion Control" />&lt;h1 id="leveraing-symmetry-in-rl-based-legged-locomotion-control">Leveraing Symmetry in RL-based Legged Locomotion Control
+&lt;/h1>&lt;p>第一个科研项目。先在这放个链接，之后再补正文吧。&lt;/p>
+&lt;p>&lt;a class="link" href="https://arxiv.org/abs/2403.17320v2" target="_blank" rel="noopener"
+>Arxiv链接&lt;/a>&lt;/p>
+&lt;p>Demo: （可能需要梯子）
+&lt;div class="video-wrapper">
+&lt;iframe loading="lazy"
+src="https://www.youtube.com/embed/Ad1clt4Yi4U"
+allowfullscreen
+title="YouTube Video"
+>
+&lt;/iframe>
+&lt;/div>
+&lt;/p></description></item><item><title>Theory of Computation Lecture 2</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/</link><pubDate>Tue, 02 Apr 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/cover.png" alt="Featured image of post Theory of Computation Lecture 2" />&lt;h1 id="lecture-2-mathematical-logic-2">Lecture 2 Mathematical Logic (2)
+&lt;/h1>&lt;h2 id="informal-predicate-calculus-非形式的谓词演算">Informal Predicate Calculus (非形式的谓词演算)
+&lt;/h2>&lt;h3 id="量词">量词
+&lt;/h3>&lt;p>对于某些命题，我们无法用第一节课中的方式将其表达为一命题形式，如“所有人都会死”，此时我们必须要引入量词来表达“所有”这样的限制语义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>全称量词 (Universal quantifier)&lt;/em>，对所有的 $x$，$(\forall x)$。&lt;/p>
+&lt;p>&lt;em>存在量词 (Existensial quantifier)&lt;/em>，存在 $x$，$(\exists x)$。&lt;/p>
+&lt;/blockquote>
+&lt;p>“所有人都会死”就可以表示成 $(\forall x)(A(x)\to M(x))$。
+此处，$x$ 为一变元，指的是所有的东西，并不只限于人。$A(x)$ 表示 $x$ 是人，$M(x)$ 表示 $x$ 会死。&lt;/p>
+&lt;p>$\forall$ 和 $\exists$ 之间也可以相互转换。考察句子“不是所有鸟都会飞”，可以表示为 $\sim(\forall x)(B(x)\to F(x))$。句子显然等价于“有些鸟不会飞”，可以表示为 $(\exists x)(B(x)\land \sim F(x))$。&lt;/p>
+&lt;p>我们知道：&lt;/p>
+&lt;p>$$
+\begin{align*}
+\sim(\forall x)(B(x)\to F(x)) &amp;amp;\iff \sim(\forall x)(\sim B(x)\lor F(x))\\
+&amp;amp; \iff \sim(\forall x)\sim (B(x)\land \sim F(x))
+\end{align*}
+$$&lt;/p>
+&lt;p>对比 $\sim(\forall x)\sim (B(x)\land \sim F(x))$ 与 $(\exists x)(B(x)\land \sim F(x))$，不难发现二者有相似之处。事实上，$(\exists x)\mathscr{A} \iff \sim(\forall x)\sim \mathscr{A}$。&lt;/p>
+&lt;h3 id="一阶语言">一阶语言
+&lt;/h3>&lt;p>在引入量词的基础上，我们希望跟第一讲中一样，构造一形式系统。我们称之为 &lt;em>一阶语言 (first order language)&lt;/em>。按照第一讲中定义，形式系统由符号库、合式公式、公理、演绎规则组成。先考察前二者。&lt;/p>
+&lt;p>The alphabet of symbols:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Names&lt;/th>
+&lt;th>Symbols&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>变元&lt;/td>
+&lt;td>$x_1, x_2, \cdots$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）个体常元&lt;/td>
+&lt;td>$a_1, a_2, \cdots$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）谓词字母&lt;/td>
+&lt;td>$A_i^n$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）函数字母&lt;/td>
+&lt;td>$f_i^n$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>标点符号&lt;/td>
+&lt;td>( ) ,&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>联结词&lt;/td>
+&lt;td>$\sim$ $\to$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>量词&lt;/td>
+&lt;td>$\forall$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>其中，个体常元即为一个特殊的个体，如“苏格拉底”这样一个指定的人。谓词类似一种关系 $R$，可以被视为一个函数，获取 $n$ 个输入，并返回 $T$ 或 $F$。由于 $\exists$ 可以转化为 $\forall$，我们在符号库中仅使用 $\forall$。&lt;/p>
+&lt;p>例如：$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2), f_1^2(x_2,x_1))$，若 $A_1^2$ 表示 $=$，$f_1^2$ 表示 $+$，那整个命题就可以写成 $(\forall x_1)(\forall x_2) (x_1+x_2=x_2+x_1)$。&lt;/p>
+&lt;p>接下来定义合式公式：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{L}$ 是一阶语言，$\mathscr{L}$ 中的一个 &lt;em>项 (term)&lt;/em> 定义如下：&lt;/p>
+&lt;ul>
+&lt;li>变元和个体常元是项。&lt;/li>
+&lt;li>如果 $t_1, \cdots, t_n$ 是项，那么 $f_i^n(t_1,\cdots,t_n)$ 是项。&lt;/li>
+&lt;li>所有项都由上两条规则生成。&lt;/li>
+&lt;/ul>
+&lt;p>若 $t_1, \cdots, t_k$ 是 $\mathscr{L}$ 中的项，那么 $A_i^k(t_1, \cdots, t_k)$ 是 $\mathscr{L}$ 中的一个 &lt;em>原子公式 (atomic fomula)&lt;/em>。&lt;/p>
+&lt;p>$\mathscr{L}$ 中的 &lt;em>合式公式 (well-formed formula)&lt;/em> 定义为：&lt;/p>
+&lt;ul>
+&lt;li>每个原子公式是一个合式公式。&lt;/li>
+&lt;li>若 $\mathscr{A}, \mathscr{B}$ 是合式公式，那么 $(\sim \mathscr{A}), (\mathscr{A}\to\mathscr{B})$ 和 $(\forall x_i)\mathscr{A}$ （其中 $x_i$ 是任何变元）也是 $\mathscr{L}$ 中的合式公式。&lt;/li>
+&lt;li>所有合式公式都由上两条规则生成。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>我们应注意到 $(\forall x_1)(\mathscr{A}\to\mathscr{B})$ 与 $((\forall x_1)\mathscr{A}\to\mathscr{B})$ 表达的是不同的东西，故而需要引入下面的定义。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>在公式 $(\forall x_i)\mathscr{A}$ 中，我们称 $\mathscr{A}$ 是量词的 &lt;em>辖域 (scope)&lt;/em>。&lt;/p>
+&lt;p>变元 $x_i$ 如果出现在 $(\forall x_i)$ 的辖域中，则称它是 &lt;em>约束的 (bound)&lt;/em>，反之称它是 &lt;em>自由的 (free)&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如 $(\forall \textcolor{red}{x_1})(A_1^2(\textcolor{red}{x_1},x_2)\to (\forall \textcolor{red}{x_2})A_1^1(\textcolor{red}{x_2}))$ 中，标红的即为约束的变元。&lt;/p>
+&lt;p>现考察变元的替换，在公式 $(\exists x_2)(x_2=x_1(x_1+1))$ 中，我们可以将 $x_1$ 换成 $x_3, f(x_1, x_3)$ 等不包含 $x_2$ 的项，但显然不能换成 $f(x_1, x_2)$ 这种包含 $x_2$ 的项。引入以下定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是 $\mathscr{L}$ 中的任何公式，我们称项 $t$ 对 $\mathscr{A}$ 中的 $x_i$ 是自由的，如果 $x_i$ 并不自由地出现在 $\mathscr{A}$ 的一个 $(\forall x_j)$ 的辖域中，这里 $x_j$ 是出现在 $t$ 中的任何变元。&lt;/p>
+&lt;/blockquote>
+&lt;p>在上面的例子中，$t=f(x_1,x_2), x_i=x_1, x_j=x_2$，$x_1$ 自由地出现在 $\mathscr{A}$ 中 $x_2$ 的辖域中，故 $f(x_1,x_2)$ 对 $(\exists x_2)(x_2=x_1(x_1+1))$ 中的 $x_1$ 不是自由的。&lt;/p>
+&lt;p>显然，对任何 $x_1$ 和 $\mathscr{A}$ 来说，$x_1$ 对 $\mathscr{A}$ 中的 $x_1$ 都是自由的。&lt;/p>
+&lt;h3 id="解释">解释
+&lt;/h3>&lt;p>我们现在希望考察 $\mathscr{L}$ 中的公式什么时候能被称为是 “真” 的。事实上，只有当公式中内容的 “解释” 被给出的时候，我们才能讨论公式的真假。&lt;/p>
+&lt;p>例如， $(\forall x_1)(\forall x_2)A_1^2(f_1^2(x_1,x_2), f_1^2(x_2,x_1))$。如果我们在自然数的范围内讨论，且认为 $A_1^2$ 代表 $=$，$f_1^2$ 代表 $+$，那么公式为真。但倘若 $f_1^2$ 代表 $-$，那么公式显然是假的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个 &lt;em>解释 (interpretation)&lt;/em> $I$ 由以下四部分组成：&lt;/p>
+&lt;ul>
+&lt;li>一个非空集合 $D_I$，即 $I$ 的 &lt;em>论域 (domain)&lt;/em>。&lt;/li>
+&lt;li>一个 &lt;em>特异元素集 (a collection of distinguished elements)&lt;/em> $\bar{a}_i\in D_I$。&lt;/li>
+&lt;li>一个在 $D_I$ 上的函数集 $\bar{f}_i^n: D_I^n\to D_I$。&lt;/li>
+&lt;li>一个在 $D_I$ 上的关系集 $\bar{A}_i^n$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>四者分别是对符号表中变元，个体常元，函数字母，谓词字母的具体解释。&lt;/p>
+&lt;p>例如可以取 $D_I=\{0,1,2,\cdots\}, a_1=0, A_1^2$ 表示 $=$, $f_1^2$ 表示 $+$。那么在 $I$ 中，$(\forall x_1) A_1^2(f_1^2(x_1, a_1), x_1)$ 为真。&lt;/p>
+&lt;h3 id="满足真">满足，真
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$I$ 上的一个 &lt;em>赋值 (valuation)&lt;/em> 是一从 $\mathscr{L}$ 的项集到集合 $D_I$ 的具有下列性质的一个函数 $v$:&lt;/p>
+&lt;ul>
+&lt;li>$v(a_i)=\bar{a}_i$，对 $\mathscr{L}$ 中的每个个体常元 $a_i$。&lt;/li>
+&lt;li>$v(f_i^n(t_1,t_2,\cdots, t_n)) = \bar{f}_i^n(v(t_1), v(t_2), \cdots, v(t_n))$，其中 $f_i^n$ 是 $\mathscr{L}$ 中的任意函数字母，$t_1, \cdots, t_n$ 是 $\mathscr{L}$ 中的任意项。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>接下来我们要讨论一个赋值能够使得公式为真。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>两个赋值 $v, v^{\prime}$，如果对每个 $j\neq i$，都有 $v(x_j)=v^{\prime}(x_j)$，则称二者是 $i$-等值的。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是 $\mathscr{L}$ 的一个公式，$I$ 是 $\mathscr{L}$ 的一个解释，我们称 $I$ 中的一个赋值 $v$ &lt;em>满足 (satisfies)&lt;/em> $\mathscr{A}$，如果能按如下四个条件归纳地表明 $v$ 满足 $\mathscr{A}$:&lt;/p>
+&lt;ul>
+&lt;li>如果 $\bar{A}_j^n(v(t_1), \cdots, v(t_n))$ 在 $D_I$ 中为真，那么称 $v$ 满足原子公式 $A_j^n(t_1, \cdots, t_n)$。&lt;/li>
+&lt;li>如果 $v$ 不满足 $\mathscr{B}$，那么 $v$ 满足 $(\sim\mathscr{B})$。&lt;/li>
+&lt;li>如果 $v$ 满足 $(\sim \mathscr{B})$ 或 $\mathscr{C}$，那么 $v$ 满足 $(\mathscr{B}\to\mathscr{C})$。&lt;/li>
+&lt;li>如果每个 $i$-等值于 $v$ 的赋值 $v^{\prime}$ 都满足 $\mathscr{B}$，那么 $v$ 满足 $(\forall x_i)\mathscr{B}$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>一公式 $\mathscr{A}$ 在解释 $I$ 中称为 &lt;em>真的 (true)&lt;/em>，如果在 $I$ 中的每个赋值都满足 $\mathscr{A}$。&lt;/li>
+&lt;li>一公式 $\mathscr{A}$ 在解释 $I$ 中称为 &lt;em>假的 (false)&lt;/em>，如果 $I$ 中不存在任何满足 $\mathscr{A}$ 的赋值。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>在 &lt;em>真&lt;/em> 的基础上更近一步：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{L}$ 的一个合式公式 $\mathscr{A}$ 称为 &lt;em>逻辑有效的 (logically valid)&lt;/em>，如果 $\mathscr{A}$ 在 $\mathscr{L}$ 中的每个解释都为真。&lt;/li>
+&lt;li>$\mathscr{L}$ 的一个合式公式 $\mathscr{A}$ 称为 &lt;em>矛盾的 (contradictory)&lt;/em>，如果 $\mathscr{A}$ 在 $\mathscr{L}$ 中的每个解释都为假。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果在一个解释中，公式 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 都为真，那么 $\mathscr{B}$ 也为真。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由真和赋值的定义即可证明。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>在一个解释中，公式 $\mathscr{A}$ 为真，当且仅当 $(\forall x_i) \mathscr{A}$ 为真，其中 $x_i$ 是任意变元。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由定义。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如可以取 $D_I=\{0,1,2,\cdots\}, A_1^2$ 表示 $=$, $f_1^2$ 表示 $+$。那么
+$$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+$$(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+$$A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+都为真。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个公式 $\mathscr{A}$ 称为 &lt;em>闭的 (closed)&lt;/em>，如果没有变元在 $\mathscr{A}$ 中自由出现。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如，$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$ 是闭的，$(\forall x_1) A_1^1(x_1)\to A_1^1(x_1)$ 不是闭的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 是 $\mathscr{L}$ 中的闭公式，且 $I$ 是 $\mathscr{L}$ 的一个解释，那么 $\mathscr{A}$ 在 $I$ 中非真即假。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>由于所有变量都是约束的，所以可以根据 &lt;em>满足&lt;/em> 的定义的第四条得知，一个赋值满足 $\mathscr{A}$ 当且仅当所有赋值满足 $\mathscr{A}$。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="formal-predicate-calculus-形式的谓词演算">Formal Predicate Calculus (形式的谓词演算)
+&lt;/h2>&lt;h3 id="形式系统-k_mathscrl">形式系统 $K_{\mathscr{L}}$
+&lt;/h3>&lt;p>在 &lt;a class="link" href="#%e4%b8%80%e9%98%b6%e8%af%ad%e8%a8%80" ># 一阶语言&lt;/a> 中我们说到，形式系统需由符号库、合式公式、公理、演绎规则组成，并定义了前二者。接下来我们定义后二者，并由此得到一个形式系统 $K_{\mathscr{L}}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A},\mathscr{B},\mathscr{C}$ 是 $\mathscr{L}$ 中的任意公式，以下是 $K_{\mathscr{L}}$ 的公理：&lt;/p>
+&lt;ul>
+&lt;li>(K1) $(\mathscr{A}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(K2) $((\mathscr{A}\to(\mathscr{B}\to\mathscr{C}))\to ((\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to\mathscr{C})))$.&lt;/li>
+&lt;li>(K3) $(((\sim \mathscr{A})\to(\sim \mathscr{B}))\to (\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(K4) $((\forall x_i) \mathscr{A}\to \mathscr{A})$，如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现。&lt;/li>
+&lt;li>(K5) $((\forall x_i) \mathscr{A}(x_i)\to \mathscr{A}(t))$，如果 $t$ 是 $\mathscr{L}$ 中的一个项，并且在 $\mathscr{A}(x_i)$ 中对 $x_i$ 自由。&lt;/li>
+&lt;li>(K6) $(\forall x_i)(\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to(\forall x_i)\mathscr{B})$，如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现。&lt;/li>
+&lt;/ul>
+&lt;p>演绎规则：&lt;/p>
+&lt;ul>
+&lt;li>MP：从 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 可以演绎出 $\mathscr{B}$。&lt;/li>
+&lt;li>Generalization：从 $\mathscr{A}$ 可以演绎出 $(\forall x_i)\mathscr{A}$，其中 $x_i$ 是任意变元。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>事实上，如果 $x_i$ 在 $\mathscr{A}$ 中自由出现，因为 $x_i$ 在 $\mathscr{A}$ 中对 $x_i$ 自由，可以由(K5) 知道，(K4) 仍然成立。所以，无论 $x_i$ 是否在 $\mathscr{A}$ 中自由出现，都有 $((\forall x_i) \mathscr{A}\to \mathscr{A})$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$K_{\mathscr{L}}$ 中的一个 &lt;em>证明 (proof)&lt;/em> 是指 $\mathscr{L}$ 的公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，$\mathscr{A}_i$ 或者是 $K_{\mathscr{L}}$ 的一个公理，或者是由位于 $\mathscr{A}_i$ 之前的公式通过 MP 或 Generalization 规则得到的。最后的公式 $\mathscr{A}_n$ 称为 $K_{\mathscr{L}}$ 中的一条 &lt;em>定理 (theorem)&lt;/em>，记作 $\vdash_{K_{\mathscr{L}}} \mathscr{A}_n$。&lt;/p>
+&lt;p>如果 $\Gamma$ 是 $\mathscr{L}$ 中的一组合式公式，在 $K_{\mathscr{L}}$ 中从 $\Gamma$ 的一个 &lt;em>演绎 (deduction)&lt;/em> 是指公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，$\mathscr{A}_i$ 或者是 $K_{\mathscr{L}}$ 的一个公理，或者是由位于 $\mathscr{A}_i$ 之前的公式通过 MP 或 Generalization 规则得到，或者是 $\Gamma$ 中的一个成员。记作 $\Gamma \vdash_{K_{\mathscr{L}}} \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;p>以下用 $K$ 代替 $K_{\mathscr{L}}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Soundness):&lt;/strong>&lt;/p>
+&lt;p>(K1)-(K6) 都是逻辑有效的。这可以用定义证明。&lt;/p>
+&lt;p>由此可归纳出，$K$ 中的所有定理都是逻辑有效的。&lt;/p>
+&lt;/blockquote>
+&lt;p>同样，$K$ 中也有 &lt;em>演绎定理&lt;/em>，但不同于 $L$ 中的演绎定理，我们先来看一个特殊情况：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>我们知道对于 $K$ 中的任意公式 $\mathscr{A}$，都有 $\{\mathscr{A}\}\vdash_{K} (\forall x_i)\mathscr{A}$，但是 $\vdash_{K} (\mathscr{A} \to (\forall x_i)\mathscr{A})$ 并不是必然的。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>例如 $\{(x_1 = 0)\}\vdash_{K} (\forall x_1) (x_1 = 0)$，但是并没有 $\vdash_{K} ((x_1 = 0) \to (\forall x_1)(x_1 = 0))$。因为由 &lt;em>满足&lt;/em> 定义的第四条可知，不存在赋值满足 $(\forall x_1)(x_1 = 0)$，所以 $((x_1 = 0) \to (\forall x_1)(x_1 = 0))$ 不是逻辑有效的，因此不是 $K$ 中的定理。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition ($K$ 的演绎定理，the deduction theorem)&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$，并且演绎过程中不涉及 $\mathscr{A}$ 中自由的变元，那么 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+类似于 $L$ 中演绎定理的证明，对 $\mathscr{B}$ 进行分类讨论。&lt;/p>
+&lt;/blockquote>
+&lt;p>由演绎定理可得推论：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$，并且 $\mathscr{A}$ 是闭公式，那么 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>演绎定理的逆定理始终成立，无需加条件：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$，那么 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$。&lt;/p>
+&lt;/blockquote>
+&lt;p>$K$ 中同样有三段论：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (HS):&lt;/strong>&lt;/p>
+&lt;p>对任意公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$，如果 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\}\vdash_{K}(\mathscr{A}\to\mathscr{C})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>同样有替换定理：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{A}$ 和 $\mathscr{B}$ 是 $\mathscr{L}$ 中的闭公式，如果 $\mathscr{B}_0$ 是由 $\mathscr{A}_0$ 通过将其中的 $\mathscr{A}$ 替换成 $\mathscr{B}$ 得到的，那么有：
+$$\vdash_{K}(\mathscr{A}\leftrightarrow \mathscr{B})\to (\mathscr{A}_0\leftrightarrow \mathscr{B}_0)$$&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现，那么&lt;/p>
+&lt;ul>
+&lt;li>$\vdash_{K}(\forall x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow (\mathscr{A}\to(\forall x_i)\mathscr{B})$&lt;/li>
+&lt;li>$\vdash_{K}(\exists x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow (\mathscr{A}\to(\exists x_i)\mathscr{B})$&lt;/li>
+&lt;/ul>
+&lt;p>如果 $x_i$ 不在 $\mathscr{B}$ 中自由出现，那么&lt;/p>
+&lt;ul>
+&lt;li>$\vdash_{K}(\forall x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow ((\exists x_i)\mathscr{A}\to\mathscr{B})$&lt;/li>
+&lt;li>$\vdash_{K}(\exists x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow ((\forall x_i)\mathscr{A}\to\mathscr{B})$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="前束范式">前束范式
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个公式 $\mathscr{A}$ 称为 &lt;em>前束范式 (prenex form)&lt;/em>，如果它形如:
+$$(Q_1 x_{i1})(Q_2 x_{i2})(Q_k x_{ik})\mathscr{D}$$
+其中 $Q_j$ 是 $\forall$ 或 $\exists$，$\mathscr{D}$ 是不带量词的公式。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的任意合式公式 $\mathscr{A}$，总存在前束范式 $\mathscr{B}$ 等价于 $\mathscr{A}$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由上一条 proposition 可证。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个前束范式是一个 $\Pi_n$ 式，如果它以 $\forall$ 开头，并有 $n-1$ 次量词交叉。&lt;/p>
+&lt;p>一个前束范式是一个 $\Sigma_n$ 式，如果它以 $\exists$ 开头，并有 $n-1$ 次量词交叉。&lt;/p>
+&lt;/blockquote>
+&lt;p>比如 $(\exists x_3)(\forall x_1)(\forall x_4)(\forall x_5) A(x_1,x_2,x_3,x_4,x_5)$ 就是 $\Sigma_2$ 式。&lt;/p>
+&lt;h3 id="k_mathscrl-的完备性定理">$K_{\mathscr{L}}$ 的完备性定理
+&lt;/h3>&lt;p>与 $L$ 一样， $K$ 也满足 soundness, consistency, adequacy，因此 $K$ 中的定理 $\iff$ 逻辑有效。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Adequacy, 完备性):&lt;/strong>&lt;/p>
+&lt;p>所有逻辑有效的公式都是 $K$ 中的定理。也被称为 &lt;em>一阶逻辑的哥德尔完备性定理&lt;/em>。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+过于复杂不便展示。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="模型">模型
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>如果 $S$ 是一个一阶逻辑系统，$S$ 的一个 &lt;em>模型 (model)&lt;/em> 指的是一个解释，使得 $S$ 中的所有定理都为真。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>如果 $I$ 是一个解释，使得 $S$ 的所有公理都为真，那么 $I$ 是 $S$ 的一个模型。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="数学系统">数学系统
+&lt;/h2>&lt;p>现在要在 $K$ 的基础上加些数学。&lt;/p>
+&lt;h3 id="一阶算术">一阶算术
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>一阶算术 $\mathscr{N}$ (first order arithmetic)&lt;/em> 是 $K$ 的一个一致扩充，额外引入了以下公理：&lt;/p>
+&lt;ul>
+&lt;li>(E7) $x_1=x_1$&lt;/li>
+&lt;li>(E8) $t_k=u\to f_i^n(t_1,\cdots,t_k,\cdots,t_n)=f^n_i(t_1,\cdots,u,\cdots,t_n)$&lt;/li>
+&lt;li>(E9) $t_k=u\to (A_i^n(t_1,\cdots,t_k,\cdots,t_n)\to A^n_i(t_1,\cdots,u,\cdots,t_n))$&lt;/li>
+&lt;li>(N1) $(\forall x_1) \sim (x_1^{\prime}=0)$&lt;/li>
+&lt;li>(N2) $(\forall x_1)(\forall x_2)(x_1^{\prime}=x_2^{\prime} \to x_1=x_2)$&lt;/li>
+&lt;li>(N3) $(\forall x_1) (x_1+0=x_1)$&lt;/li>
+&lt;li>(N4) $(\forall x_1)(\forall x_2)((x_1+x_2^{\prime})=(x_1+x_2)^{\prime})$&lt;/li>
+&lt;li>(N5) $(\forall x_1)(x_1\times 0=0)$&lt;/li>
+&lt;li>(N6) $(\forall x_1)(\forall x_2)((x_1\times x_2^{\prime})=(x_1\times x_2)+x_1)$&lt;/li>
+&lt;li>(N7) $\mathscr{A}(0) \to ((\forall x_1)(\mathscr{A}(x_1)\to\mathscr{A}(x_1^{\prime}))\to (\forall x_1)\mathscr{A}(x_1))$，其中 $x_1$ 在 $\mathscr{A}(x_1)$ 中自由出现。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>只有 0 是 $\mathscr{N}$ 中的符号。而 $1, 2, 3, \cdots$ 被表示为 $0^{\prime}, 0^{\prime\prime}, 0^{\prime\prime\prime}, \cdots$&lt;/p>
+&lt;h2 id="gödel-incompleteness-theorem-哥德尔不完全性定理">Gödel incompleteness theorem (哥德尔不完全性定理)
+&lt;/h2>&lt;p>这部分先放着吧，有兴趣有必要了再写。&lt;/p></description></item><item><title>Theory of Computation Lecture 1</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/</link><pubDate>Tue, 26 Mar 2024 17:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/cover.png" alt="Featured image of post Theory of Computation Lecture 1" />&lt;h1 id="lecture-1-mathematical-logic-1">Lecture 1 Mathematical Logic (1)
+&lt;/h1>&lt;h2 id="informal-statement-calculus-非形式的命题演算">Informal Statement Calculus (非形式的命题演算)
+&lt;/h2>&lt;h3 id="命题联结词和真值表">命题、联结词和真值表
+&lt;/h3>&lt;p>自然语言中有许多命题 (statement)，比如“拿破仑死了”。而命题之间又可以通过联结词 (connective) 组成更复杂的命题，比如“拿破仑死了&lt;em>并且&lt;/em>世界正在欢腾”。在这里，我们假设所有的命题都是非真即假的。常见的联结词及其对应的含义可见下表：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Meaning&lt;/th>
+&lt;th>Connectives&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>not $A$&lt;/td>
+&lt;td>$\sim A$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ and $B$&lt;/td>
+&lt;td>$A \land B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ or $B$&lt;/td>
+&lt;td>$A \lor B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>if $A$ then $B$&lt;/td>
+&lt;td>$A \to B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ if and only if $B$&lt;/td>
+&lt;td>$A \leftrightarrow B$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>“拿破仑死了&lt;em>并且&lt;/em>世界正在欢腾”就可以用$A \land B$表示。&lt;/p>
+&lt;p>各联结词的真值表如下所示：&lt;/p>
+&lt;p>Negation:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$\sim p$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conjunction:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \land q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Disjunction:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \lor q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conditional:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \to q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conditional 的真值表的前两行并不难理解，后两行则可以认为是一种定义上的方便。因为采取这样的定义后，在判断 $p\to q$ 是否恒为真时只需要判断 $p$ 为真是否始终能推出 $q$ 为真即可，而不需要考察 $p$ 为假的情况，这与先前的认知是一致的。&lt;/p>
+&lt;p>Biconditional:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \leftrightarrow q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>类似表中的字母 $p, q, r, \cdots$ 称为命题变元 (statement variable)，它们表示任意的非特定的单个命题。而由命题变元和联结词组成的表达式称为命题形式 (statement form)，定义如下：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>命题形式&lt;/em> 是一个含有命题变元和联结词的表达式，并且能用以下规则构成：&lt;/p>
+&lt;p>(1) 任何命题变元是一个命题形式。&lt;/p>
+&lt;p>(2) 如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，那么 $(\sim \mathscr{A}), (\mathscr{A} \land \mathscr{B}), (\mathscr{A}\lor \mathscr{B}), (\mathscr{A}\to\mathscr{B}), (\mathscr{A} \leftrightarrow \mathscr{B})$ 是命题形式。&lt;/p>
+&lt;/blockquote>
+&lt;p>每个命题形式都有其真值表。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>(1) 一命题形式称为 &lt;em>重言式 (tautology)&lt;/em> ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 &lt;em>T&lt;/em> 。&lt;/p>
+&lt;p>(2) 一命题形式称为 &lt;em>矛盾式 (contradiction)&lt;/em> ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 &lt;em>F&lt;/em> 。&lt;/p>
+&lt;/blockquote>
+&lt;p>$(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>设 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，我们说 $\mathscr{A}$ &lt;em>逻辑蕴含 (logically implies)&lt;/em> $\mathscr{B}$，如果 $(\mathscr{A}\to\mathscr{B})$ 是一重言式，我们说 $\mathscr{A}$ &lt;em>逻辑等值 (logically equivalent)&lt;/em> $\mathscr{B}$，如果 $(\mathscr{A}\leftrightarrow\mathscr{B})$ 是一重言式。&lt;/p>
+&lt;/blockquote>
+&lt;p>$(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\sim q))$。&lt;/p>
+&lt;h3 id="运算和代入规则">运算和代入规则
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 都是重言式，那么 $\mathscr{B}$ 也是重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Rules for Substitution):&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是一个命题形式，其中有命题变元 $p_1, p_2, \cdots, p_n$，并且令 $\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n$ 是任意命题形式。如果 $\mathscr{A}$ 是一个重言式，那么由 $\mathscr{A}$ 通过用 $\mathscr{A}_i$ 到处去替换每个 $p_i$ 而得到的 $\mathscr{B}$ 也是一重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;p>比如，$(p\land q)$ 逻辑蕴含 $p$，所以对任意 $\mathscr{A}, \mathscr{B}$，都有 $(\mathscr{A}\land \mathscr{B})$ 逻辑蕴含 $\mathscr{A}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (De Morgan&amp;rsquo;s Law):&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n$ 是任意的命题形式，那么：&lt;/p>
+&lt;p>(1) $(\mathop{\lor}\limits_{i=1}^n (\sim\mathscr{A}_i))$ 逻辑等值于 $(\sim(\mathop{\land}\limits_{i=1}^n \mathscr{A}_i))$&lt;/p>
+&lt;p>(2) $(\mathop{\land}\limits_{i=1}^n (\sim\mathscr{A}_i))$ 逻辑等值于 $(\sim(\mathop{\lor}\limits_{i=1}^n \mathscr{A}_i))$&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>用数学归纳法，先用 Rules for Substitution 证明 $n=2$ 的情形，再推广至任意正整数 $n$。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="范式">范式
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>定义只含有联结词 $\sim, \land, \lor$ 的命题形式为 &lt;em>限制的命题形式 (restricted statement form)&lt;/em> 。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>每个非矛盾的命题形式逻辑等值于一个限制的命题形式 $\mathop{\lor}\limits_{i=1}^m(\mathop{\land}_{j=1}^n Q_{ij})$，其中每个 $Q_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 &lt;em>析取范式 (disjunctive normal form)&lt;/em> 。&lt;/p>
+&lt;p>每个非重言的命题形式逻辑等值于一个限制的命题形式 $\mathop{\land}\limits_{i=1}^m(\mathop{\lor}_{j=1}^n Q_{ij})$，其中每个 $Q_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 &lt;em>合取范式 (conjunctive normal form)&lt;/em> 。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>仅对析取范式进行证明，合取范式同理。仅需证明任意真值表中只有一行为 $T$ 的命题形式可以用 $\mathop{\land}_{j=1}^n Q_{j}$ 表示即可。多行为 $T$ 的命题形式可由一行为 $T$ 的命题形式通过 $\lor$ 联结得到。&lt;/p>
+&lt;p>对于每个命题变元 $q_j$，若其在真值表中的那一行取 $T$，则 $Q_{j}=q_j$，否则取 $Q_{j}=\sim q_j$。&lt;/p>
+&lt;p>这样就可以对任意非矛盾的命题形式构造出一个与其逻辑等值的析取范式。&lt;/p>
+&lt;/blockquote>
+&lt;p>综合可得：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>每个真值函数都可以用一个限制的命题形式表示。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="联结词的完全集">联结词的完全集
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>联结词的完全集 (adequate set of connectives)&lt;/em> 是这样一个集合，使得每个真值函数都能由仅仅含有该集中的联结词的命题形式所表示。&lt;/p>
+&lt;/blockquote>
+&lt;p>显然，$\{\sim, \lor, \land\}$ 是一个完全集。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\{\sim, \land\}, \{\sim, \lor\}, \{\sim, \to\}$ 都是完全集。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用 $\{\sim, \lor, \land\}$ 是完全集来证明。&lt;/p>
+&lt;/blockquote>
+&lt;p>然而，以上介绍的联结词均不能单独构成一个完全集，不过可以通过引入新的联结词来构成只含一个联结词的完全集。&lt;/p>
+&lt;p>NOR（即 not+or）&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \downarrow q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>NAND（即 not+and）&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p | q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\{\downarrow\}, \{ | \}$ 都是联结词的完全集。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用已知的完全集来证明。&lt;/p>
+&lt;/blockquote>
+&lt;p>但是仅使用一个联结词可能会导致表达式非常复杂，比如仅用 $\downarrow$ 构造出 $(p\to q)$：&lt;/p>
+&lt;p>$$\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}\downarrow \{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}$$&lt;/p>
+&lt;h3 id="论证和有效性">论证和有效性
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>论证形式 (argument form)&lt;/em> 定义为类似：&lt;/p>
+&lt;p>$$\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n; \therefore \mathscr{A}$$&lt;/p>
+&lt;p>的形式。&lt;/p>
+&lt;p>我们称一个论证形式是 &lt;em>无效 (nonvalid)&lt;/em> 的，如果存在一种对命题变元的真值指派，使得每个 $\mathscr{A}_i$ 均取值 $T$，但是 $\mathscr{A}$ 取值 $F$。否则称其是 &lt;em>有效 (valid)&lt;/em> 的。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>论证形式
+$$\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n; \therefore \mathscr{A}$$&lt;/p>
+&lt;p>是有效的，当且仅当命题形式&lt;/p>
+&lt;p>$$((\mathscr{A}_1\land \mathscr{A}_2 \land \cdots \land \mathscr{A}_n) \to \mathscr{A})$$&lt;/p>
+&lt;p>是一个重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="formal-statement-calculus-形式的命题演算">Formal Statement Calculus (形式的命题演算)
+&lt;/h2>&lt;h3 id="命题演算形式系统-l">命题演算形式系统 $L$
+&lt;/h3>&lt;p>我们主要关注两个特殊的形式系统（命题演算形式系统、谓词演算形式系统），我们先给出形式系统的一般性定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>形式系统 (formal system)&lt;/em> 由以下几部分构成：&lt;/p>
+&lt;p>(1) 一个符号库 (an alphabet of symbols)。&lt;/p>
+&lt;p>(2) 这些符号组成的有限字符串（称为合式公式，well-formed fomula）的一个集合。&lt;/p>
+&lt;p>(3) 合式公式的一个集合，称为公理 (axiom)。&lt;/p>
+&lt;p>(4) 有限个演绎规则 (rules of deduction) 组成的集合。&lt;/p>
+&lt;/blockquote>
+&lt;p>接下来给出命题演算形式系统的定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>命题演算形式系统 L (formal system L of statement calculus)&lt;/em> 由以下几部分构成：&lt;/p>
+&lt;p>(1) 一个无限的符号库：&lt;/p>
+&lt;p>$$\sim, \to, (, ), p_1, p_2, p_3, \cdots$$&lt;/p>
+&lt;p>(2) 一个合式公式的集合，由以下规则确定：&lt;/p>
+&lt;ul>
+&lt;li>对于每个 $i\geq 1$, $p_i$ 是合式公式。&lt;/li>
+&lt;li>如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是合式公式，那么 $(\sim \mathscr{A})$ 和 $(\mathscr{A}\to\mathscr{B})$ 也是合式公式。&lt;/li>
+&lt;li>所有合式公式都由以上两条规则产生。&lt;/li>
+&lt;/ul>
+&lt;p>(3) 一个公理的集合，对于任何合式公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$，以下公式是 $L$ 的公理：&lt;/p>
+&lt;ul>
+&lt;li>(L1) $(\mathscr{A}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(L2) $((\mathscr{A}\to(\mathscr{B}\to\mathscr{C}))\to ((\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to\mathscr{C})))$.&lt;/li>
+&lt;li>(L3) $(((\sim \mathscr{A})\to(\sim \mathscr{B}))\to (\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;/ul>
+&lt;p>(4) $L$ 中仅有一条演绎规则，称为 modus ponens (MP)，即对于 $L$ 中的任何公式 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$，$\mathscr{B}$ 也是 $L$ 中的一个公式。&lt;/p>
+&lt;/blockquote>
+&lt;p>目前而言，在考察 $L$ 中的公式及其演绎时，不应考虑其是否“正确”，而应将其完全视为一文字游戏，只能通过已有公式与演绎规则推出新的合式公式。而至于新推出的合式公式的“正确性”（即新公式为一重言式），则由“公理为重言式”（可直接验证），以及“演绎规则保持公式的重言性”（先前已证明）来保证。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的一个 &lt;em>证明 (proof)&lt;/em> 是指公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，或者 $\mathscr{A}_i$ 是 $L$ 的一个公理，或者 $\mathscr{A}_i$ 可由序列中位于 $\mathscr{A}_i$ 前面的两个公式 $\mathscr{A}_j, \mathscr{A}_k (j,k&amp;lt;i)$ 通过 MP 得到。这样的证明称为在 $L$ 中 $\mathscr{A}_n$ 的一个证明，$\mathscr{A}_n$ 称为 $L$ 中的一个 &lt;em>定理 (theorem)&lt;/em>。&lt;/p>
+&lt;p>$\mathscr{A}_n$ 是 $L$ 中的一个定理可记作 $\vdash_L \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove: $\vdash_L (\mathscr{A}\to\mathscr{A})$.&lt;/p>
+&lt;p>&lt;strong>Solution:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad (\mathscr{A}\to((\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(2)&amp;amp;\quad ((\mathscr{A}\to(\mathscr{A}\to\mathscr{A}))\to(\mathscr{A}\to\mathscr{A})) &amp;amp;&amp;amp;(1)+(L2)+MP\\
+(3)&amp;amp;\quad (\mathscr{A}\to(\mathscr{A}\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(4)&amp;amp;\quad (\mathscr{A}\to\mathscr{A}) &amp;amp;&amp;amp;(2)+(3)+MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\Gamma$ 是 $L$ 中的公式集（可以是也可以不是 $L$ 中的公理或定理）。$L$ 中的公式序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$ 是从 $\Gamma$ 的一个 &lt;em>演绎 (deduction)&lt;/em>，如果每个 $i (1\leq i\leq n)$，下列之一成立：&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{A}_i$ 是 $L$ 的一个公理。&lt;/li>
+&lt;li>$\mathscr{A}_i$ 是 $\Gamma$ 中的一个成员。&lt;/li>
+&lt;li>$\mathscr{A}_i$ 可由序列中在 $\mathscr{A}_i$ 前的两个公式通过 MP 得到。&lt;/li>
+&lt;/ul>
+&lt;p>记作 $\Gamma\vdash_L \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove: $\{\mathscr{A},(\mathscr{B}\to(\mathscr{A}\to\mathscr{C}))\}\vdash_L (\mathscr{B}\to\mathscr{C})$.&lt;/p>
+&lt;p>&lt;strong>Solution:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\mathscr{A}\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad (\mathscr{B}\to\mathscr{A}) &amp;amp;&amp;amp;(1)+(2)+MP\\
+(4)&amp;amp;\quad (\mathscr{B}\to(\mathscr{A}\to\mathscr{C})) &amp;amp;&amp;amp;假设\\
+(5)&amp;amp;\quad ((\mathscr{B}\to\mathscr{A})\to(\mathscr{B}\to\mathscr{C})) &amp;amp;&amp;amp;(4)+(L2)+MP\\
+(6)&amp;amp;\quad (\mathscr{B}\to\mathscr{C}) &amp;amp;&amp;amp;(3)+(5)+MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;p>注意，这样子推出来的公式并不一定是 $L$ 中的一个定理。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (The deduction theorem):&lt;/strong>&lt;/p>
+&lt;p>$\Gamma\cup\{\mathscr{A}\}\vdash_L\mathscr{B}$ 当且仅当 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$，其中 $\mathscr{A}$ 和 $\mathscr{B}$ 是 $L$ 中的公式，$\Gamma$ 是 $L$ 的公式集（可能是空集）。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>仅证明从左至右的部分，从右至左可以直接运用 MP。运用数学归纳法证明从左至右的部分，假设从 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎是一个有 $n$ 个公式的序列。&lt;/p>
+&lt;p>(1) $n=1$ 时，三种情况：&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{B}$ 是 $L$ 中的一条公理，则有：
+$$\begin{align*}
+(1)&amp;amp;\quad \mathscr{B} &amp;amp;&amp;amp;公理\\
+(2)&amp;amp;\quad (\mathscr{B}\to (\mathscr{A}\to\mathscr{B})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad (\mathscr{A}\to\mathscr{B}) &amp;amp;&amp;amp; (1)+(2)+MP
+\end{align*}$$&lt;/li>
+&lt;li>$\mathscr{B}\in \Gamma$，则同上一种情况。&lt;/li>
+&lt;li>$\mathscr{B}=\mathscr{A}$，先前已证 $\vdash_L (\mathscr{A}\to\mathscr{A})$。&lt;/li>
+&lt;/ul>
+&lt;p>(2) 假设从 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎长度 $&amp;lt; n$ 时，proposition 成立。可以假设 $\mathscr{B}$ 不是 $L$ 中的公理，不在 $\Gamma$ 中，不为 $\mathscr{A}$，那么在 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎序列中， $\mathscr{B}$ 只可能由先前的两个公式 $\mathscr{C}$ 和 $(\mathscr{C}\to\mathscr{B})$ 通过 MP 得到。故而我们有 $\Gamma\cup \{\mathscr{A}\} \vdash_L \mathscr{C}$ 和 $\Gamma\cup \{\mathscr{A}\} \vdash_L (\mathscr{C}\to\mathscr{B})$。由归纳假设，$\Gamma\vdash_L(\mathscr{A}\to\mathscr{C}), \Gamma\vdash_L(\mathscr{A}\to(\mathscr{C}\to\mathscr{B}))$。由二者，通过 (L2) 和 MP 可得 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;p>这个 proposition 被称为 &lt;em>演绎定理&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Hypothetical Syllogism (HS)):&lt;/strong>&lt;/p>
+&lt;p>对任何 $L$ 中的公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$：&lt;/p>
+&lt;p>$$\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\} \vdash_L (\mathscr{A}\to\mathscr{C})$$&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad (\mathscr{A}\to\mathscr{B}) &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\mathscr{B}\to \mathscr{C}) &amp;amp;&amp;amp;假设\\
+(3)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;假设\\
+(4)&amp;amp;\quad \mathscr{B} &amp;amp;&amp;amp;(1)+(3)+MP \\
+(5)&amp;amp;\quad \mathscr{C} &amp;amp;&amp;amp;(2)+(4)+MP \\
+\end{align*}$$
+所以有 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C}), \mathscr{A}\} \vdash_L \mathscr{C}$，根据演绎定理，可得 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\} \vdash_L (\mathscr{A}\to\mathscr{C})$。&lt;/p>
+&lt;p>此 proposition 被称为 &lt;em>假言三段论&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove:&lt;/p>
+&lt;p>(1) $\vdash_L(\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/p>
+&lt;p>(2) $\vdash_L((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1)
+$$\begin{align*}
+(1)&amp;amp;\quad (\sim \mathscr{B}\to(\sim\mathscr{A}\to\sim\mathscr{B})) &amp;amp;&amp;amp;(L1)\\
+(2)&amp;amp;\quad ((\sim\mathscr{A}\to\sim\mathscr{B})\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(L2)\\
+(3)&amp;amp;\quad (\sim \mathscr{B}\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(1)+(2)+HS\\
+\end{align*}$$
+(2) 由演绎定理，只需证明 $\{(\sim \mathscr{A}\to\mathscr{A})\}\vdash_L \mathscr{A}$：
+$$\begin{align*}
+(1)&amp;amp;\quad (\sim\mathscr{A}\to\mathscr{A}) &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\sim\mathscr{A}\to(\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad ((\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A}) \to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(L3)\\
+(4)&amp;amp;\quad (\sim\mathscr{A}\to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(2)+(3)+HS\\
+(5)&amp;amp;\quad ((\sim\mathscr{A}\to \mathscr{A})\to (\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(4)+(L2)+MP\\
+(6)&amp;amp;\quad ((\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A})) \to ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(L2)\\
+(7)&amp;amp;\quad ((\sim\mathscr{A}\to\mathscr{A})\to((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(5)+(6)+HS\\
+(8)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;(1)+(7)+2\times MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="l-的完备性定理">$L$ 的完备性定理
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个 &lt;em>赋值 (valuation)&lt;/em> 是一个函数 $v$，它的定义域是 $L$ 的公式，值域是集合 $\{T, F\}$，并且使得对 $L$ 的任意公式 $\mathscr{A}, \mathscr{B}$：&lt;/p>
+&lt;p>(1) $v(\mathscr{A})\neq v(\sim\mathscr{A})$.&lt;/p>
+&lt;p>(2) $v(\mathscr{A}\to\mathscr{B})=F$ 当且仅当 $v(\mathscr{A})=T$ 和 $v(\mathscr{A})=F$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的一个公式 $\mathscr{A}$ 是一个 &lt;em>重言式&lt;/em>，如果对每个赋值 $v$，都有 $v(\mathscr{A})=T$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Soundness，可靠性):&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的每个定理都是重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+数学归纳法。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Consistency, 一致性):&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的不存在公式 $\mathscr{A}$，使得 $\mathscr{A}$ 和 $(\sim\mathscr{A})$ 都是 $L$ 中的定理。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+Soundness 可以推出 consistency。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Adequacy, 完备性):&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 是 $L$ 中的一个公式，且为重言式，那么 $\mathscr{A}$ 是 $L$ 中的一个定理。&lt;/p>
+&lt;/blockquote>
+&lt;p>为了证明 adequacy，我们需要引入新的概念。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个 &lt;em>扩充 (extension)&lt;/em> 是一个形式系统，它通过修改或者扩大公理组使得原来所有的定理仍是定理（也可能引入新的定理）而得到。&lt;/p>
+&lt;/blockquote>
+&lt;p>注意，此处说的是 &lt;strong>修改&lt;/strong> 或 &lt;strong>扩大&lt;/strong>，而并不仅仅是 &lt;strong>扩大&lt;/strong>。 一个与 $L$ 没有共同公理的形式系统也可能是 $L$ 的一个扩充。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个扩充 $L^*$ 是一致的，当且仅当存在一个公式，它不是 $L^*$ 中的定理。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1) 如果 $L^*$ 一致，那么对任意公式 $\mathscr{A}$，总有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 不是 $L^*$ 中的定理。&lt;/p>
+&lt;p>(2) 如果 $L^*$ 不一致，我们证明任意公式 $\mathscr{A}$ 都是 $L^*$ 中的定理。因为存在 $\mathscr{B}$，使得 $\mathscr{B}$ 和 $(\sim\mathscr{B})$ 都是 $L^*$ 中的定理。先前证过 $\vdash_L (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$，所以 $\vdash_{L^*} (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$。再应用两次 MP 即可得到 $\vdash_{L^*} \mathscr{A}$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>令 $L^*$ 是 $L$ 的一个一致的扩充，并且 $\mathscr{A}$ 是一个公式，它不是 $L^*$ 的一条定理，那么将 $L^*$ 补充公理 $(\sim\mathscr{A})$ 得到的系统 $L^{**}$ 也是一致的。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>如果 $L^{**}$ 不一致，那么 $\vdash_{L^{**}} \mathscr{A}$，即 $\{\sim\mathscr{A}\}\vdash_{L^*} \mathscr{A}$。&lt;/p>
+&lt;p>由 deduction theorem，$\vdash_{L^*} (\sim\mathscr{A}\to\mathscr{A})$。&lt;/p>
+&lt;p>先前有 $\vdash_L ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$，故 $\vdash_{L^*} \mathscr{A}$。矛盾&lt;/p>
+&lt;/blockquote>
+&lt;p>由此可知，我们可以依次考察所有公式 $\mathscr{A}$，将 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 加入公理组中，最终得到一个一致的形式系统，且有对于所有公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是它的定理。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个扩充是 &lt;em>完全 (complete)&lt;/em> 的，如果对每个公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是该扩充的一条定理。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>存在一个 $L$ 的一致完全扩充。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $L^*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^*$ 中的每个定理都取值 $T$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proof of the adequacy theorem of L:&lt;/strong>&lt;/p>
+&lt;p>假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\{\sim\mathscr{A}\}$ 再到一个一致完全扩充 $L^*$。$\vdash_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。&lt;/p>
+&lt;/blockquote></description></item><item><title>Group Equivariant Deep Learning Lecture 1.7</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.7/</link><pubDate>Tue, 23 Jan 2024 12:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.7/</guid><description>&lt;h1 id="lecture-17-group-convolutions-are-all-you-need">Lecture 1.7 Group convolutions are all you need!
+&lt;/h1>&lt;p>这一节要证明的是，对于一个线性映射，如果希望它是 equivariant 的，那它必须是一个 group convolution。&lt;/p>
+&lt;h2 id="classical-fully-connected-layer">Classical fully connected layer
+&lt;/h2>&lt;p>先看传统的全连接层：&lt;/p>
+&lt;p>$$\begin{pmatrix} y_1 \\
+y_2 \\
+y_3 \\
+\vdots
+\end{pmatrix} = \varphi\left(\begin{pmatrix}
+w_{11} &amp;amp; w_{12} &amp;amp; w_{13} &amp;amp; w_{14} &amp;amp; w_{15} &amp;amp; \cdots \\
+w_{21} &amp;amp; w_{22} &amp;amp; w_{23} &amp;amp; w_{24} &amp;amp; w_{25} &amp;amp; \cdots \\
+w_{31} &amp;amp; w_{32} &amp;amp; w_{33} &amp;amp; w_{34} &amp;amp; w_{35} &amp;amp; \cdots \\
+\vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \ddots
+\end{pmatrix}\begin{pmatrix}
+x_1 \\
+x_2 \\
+x_3 \\
+x_4 \\
+x_5 \\
+\vdots
+\end{pmatrix} + \begin{pmatrix}
+b_1 \\
+b_2 \\
+b_3 \\
+\vdots
+\end{pmatrix}\right)$$&lt;/p>
+&lt;p>其中 $\varphi$ 为某个非线性函数。如果希望全连接层是 equivariant 的，则需要类似有如下的形式：&lt;/p>
+&lt;p>$$\begin{pmatrix} y_1 \\
+y_2 \\
+y_3 \\
+\vdots
+\end{pmatrix} = \varphi\left(\begin{pmatrix}
+w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; 0 &amp;amp; 0 &amp;amp; \cdots \\
+0 &amp;amp; w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; 0 &amp;amp; \cdots \\
+0 &amp;amp; 0 &amp;amp; w_{1} &amp;amp; w_{2} &amp;amp; w_{3} &amp;amp; \cdots \\
+\vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \vdots &amp;amp; \ddots
+\end{pmatrix}\begin{pmatrix}
+x_1 \\
+x_2 \\
+x_3 \\
+x_4 \\
+x_5 \\
+\vdots
+\end{pmatrix} + \begin{pmatrix}
+b_1 \\
+b_2 \\
+b_3 \\
+\vdots
+\end{pmatrix}\right)$$&lt;/p>
+&lt;p>这其实就是一维的卷积。&lt;/p>
+&lt;h2 id="linear-maps-in-continuous-space">Linear maps in continuous space
+&lt;/h2>&lt;p>对于从 $\mathbb{R}^n$ 到 $\mathbb{R}^m$ 的线性映射，我们知道其必须是 matrix-vector multiplication：&lt;/p>
+&lt;p>$$y_j = \sum_i K_{i,j} x_i$$&lt;/p>
+&lt;p>对于一个 feature map $f\in \mathbb{L}_2(X)$，我们也可以将其视为一个 vector，维数就是 $f$ 的定义域 $X$ 的大小 $|X|$。考虑将一个 feature map $f^{in}\in \mathbb{L}_2 (X)$ 线性映射到另一个 feature map $f^{out}\in \mathbb{L}_2 (Y)$，当定义域是连续的时候，仿照 matrix-vector multiplication，可知线性映射有如下形式：&lt;/p>
+&lt;p>$$ f^{out}(y) = (Kf)(y) = \int_X k(y,x) f(x) \mathrm{ d}x $$&lt;/p>
+&lt;p>对于连续空间中的线性映射，有如下定理：&lt;/p>
+&lt;blockquote>
+&lt;p>Theorem (G-convs are all you need):&lt;/p>
+&lt;p>$\mathscr{K}: \mathbb{L}_2(X)\rightarrow \mathbb{L}_2(Y)$ 是一个线性映射，且 $X$ 和 $Y$ 都是群 $G$ 的 homogeneous space。&lt;/p>
+&lt;p>随意取 $y_0\in Y$，令 $H=Stab_G(y_0)$，那么 $Y\equiv G/H$。对于 $\forall y\in Y$，令 $g_y\in G$ 为某个满足 $y=g_y y_0$ 的元素。&lt;/p>
+&lt;p>$\mathscr{K}$ is equivariant iff:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>$\mathscr{K}$ 是一个 group convolution: $[\mathscr{K}f] (y)=\int_{X} \frac{1}{|\det g_y|}k(g_y^{-1}x)f(x)\mathrm{ d}x$&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>kernel 满足对称约束: $\forall h\in H, \frac{1}{|\det h|}k(h^{-1}x) = k(x)$&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/blockquote>
+&lt;p>定理中的 $|\det g_y|$ 即为 $g_y$ 的雅可比行列式的绝对值，理论上来说其会随 $x$ 而变，但在大部分实际情况中，$|\det g_y| = 1$。&lt;/p>
+&lt;p>以二维图像的 convolution 为例子来解释一下这个定理。此时 $X$ 与 $Y$ 均为 $\mathbb{R}^2$， $G$ 即为二维 translation group。若希望 linear map 是 equivariant 的，必须有 $[\mathscr{K}f] (y)=\int_{X} k(x - y)f(x)\mathrm{ d}x$ 这样的卷积形式（平移变换的雅可比行列式大小为1）。&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:&lt;/p>
+&lt;p>只证明一边，即 equivariant 的 $\mathscr{K}$ 必须满足定理中的两个条件。&lt;/p>
+&lt;p>已知 $\mathscr{K}$ 具有形式&lt;/p>
+&lt;p>$$[\mathscr{K}f] (y) = \int_X \tilde{k} (y,x)f(x)\mathrm{ d} x \tag{1}$$&lt;/p>
+&lt;p>希望 $\mathscr{K}$ is equivariant，即&lt;/p>
+&lt;p>$$\forall g\in G, \forall f\in\mathbb{L}_2(X),\quad (\mathscr{K}\circ \mathscr{L}_g^{G\rightarrow \mathbb{L}_2(X)})(f)=(\mathscr{L}_g^{G\rightarrow \mathbb{L}_2(Y)}\circ \mathscr{K})(f)$$&lt;/p>
+&lt;p>代入 $\mathscr{K}$ 和 $\mathscr{L}$ 的表达式&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,x) f(x)\mathrm{ d}x$$&lt;/p>
+&lt;p>在 RHS 中用 $g^{-1}x$ 替换 $x$&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,g^{-1}x) f(g^{-1}x)\mathrm{ d}(g^{-1}x)$$&lt;/p>
+&lt;p>代入雅可比行列式&lt;/p>
+&lt;p>$$\int_{X}\tilde{k}(y,x) f(g^{-1}x)\mathrm{ d}x=\int_{X}\tilde{k}(g^{-1}y,g^{-1}x) f(g^{-1}x)\frac{1}{|\det g|}\mathrm{ d}x$$&lt;/p>
+&lt;p>这对任意 $f$ 都要成立，故&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \frac{1}{|\det g|} \tilde{k}(g^{-1}y,g^{-1}x)$$&lt;/p>
+&lt;p>又已知 $G$ acts transitively on $Y$，$\exists g_y,$ s.t. $y=g_y y_0$&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \tilde{k}(g_y y_0,x) = \frac{1}{|\det g_y|} \tilde{k}(y_0,g_y^{-1}x)$$&lt;/p>
+&lt;p>定义 $k(g_y^{-1}x) := \tilde{k}(y_0,g_y^{-1}x)$，则有&lt;/p>
+&lt;p>$$\tilde{k}(y,x) = \frac{1}{|\det g_y|} k(g_y^{-1}x)$$&lt;/p>
+&lt;p>代回到 (1) 式中，就得到了&lt;/p>
+&lt;p>$$[\mathscr{K}f] (y)=\int_{X} \frac{1}{|\det g_y|}k(g_y^{-1}x)f(x)\mathrm{ d}x \tag{2}$$&lt;/p>
+&lt;p>$\forall h\in H, k(h^{-1}x) = \tilde{k}(y_0, h^{-1}x) = |\det h| \tilde{k}(h y_0, x) = |\det h| k(x)$，即&lt;/p>
+&lt;p>$$\forall h\in H, \quad \frac{1}{|\det h|}k(h^{-1}x) = k(x) \tag{3}$$&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="例子">例子
+&lt;/h2>&lt;p>我们以几个例子来更好地理解这个定理的内容及应用。&lt;/p>
+&lt;h3 id="classical-convolution">Classical convolution
+&lt;/h3>&lt;p>当 $G$ 为 translation group 的时候，传统的二维图像卷积 kernel 满足对称约束。因为此时 $H=\{e\}$，显然有 $k(ex)=k(x)$。&lt;/p>
+&lt;p>当 $G$ 为 roto-translation group 的时候，传统的二维图像卷积就不满足对称约束了。对于任意 $y_0$ ，roto-translation group 中有很多元素可以保持 $y_0$不变。因此构造出来的 $H$ 中除了 $e$ 还有别的元素，这些元素不能满足 $k(hx)=k(x)$，所以 $G$ 为 roto-translation group 的时候，传统卷积操作不再具有等变性。&lt;/p>
+&lt;h3 id="lifting-convolution--group-convolution">Lifting convolution &amp;amp; Group convolution
+&lt;/h3>&lt;p>Lifting convolution 和 group convolution 的 $Y$ 均为 $SE(2)$，对于 roto-translation group，$H=\{e\}$。所以对称约束始终满足，不对 $k$ 有任何约束。二者均具有等变性。&lt;/p>
+&lt;h2 id="结论">结论
+&lt;/h2>&lt;p>因此，当我们希望构造一个 $G$-equivariant convolution 时，最好的办法就是直接让 $Y=G$，这样的话 $H=\{e\}$，对称约束始终满足，kernel $k$ 不受任何约束，most expressive。&lt;/p>
+&lt;p>Group convolutions are all you need!&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.6</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.6/</link><pubDate>Mon, 22 Jan 2024 18:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.6/</guid><description>&lt;h1 id="lecture-16-group-theory--homogeneousquotient-spaces">Lecture 1.6 Group Theory | Homogeneous/quotient spaces
+&lt;/h1>&lt;p>这一节为后面的内容做准备，再来介绍一下 group theory。&lt;/p>
+&lt;h2 id="group-action">Group action
+&lt;/h2>&lt;p>group action 是一个 operator $\odot: G\times X\rightarrow X$，其满足以下性质：&lt;/p>
+&lt;p>$$\forall g, g^{\prime}\in G, \forall x\in X, \quad g\odot (g^{\prime}\odot x)=(gg^{\prime})\odot x$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action.png"
+width="557"
+height="239"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action_hu9820175796048379539.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/group-action_hu7269655421463152762.png 1024w"
+loading="lazy"
+alt="group action"
+class="gallery-image"
+data-flex-grow="233"
+data-flex-basis="559px"
+>&lt;/p>
+&lt;h2 id="transitive-action">Transitive action
+&lt;/h2>&lt;p>称一个 group action $\odot$ 具有传递性 (transitivity)，当其满足：&lt;/p>
+&lt;p>$$\forall x_0, x\in X, \exists g\in G, \quad x=g\odot x_0$$&lt;/p>
+&lt;p>比如 $(\mathbb{R}^2,+)$ 作用在 $\mathbb{R}^2$ 上，$SE(2)$ 作用在 $\mathbb{R}^2$ 上都是 transitive 的。但 $SO(2)$ 作用在 $\mathbb{R}^2$ 上不是。&lt;/p>
+&lt;h2 id="homogeneous-space">Homogeneous space
+&lt;/h2>&lt;p>如果一个群 $G$ 能够传递地作用在空间 $X$ 上，则称 $X$ 是 $G$ 的一个 homogeneous space。&lt;/p>
+&lt;p>这个性质很重要，因为卷积可以被视为对 kernel 作用 $G$ 中的每个元素后与输入 $f$ 进行点积，只有 $f$ 的定义域是 $G$ 的一个 homogeneous space 的时候，才能保证 $f$ 中的所有信息能被卷积提取出来。&lt;/p>
+&lt;p>比如对于普通的二维卷积操作，正是因为 $\mathbb{R}^2$ 是 $(\mathbb{R}^2,+)$ 的一个 homogeneous space，kernel 才能遍历 $f$ 的每个点。对于 lifting correlation 也是一样，$\mathbb{R}^2$ 是 $SE(2)$ 的一个 homogeneous space。&lt;/p>
+&lt;p>可以定义三维旋转群 $SO(3)$ 作用在三维向量（起点为原点） $\mathbb{R}^3$ 上的 group action，roll 对应向量的伸缩，pitch 和 yaw 对应向量方向的旋转。若将作用后的三维向量投影到三维球面 $S^2$ 上，可以发现 $S^2$ 是 $SO(3)$ 的一个 homogeneous space。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2.png"
+width="694"
+height="537"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2_hu517990817504336910.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/S2_hu446272120173872799.png 1024w"
+loading="lazy"
+alt="$S^2$ is a homogeneous space of $SO(3)$"
+class="gallery-image"
+data-flex-grow="129"
+data-flex-basis="310px"
+>&lt;/p>
+&lt;h2 id="quotient-space">Quotient space
+&lt;/h2>&lt;p>对于群 $G$ 以及其正规子群 $H$，定义 quotient space/group 为：&lt;/p>
+&lt;p>$$G/H=\left\{\{gh|h\in H\}| g\in G\right\}$$&lt;/p>
+&lt;p>$G/H$ 中的元素是集合。&lt;/p>
+&lt;p>其实在 $SO(3)$ 作用在 $S^2$ 的过程中， roll 并没有起作用（无论向量如何伸缩，都会被投影回 $S^2$），所以有 $S^2\cong SO(3)/SO(2)$。&lt;/p>
+&lt;h2 id="stabilizer">Stabilizer
+&lt;/h2>&lt;p>对于集合 $X$ 中的元素 $x_0$ 以及作用在 $X$ 上的群 $G$，定义 $x_0$ 的 stabilizer 为：&lt;/p>
+&lt;p>$$Stab_G(x_0)=\{g|gx_0=x_0\}$$&lt;/p>
+&lt;p>即那些能让 $x_0$ 保持稳定的元素 $g$。&lt;/p>
+&lt;h2 id="homogeneous-space-equiv-quotient-space">Homogeneous space $\equiv$ Quotient space
+&lt;/h2>&lt;p>&lt;a class="link" href="https://uvagedl.github.io/lectures_pdf/Lecture_1_6_GroupTheory.pdf" target="_blank" rel="noopener"
+>Slides&lt;/a> 中的表述为：Any quotient space is a homogeneous space. Any homogeneous space is a quotient space.&lt;/p>
+&lt;p>显然，quotient space 是一个 homogeneous space，因为 $G$ 可以传递地作用在 $G/H$ 上。&lt;/p>
+&lt;p>但第二句话的表述并不严谨，quotient space 一定是一个 group，但 homogeneous space 不一定是个 group。因此对于一个给定的 homogeneous space，无法构造一个 quotient space，使得二者同构。但可以构造一个 quotient space，使得二者之间存在 bijection。&lt;/p>
+&lt;p>&lt;a class="link" href="https://uvagedl.github.io/GroupConvLectureNotes.pdf" target="_blank" rel="noopener"
+>Lecture notes&lt;/a> 中对第二句话的表述为：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22.png"
+width="842"
+height="62"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22_hu11524263295282780412.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.6/lm22_hu9697252116417895123.png 1024w"
+loading="lazy"
+alt="任何一个 homogeneous space 都是 quotient space"
+class="gallery-image"
+data-flex-grow="1358"
+data-flex-basis="3259px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:&lt;/p>
+&lt;p>对于任意一个 $x_0\in X$，都可以构造一个映射 $f: G/H \rightarrow X, gH \mapsto gx_0$。&lt;/p>
+&lt;p>这个映射是良定义的，因为如果 $\exists g_1, g_2,$ s.t. $g_1 H=g_2 H$，那么 $\exists h\in H,$ s.t. $g_1=g_2 h$。所以 $g_1 x_0 = g_2 h x_0 = g_2 x_0$。&lt;/p>
+&lt;p>因为 $X$ 是一个 homogeneous space，所以 $f$ 是满射。&lt;/p>
+&lt;p>假设 $g_1 x_0=g_2 x_0$，那么 $g_2^{-1} g_1 x_0 = x_0, g_2^{-1} g_1\in H$，所以 $g_1 H = g_2 H$。$f$ 是单射。&lt;/p>
+&lt;p>$f$ is a bijection.&lt;/p>
+&lt;/blockquote></description></item><item><title>Group Equivariant Deep Learning Lecture 1.5</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.5/</link><pubDate>Mon, 22 Jan 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.5/</guid><description>&lt;h1 id="lecture-15-a-brief-history-of-g-cnns">Lecture 1.5 A brief history of G-CNNs
+&lt;/h1>&lt;p>本节简单讲了下 G-CNN 的发展历程，从 discrete group 一步步到更一般的 group。感兴趣可以自己看：&lt;/p>
+&lt;div class="video-wrapper">
+&lt;iframe loading="lazy"
+src="https://www.youtube.com/embed/kTvow5-eCCQ"
+allowfullscreen
+title="YouTube Video"
+>
+&lt;/iframe>
+&lt;/div>
+&lt;p>&lt;a class="link" href="https://uvagedl.github.io/lectures_pdf/Lecture_1_5_History.pdf" target="_blank" rel="noopener"
+>slides链接&lt;/a>&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.4</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.4/</link><pubDate>Mon, 22 Jan 2024 12:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.4/</guid><description>&lt;h1 id="lecture-14-se2-equivariant-nn-example--histopathology">Lecture 1.4 SE(2) Equivariant NN Example | histopathology
+&lt;/h1>&lt;p>本节以有丝分裂细胞识别为例（即给一张细胞的图片，判断其是否正在进行有丝分裂），构造一个 rotation invariant CNN。对于一张图片的不同旋转版本，网络需要返回同样的输出。&lt;/p>
+&lt;h2 id="invariance">Invariance
+&lt;/h2>&lt;p>我们在 Lecture 1.2 节已经介绍过等变性 (equivariance)，即对于一个 operator $\Phi: X\rightarrow Y$，其具有以下的性质：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$&lt;/p>
+&lt;p>而不变性 (invariance) 则是：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\Phi$$&lt;/p>
+&lt;p>即不论输入在经过 $\Phi$ 之前是否经过 $\rho^X(g)$，其最终输出都是一样的。&lt;/p>
+&lt;h2 id="网络架构">网络架构
+&lt;/h2>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN.png"
+width="1129"
+height="638"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN_hu10333033717328027907.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.4/roto-invar-CNN_hu16120746009578391603.png 1024w"
+loading="lazy"
+alt="rotation invariant CNN"
+class="gallery-image"
+data-flex-grow="176"
+data-flex-basis="424px"
+>&lt;/p>
+&lt;p>网络架构如上图所示，对于一张图片，将其经过一层 lifting convolution 和几层 group convolution 后，每个 output channel 都只含有一个 $ 1\times |G| $ 的向量。通过这样的操作抹去了 $x, y$，只留下了 $\theta$ 轴。由于中间的每一层都是 equivariant 的，因此对于不同旋转角度的输入，这一层的输出仅仅是在 $\theta$ 轴上有不同的平移。为了消除 $\theta$ 轴向平移的影响，在后面再加一层 projection layer （或者说是 pooling layer），在 $\theta$ 方向取 mean 或 max 等等。&lt;/p>
+&lt;p>此时我们就得到了一个 $1 \times \# \text{ output channels}$ 的向量，此时的输出结果是 roto-invariant 的，可以直接在后面加一个 linear 层进行 classification。&lt;/p>
+&lt;p>也可以在每层之后加一层 pointwise non-linear layer，这显然不会改变 equivariance。&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Note:&lt;/strong> 这样构造出来的 CNN 的网络大小是正比于 $|G|$ 的。比如如果希望构造一个完全 rotational invariant 的网络，$|G|$ 的大小即旋转的度数的个数，是无穷的，这样的网络无法达到效果。这里实现的只是取了几个旋转角度，比如 $0, \frac{\pi}{2}, \pi, \frac{3\pi}{2}$。后续讲的网络可以解决这个问题。&lt;/li>
+&lt;/ul>
+&lt;h2 id="from-rotation-to-scale-equivariant-cnns">From rotation to scale equivariant CNNs
+&lt;/h2>&lt;p>上面我们展示了 roto-translation equivariant CNN 的作用，除此以外，scale equivariant CNN 也有其用处， 比如可以识别不同大小的人脸、不同音量音高的音频。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN.png"
+width="1001"
+height="795"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN_hu17739261351021332129.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.4/scale-invar-CNN_hu17937914167994125071.png 1024w"
+loading="lazy"
+alt="对不同频率的音频的识别"
+class="gallery-image"
+data-flex-grow="125"
+data-flex-basis="302px"
+>&lt;/p>
+&lt;h2 id="效果">效果
+&lt;/h2>&lt;ul>
+&lt;li>G-CNN 可以&lt;strong>保证&lt;/strong>输出的等变性。&lt;/li>
+&lt;li>G-CNN 可以获得比单纯用 data-augmentation 更好的效果。比如要进行人脸识别，训练集里某一张图片有两张人脸，data-augmentation 可以识别将两张人脸作为一个整体旋转得到的图片，而 G-CNN 可以识别两张人脸分别旋转得到的图片。&lt;/li>
+&lt;li>G-CNN 增加了 sample efficiency。&lt;/li>
+&lt;/ul></description></item><item><title>Group Equivariant Deep Learning Lecture 1.3</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.3/</link><pubDate>Sat, 20 Jan 2024 23:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.3/</guid><description>&lt;h1 id="lecture-13-regular-group-convolutions--template-matching-viewpoint">Lecture 1.3 Regular group convolutions | Template matching viewpoint
+&lt;/h1>&lt;h2 id="cross-correlations">Cross-correlations
+&lt;/h2>&lt;p>定义 kernel $k\in \mathbb{L}_2(\mathbb{R}^2)$ 和二维图像 $f\in \mathbb{L}_2(\mathbb{R}^2)$ 之间的 cross-correlations 为：&lt;/p>
+&lt;p>$$(k\star_{\mathbb{R}^2} f)(\mathbf{x})=\int_{\mathbb{R}^2} k(\mathbf{x}^{\prime}-\mathbf{x})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}=(\mathscr{L}_{\mathbf{x}} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>RHS 的标记是定义出来的。&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Note:&lt;/strong> 这其实就是 CNN 中的 convolution，但并不是严格意义上的 convolution，严格意义上的 convolution 为：&lt;/li>
+&lt;/ul>
+&lt;p>$$\int_{\mathbb{R}^2} k(\mathbf{x}-\mathbf{x}^{\prime})f(\mathbf{x}^{\prime})\mathrm{ d} \mathbf{x}^{\prime}$$&lt;/p>
+&lt;h2 id="equivariance">Equivariance
+&lt;/h2>&lt;p>Convolutions/cross-correlations 具有平移等变性，即对于 $\forall \mathbf{x}, \mathbf{y}\in \mathbb{R}^2$，有&lt;/p>
+&lt;p>$$\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]=(k\star_{\mathbb{R}^2}\mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi.png"
+width="1399"
+height="600"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi_hu8742475310394732435.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/trans-equi_hu10131090888412463.png 1024w"
+loading="lazy"
+alt="卷积操作具有平移等变性"
+class="gallery-image"
+data-flex-grow="233"
+data-flex-basis="559px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:
+$$LHS=(k\star_{\mathbb{R}^2} f)(\mathbf{x}-\mathbf{y})=(\mathscr{L}_{\mathbf{x}-\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, \mathscr{L}_{\mathbf{y}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$&lt;/p>
+&lt;/blockquote>
+&lt;p>一般情况下，卷积操作对于旋转操作并不具有等变性。&lt;/p>
+&lt;p>$$\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}[(k\star_{\mathbb{R}^2}f)(\mathbf{x})]\neq (k\star_{\mathbb{R}^2}\mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2(\mathbb{R}^2)}f)(\mathbf{x})$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi.png"
+width="1400"
+height="614"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi_hu10717081983120023016.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/roto-trans-equi_hu10970339847413702283.png 1024w"
+loading="lazy"
+alt="卷积操作不具有旋转等变性"
+class="gallery-image"
+data-flex-grow="228"
+data-flex-basis="547px"
+>&lt;/p>
+&lt;h2 id="regular-group-cnn">Regular group CNN
+&lt;/h2>&lt;p>接下来，我们从构造 roto-translation equivariant 的卷积操作入手，一步步搭建 regular group CNN。&lt;/p>
+&lt;h3 id="lifting-correlations">Lifting correlations
+&lt;/h3>&lt;p>首先，cross-correlation 可以写为：&lt;/p>
+&lt;p>$$(k\star_{\mathbb{R}^2} f)(\mathbf{x})=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>类似地，对于 $\forall k, f\in \mathbb{L}_2 (\mathbb{R}^2)$，我们定义 lifting correlations 为：&lt;/p>
+&lt;p>$$(k\tilde{\star} f)(\mathbf{x}, \theta)=(\mathscr{L}_{(\mathbf{x},\theta)}^{SE(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} \mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}$$&lt;/p>
+&lt;p>这就相当于将 kernel $k$ 的每一种旋转以及每一种平移都与 $f$ 做一次点积操作，最后得到一个 3D feature map。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation.png"
+width="1026"
+height="345"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation_hu17348265910634858841.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/lifting_correlation_hu3255836081765936797.png 1024w"
+loading="lazy"
+alt="Lifting correlations"
+class="gallery-image"
+data-flex-grow="297"
+data-flex-basis="713px"
+>&lt;/p>
+&lt;p>Lifing correlations 具有 roto-translation 等变性，即（省略上标）：&lt;/p>
+&lt;p>$$\mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} (k\tilde{\star} f)(\mathbf{x}, \theta) = (k\tilde{\star} \mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} f)(\mathbf{x}, \theta)$$&lt;/p>
+&lt;blockquote>
+&lt;p>Proof:
+$$LHS=(k\tilde{\star} f)(\mathbf{y},\varphi)^{-1} (\mathbf{x},\theta)=(\mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} \mathscr{L}_{\mathbf{x}} \mathscr{L}_{\theta} k, f)_{\mathbb{L}_2 (\mathbb{R}^2)}=(\mathscr{L}_{\mathbf{x}} \mathscr{L}_{\theta} k, \mathscr{L}_{\mathbf{y}} \mathscr{L}_{\varphi} f)_{\mathbb{L}_2 (\mathbb{R}^2)}=RHS$$&lt;/p>
+&lt;/blockquote>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi.png"
+width="1054"
+height="499"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi_hu12123238164148467618.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/lift-cor-roto-equi_hu3644318984779435014.png 1024w"
+loading="lazy"
+alt="lifting correlations are roto-translation equivariant"
+class="gallery-image"
+data-flex-grow="211"
+data-flex-basis="506px"
+>&lt;/p>
+&lt;h3 id="group-correlations">Group correlations
+&lt;/h3>&lt;p>Lifting correlations 可以学到 low-level features，比如要匹配人脸，某个 kernel 可能学到了眼睛，某个 kernel 可能学到了鼻子。如果此时直接对 $\theta$ 轴进行投影，各部分不同的朝向可能会导致相同的投影，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces.png"
+width="624"
+height="206"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces_hu5102834507659032544.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/faces_hu16520580369128861777.png 1024w"
+loading="lazy"
+alt="直接投影可能会导致很多奇怪的图被投影到同样的 feature map"
+class="gallery-image"
+data-flex-grow="302"
+data-flex-basis="726px"
+>&lt;/p>
+&lt;p>所以需要后续的 layers 用其他 kernels 来匹配全局信息。对于 $\forall k, y \in \mathbb{L}_2 (SE(2))$，定义 group correlations 为：&lt;/p>
+&lt;p>$$(k\star f)(\mathbf{x}, \theta)=(\mathscr{L}_{(\mathbf{x},\theta)}^{SE(2)\rightarrow \mathbb{L}_2 (SE(2))} k, f)_{\mathbb{L}_2 (SE(2))}=(\mathscr{L}_{\mathbf{x}}^{\mathbb{R}^2\rightarrow \mathbb{L}_2 (SE(2))} \mathscr{L}_{\theta}^{SO(2)\rightarrow \mathbb{L}_2 (SE(2))} k, f)_{\mathbb{L}_2 (SE(2))}$$&lt;/p>
+&lt;p>Group correlations 将两个 3D feature maps 映射为一个 3D feature map。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation.png"
+width="1057"
+height="354"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation_hu9320970284264679197.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/group_correlation_hu7316074508991261303.png 1024w"
+loading="lazy"
+alt="Group correlations"
+class="gallery-image"
+data-flex-grow="298"
+data-flex-basis="716px"
+>&lt;/p>
+&lt;p>类似可以证明，group correlations 也是 roto-translation equivalent 的。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi.png"
+width="1069"
+height="495"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi_hu4887098216288403875.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/group-cor-roto-equi_hu12335850599239461762.png 1024w"
+loading="lazy"
+alt="group correlations are roto-translation equivariant"
+class="gallery-image"
+data-flex-grow="215"
+data-flex-basis="518px"
+>&lt;/p>
+&lt;h3 id="网络架构">网络架构
+&lt;/h3>&lt;p>将上面说的 lifting correlations 和 group correlations 连起来，就得到了一个 regular group CNN 最简单的样子。可以在后面再加上 projection layer 等层，将 $\theta$ 轴去掉，得到一个二维图像。我们构造了一个对 roto-translation 具有等变性的 CNN，当然也可以以类似的方法构造对 scale-translation 具有等变性的 CNN，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN.png"
+width="1440"
+height="810"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN_hu7355816838190124956.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.3/regular_group_CNN_hu9817354966023399787.png 1024w"
+loading="lazy"
+alt="一个最基本的 regular group CNN"
+class="gallery-image"
+data-flex-grow="177"
+data-flex-basis="426px"
+>&lt;/p>
+&lt;p>当然，我们目前只得到了一个二维图像，下一节会以细胞识别为例子，构造一个完整的 regular group CNN。&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.2</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.2/</link><pubDate>Sat, 20 Jan 2024 22:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.2/</guid><description>&lt;h1 id="lecture-12-group-theory--the-basics">Lecture 1.2 Group Theory | The basics
+&lt;/h1>&lt;p>先介绍一下群论里的一些概念。&lt;/p>
+&lt;h2 id="group">Group
+&lt;/h2>&lt;p>一个群 (group) $(G, \cdot)$ 是一个元素集合 $G$ 加上定义在 $G$ 中元素上的二元运算 $\cdot$。二元运算 $\cdot$ 满足以下四条性质：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Closure:&lt;/strong> 对于 $\forall g, h \in G$, 它们的积 $g\cdot h\in G$。&lt;/li>
+&lt;li>&lt;strong>Associativity:&lt;/strong> 对于 $\forall g,h,i \in G, \cdot$ 满足结合律，$g\cdot (h\cdot i)=(g\cdot h)\cdot i$。&lt;/li>
+&lt;li>&lt;strong>Indentity element:&lt;/strong> 存在一个 identity element $e\in G$，满足对于 $\forall g\in G, e\cdot g=g\cdot e=g$。&lt;/li>
+&lt;li>&lt;strong>Inverse element:&lt;/strong> 对于 $\forall g\in G$，其都有 inverse element $g^{-1}\in G$ s.t. $g^{-1}\cdot g=g \cdot g^{-1}=e$。&lt;/li>
+&lt;/ul>
+&lt;h3 id="translation-group-mathbbr2-">Translation group $(\mathbb{R}^2, +)$
+&lt;/h3>&lt;p>Translation group 中的元素即为 $\mathbb{R}^2$ 中的点，对于 $g=(\mathbf{x}), g^{\prime}=(\mathbf{x}^{\prime})$，其中 $\mathbf{x},\mathbf{x}^{\prime}\in \mathbb{R}^2$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(\mathbf{x}+\mathbf{x}^{\prime})$$
+$$g^{-1}=(-\mathbf{x})$$&lt;/p>
+&lt;p>Translation group 中的一个元素可以被视为一个平移变换 （Lecture 1.6 中会细讲）。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group.png"
+width="579"
+height="227"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group_hu4850602503814547752.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/translation_group_hu9632744535022678962.png 1024w"
+loading="lazy"
+alt="translation group"
+class="gallery-image"
+data-flex-grow="255"
+data-flex-basis="612px"
+>&lt;/p>
+&lt;h3 id="roto-translation-group-se2-2d-special-euclidean-motion-group">Roto-translation group $SE(2)$ (2D Special Euclidean motion group)
+&lt;/h3>&lt;p>$SE(2)=\mathbb{R}^2\rtimes SO(2)$，其中的每个元素 $g=(\mathbf{x}, \mathbf{R}_{\theta} )$ 由一个二维向量 $\mathbf{x}\in \mathbb{R}^2$ 以及一个二维旋转矩阵 $\mathbf{R}_{\theta} \in SO(2)$ 组成。对于 $g=(\mathbf{x}, \mathbf{R}_{\theta}) , g^{\prime}=(\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}} )$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(\mathbf{x}, \mathbf{R}_{\theta}) \cdot (\mathbf{x}^{\prime}, \mathbf{R}_{\theta^{\prime}})=(\mathbf{R}_{\theta}\mathbf{x}^{\prime}+\mathbf{x}, \mathbf{R}_{\theta+\theta^{\prime}} )$$&lt;/p>
+&lt;p>$$g^{-1}=(-\mathbf{R}_{\theta}^{-1} \mathbf{x}, \mathbf{R}_{\theta}^{-1} )$$&lt;/p>
+&lt;p>$SE(2)$ 中的一个元素可以被视为一个旋转变换加上一个平移变换。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29.png"
+width="570"
+height="223"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29_hu8157567678559539875.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/SE%282%29_hu9047402899836187602.png 1024w"
+loading="lazy"
+alt="SE(2) group"
+class="gallery-image"
+data-flex-grow="255"
+data-flex-basis="613px"
+>&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>矩阵表示：&lt;/strong> $SE(2)$ 中的元素也可以用矩阵表示：&lt;/li>
+&lt;/ul>
+&lt;p>$$g=(\mathbf{x}, \mathbf{R}_{\theta})\quad \leftrightarrow\quad \mathbf{G}=\begin{pmatrix} \mathbf{R}_{\theta} &amp;amp; \mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix} = \begin{pmatrix} \cos\theta &amp;amp; -\sin\theta &amp;amp; x\\ \sin\theta &amp;amp; \cos\theta &amp;amp; y\\ 0 &amp;amp; 0 &amp;amp; 1 \end{pmatrix}$$&lt;/p>
+&lt;p>$$\begin{pmatrix} \mathbf{R}_{\theta} &amp;amp; \mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}\begin{pmatrix} \mathbf{R}_{\theta^{\prime}} &amp;amp; \mathbf{x}^{\prime}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}=\begin{pmatrix} \mathbf{R}_{\theta+\theta^{\prime}} &amp;amp; \mathbf{R}_{\theta} \mathbf{x}^{\prime}+\mathbf{x}\\ \mathbf{0}^{\top} &amp;amp; 1 \end{pmatrix}$$&lt;/p>
+&lt;h3 id="scale-translation-group-mathbbr2rtimesmathbbr">Scale-translation group $\mathbb{R}^2\rtimes\mathbb{R}^+$
+&lt;/h3>&lt;p>$\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的每个元素 $g=(\mathbf{x},s)$ 由一个二维向量 $\mathbf{x}\in\mathbb{R}^2$ 以及一个正标量 $s\in \mathbb{R}^+$ 组成。对于 $g=(\mathbf{x},s), g^{\prime}=(\mathbf{x}^{\prime}, s^{\prime})$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(s\mathbf{x}^{\prime}+\mathbf{x}, ss^{\prime})$$&lt;/p>
+&lt;p>$$g^{-1}=\left(-\frac{1}{s}\mathbf{x}, \frac{1}{s}\right)$$&lt;/p>
+&lt;p>$\mathbb{R}^2\rtimes\mathbb{R}^+$ 中的一个元素可以被视为一个缩放变换加上一个平移变换。&lt;/p>
+&lt;h3 id="affine-groups-gmathbbrdrtimes-h">Affine groups $G=\mathbb{R}^{d}\rtimes H$
+&lt;/h3>&lt;p>Affine groups 是某个 group $H$ 和 $\mathbb{R}^d$ 的半直积。对于 $g=(\mathbf{x},h), g^{\prime}=(\mathbf{x}^{\prime}, h^{\prime})$，我们有：&lt;/p>
+&lt;p>$$g\cdot g^{\prime}=(h\cdot\mathbf{x}^{\prime}+\mathbf{x}, h\cdot h^{\prime})$$
+$$g^{-1}=\left(-h^{-1}\cdot\mathbf{x}, h^{-1}\right)$$&lt;/p>
+&lt;p>上面说的 $SE(2)=\mathbb{R}^2\rtimes SO(2)$ 和 $\mathbb{R}^2\rtimes\mathbb{R}^+$ 都属于 affine groups。Affine groups 中的一个元素可以被视为一个变换 $h$ 加上一个平移变换。&lt;/p>
+&lt;h2 id="representations">Representations
+&lt;/h2>&lt;p>一个 representation $\rho: G\rightarrow GL(V)$ 是从 $G$ 到 $GL(V)$ 的一个群同态 (group homomorphism)。&lt;/p>
+&lt;ul>
+&lt;li>$GL_n$ 就是由所有 $n\times n$ 的可逆矩阵组成的群，群运算即为矩阵乘法。&lt;/li>
+&lt;/ul>
+&lt;p>这就是说 $\rho(g)$ 是由 $g\in G$ 决定的线性变换，它作用在一个向量 $\mathbf{v}\in V$ 上，具有性质：&lt;/p>
+&lt;p>$$\rho(g^{\prime})\circ\rho(g)[\mathbf{v}]=\rho(g^{\prime}\cdot g)[\mathbf{v}]$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation.png"
+width="582"
+height="242"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation_hu12677593421651654986.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/representation_hu14243957777481512555.png 1024w"
+loading="lazy"
+alt="representation is homomorphic"
+class="gallery-image"
+data-flex-grow="240"
+data-flex-basis="577px"
+>&lt;/p>
+&lt;h3 id="left-regular-representations">Left-regular representations
+&lt;/h3>&lt;p>一个 left-regular representation $\mathscr{L}_g$ 作用在一个函数 $f$ 上，定义为：&lt;/p>
+&lt;p>$$\mathscr{L}_g [f](x):=f(g^{-1}\cdot x)$$&lt;/p>
+&lt;p>这么说有点抽象，举个例子。$f\in \mathbb{L}_2(\mathbb{R}^2)$ 是一个二维图像，它给 $\mathbb{R}^2$ 上的每个点赋值。$g\in G=SE(2)$ 可以被看做是一个平移变换加上一个旋转变换。对于二维平面上的一个点 $\mathbf{y}\in\mathbb{R}^2$，可以算出：&lt;/p>
+&lt;p>$$\mathscr{L}_g [f](\mathbf{y}):=f(g^{-1}\cdot \mathbf{y})=f(\mathbf{R}_{-\theta}(\mathbf{y}-\mathbf{x}))$$&lt;/p>
+&lt;p>即现在 $\mathbf{y}$ 处的函数值为先将 $\mathbf{y}$ 平移 $-\mathbf{x}$，再旋转 $-\theta$ 处的 $f$ 值。也就是说，现在的图像是由原先的图像先旋转 $\theta$ 再平移 $\mathbf{x}$ 得到的。在这种情况下 $\mathscr{L}_g $ 也可以写做 $\mathscr{L}_g^{SE(2)\rightarrow \mathbb{L}_2 (\mathbb{R}^2)}$。这就是说，在给定 $f$ 的情况下，$\mathscr{L}$ 会将 $g\in SE(2)$ 转成一个二维图像 $f^{\prime}\in \mathbb{L}_2 (\mathbb{R}^2)$。&lt;/p>
+&lt;p>Left-regular representations 满足性质：&lt;/p>
+&lt;p>$$\mathscr{L}_{g^{\prime}}\circ\mathscr{L}_g=\mathscr{L}_{g^{\prime}\cdot g}$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep.png"
+width="592"
+height="275"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep_hu9495275467218321512.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/left_regular_rep_hu2396734437732884717.png 1024w"
+loading="lazy"
+alt="left regular representation"
+class="gallery-image"
+data-flex-grow="215"
+data-flex-basis="516px"
+>&lt;/p>
+&lt;h2 id="equivariance">Equivariance
+&lt;/h2>&lt;p>如果一个 operator $\Phi: X\rightarrow Y$ （如一个神经网络）满足以下条件，则说其具有等变性 (equivariance)：&lt;/p>
+&lt;p>$$\Phi\circ \rho^X(g)=\rho^Y(g)\circ \Phi$$&lt;/p>
+&lt;p>即，先作用 $\Phi$ 与后作用 $\Phi$ 得到的效果是一样的。比如 $g$ 表示一个平移变换，$\Phi$ 表示用 CNN 从图片中提取特征。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance.png"
+width="438"
+height="373"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance_hu815101802900198437.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.2/equivariance_hu7591912822231533592.png 1024w"
+loading="lazy"
+alt="equivariance"
+class="gallery-image"
+data-flex-grow="117"
+data-flex-basis="281px"
+>&lt;/p></description></item><item><title>Group Equivariant Deep Learning Lecture 1.1</title><link>https://suz-tsinghua.github.io/p/gedl-notes-1.1/</link><pubDate>Sat, 20 Jan 2024 20:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/gedl-notes-1.1/</guid><description>&lt;p>最近在做一个将对称性与 RL 结合的工作，其中将 PPO 里的 actor-critic 网络换成了具有对称性的 EMLP (equivariant MLP)。EMLP 的效果就是，对于具有对称性的输入，其保证输出也具有对称性。EMLP 利用 &lt;a class="link" href="https://github.com/QUVA-Lab/escnn" target="_blank" rel="noopener"
+>escnn&lt;/a> 库实现。我在 escnn 库的 README.md 里找到了 Amsterdam 大学的一个暑期课程 &lt;a class="link" href="https://uvagedl.github.io/" target="_blank" rel="noopener"
+>An Introduction to Group Equivariant Deep Learning&lt;/a>，感觉是个很有趣的领域，于是打算学习一下并记点笔记。&lt;/p>
+&lt;h1 id="lecture-1-regular-group-convolutional-neural-networks">Lecture 1 Regular group convolutional neural networks
+&lt;/h1>&lt;h1 id="lecture-11-introduction">Lecture 1.1 Introduction
+&lt;/h1>&lt;p>其实 DL 中的许多问题都要求对于以某种方式对称后的输入，网络的输出也具有某种对称性（或不变性）。比如对于肿瘤细胞的识别：给定一张细胞的图片，要求判断其是否为恶性肿瘤细胞。我们希望图像旋转后，判断的结果保持不变。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells.png"
+width="141"
+height="231"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells_hu6767862435531511341.png 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/cells_hu3765818790516971711.png 1024w"
+loading="lazy"
+alt="细胞图，第二个由第一个旋转得来"
+class="gallery-image"
+data-flex-grow="61"
+data-flex-basis="146px"
+>&lt;/p>
+&lt;p>一个最直接的办法就是 data augmentation，对于训练集中的一张图片，将其经过若干种旋转后的图片都加到训练集中。尽管这样可以在一定程度上解决问题，但是这种方法仍没有完全保证输出关于对称输入的不变性 (invariance)，而且其将有限的网络 capacity 用于学习对称性上，在相同的参数量下可能会造成 capacity 的下降。因此我们希望直接在网络层面保证对称性。&lt;/p>
+&lt;p>我们已经知道 CNN 具有平移对称性，即对于平移一定距离的输入，CNN 的输出也具有相同方向、相同距离的平移。但如下图所示， CNN 并不具备旋转对称性。其中 input 即为输入的图像，feature map 是 CNN 的原始输出，stabilized view 是将 feature map 转回到原来的角度。对于旋转后的图像，CNN 的输出并不稳定，即 stabilized view 并不保持不变。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn.gif"
+width="1024"
+height="366"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn_hu8671059584752854937.gif 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/conventional_cnn_hu11427629099715979999.gif 1024w"
+loading="lazy"
+alt="Conventional CNN output"
+class="gallery-image"
+data-flex-grow="279"
+data-flex-basis="671px"
+>&lt;/p>
+&lt;p>我们希望构造一个 CNN 网络结构 (Group equivariant CNN)，使得 CNN 具有旋转对称性，如下图所示。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield.gif"
+width="1024"
+height="366"
+srcset="https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield_hu15065802252989535204.gif 480w, https://suz-tsinghua.github.io/p/gedl-notes-1.1/vectorfield_hu16806462780593154617.gif 1024w"
+loading="lazy"
+alt="Equivariant CNN output"
+class="gallery-image"
+data-flex-grow="279"
+data-flex-basis="671px"
+>&lt;/p></description></item><item><title>2023秋 自然语言处理 课程项目</title><link>https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/</link><pubDate>Thu, 18 Jan 2024 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/demo.png" alt="Featured image of post 2023秋 自然语言处理 课程项目" />&lt;h1 id="2023秋-nlp-课程项目--歌曲问答及推荐系统">2023秋 NLP 课程项目 —— 歌曲问答及推荐系统
+&lt;/h1>&lt;h2 id="介绍">介绍
+&lt;/h2>&lt;p>受到训练数据的限制，现在的 LLM（如ChatGPT）并没有能力很好地执行对歌曲信息的问答以及歌曲推荐任务，尤其是对于较新的歌曲和中文歌曲。比如“鸡你太美是什么歌曲？”“半岛铁盒是谁的歌？”“给我推荐一首吉他演奏的轻音乐。”&lt;/p>
+&lt;p>我们希望通过利用搜索引擎、构建本地知识库等方式来解决这个问题。&lt;/p>
+&lt;p>项目目前开源在 &lt;a class="link" href="https://github.com/hs-black/Music-Recommander" target="_blank" rel="noopener"
+>https://github.com/hs-black/Music-Recommander&lt;/a> （不要在意拼写错误的细节）。&lt;/p>
+&lt;h2 id="技术实现">技术实现
+&lt;/h2>&lt;h3 id="工具">工具
+&lt;/h3>&lt;p>我们在网上找到了这些工具：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&lt;a class="link" href="https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/quickstarts/rest/python" target="_blank" rel="noopener"
+>Bing API:&lt;/a>&lt;/strong> Bing API 支持用 python 脚本调用 Bing 的搜索功能，可以利用这一 API 搜索歌曲的信息。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://github.com/Binaryify/NeteaseCloudMusicApi" target="_blank" rel="noopener"
+>NeteaseCloudMusicApi:&lt;/a>&lt;/strong> 这是一个开源的库，可以调用网易云音乐的很多功能，如获取歌曲的百科信息（曲风、推荐标签、语言、BPM 等）。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://github.com/chatchat-space/Langchain-Chatchat" target="_blank" rel="noopener"
+>Langchain-Chatchat:&lt;/a>&lt;/strong> 这个库利用 ChatGLM 等大语言模型与 Langchain 实现了很多功能，如本地知识库问答、搜索引擎问答等。我们主要利用其对本地知识库的检索功能，此部分利用 Embedding Model 进行本地文件的向量化与搜索匹配。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://platform.openai.com/" target="_blank" rel="noopener"
+>OpenAI API:&lt;/a>&lt;/strong> 利用 OpenAI 的 API 接口在 Python 中调用 ChatGPT 等大语言模型。&lt;/li>
+&lt;/ul>
+&lt;h3 id="pipeline">Pipeline
+&lt;/h3>&lt;div align="center">
+&lt;img src="pipeline.png" width = "400" height = "300" alt="Pipeline"/>
+&lt;/div>
+&lt;p>整个项目的 pipeline 如上图所示。对于用户的输入，先用 LLM 检查是否需要调用网易云搜索、Bing 搜索、本地知识库搜索工具。因为其实用户的有些输入与歌曲问答或推荐并没有关系，可以直接用 LLM 进行回答。&lt;/p>
+&lt;p>若 LLM 认为需要调用工具，它会从用户的输入中提取出调用工具所需要的参数，如歌名、歌手、曲风、语言等信息，并调用网易云搜索、Bing 搜索、本地知识库搜索工具。LLM 会再将三个工具返回的信息进行整合提取，根据用户的输入返回其需要的信息。&lt;/p>
+&lt;p>我们也实现了 mp3 的搜索功能，对于 LLM 在最后一步中返回的歌曲，利用网易云接口找到其 mp3 音频，并可直接在项目前端播放。&lt;/p>
+&lt;h3 id="前端">前端
+&lt;/h3>&lt;p>项目前端采用 &lt;a class="link" href="https://streamlit.io/" target="_blank" rel="noopener"
+>streamlit&lt;/a> 实现，用户可以在前端直接与我们的项目进行交流，直接听到项目返回的歌曲。&lt;/p>
+&lt;div align="center">
+&lt;img src="demo.png" width = "500" height = "282" alt="Demo"/>
+&lt;/div>
+&lt;h3 id="本地知识库">本地知识库
+&lt;/h3>&lt;p>我们利用网易云的接口获取了大约500k首歌曲的信息，包括歌名、歌手、曲风、推荐标签、语种、BPM、乐评，整合进&lt;a class="link" href="https://github.com/hs-black/Music-Recommander/tree/main/composite_demo/Langchain_Chatchat/knowledge_base/music_new/content" target="_blank" rel="noopener"
+>几个 csv 文件&lt;/a>中。&lt;/p>
+&lt;div align="center">
+&lt;img src="data.png" width = "400" height = "200" alt="Pipeline"/>
+&lt;/div>
+&lt;p>接着利用 Langchain-Chatchat 的实现，用 &lt;a class="link" href="https://huggingface.co/BAAI/bge-large-zh" target="_blank" rel="noopener"
+>bge-large-zh&lt;/a> Embedding Model 对 csv 文件进行向量化，存储在本地向量库里。对于用户的一个 query，将 query 同样向量化以后在本地向量库中寻找相似信息进行整合返回。具体实现可以参考 &lt;a class="link" href="https://github.com/chatchat-space/Langchain-Chatchat" target="_blank" rel="noopener"
+>Langchain-Chatchat&lt;/a> 的文档。&lt;/p>
+&lt;h2 id="evaluation">Evaluation
+&lt;/h2>&lt;p>本项目其实可以被视为两部分：歌曲推荐系统以及歌曲问答系统，因此 evaluation 也从这两部分分别下手。&lt;/p>
+&lt;h3 id="歌曲推荐系统的-evaluation">歌曲推荐系统的 evaluation
+&lt;/h3>&lt;p>我们用 ChatGPT 生成了60个歌曲推荐问题，每个问题指定了歌曲的歌名、歌手、曲风等信息中的一个或几个。为了展示我们项目在中文歌曲上的优越性，我们还多设置了20个与中文歌曲有关的歌曲推荐问题。对于每个模型对每个问题的回答，为了保证评估的科学性与严谨性，我们将其顺序打乱并隐去了对应模型的名字，然后对其进行0到9分的评分。最后统计出每个模型回答的平均得分与其回答为最佳回答的次数。&lt;/p>
+&lt;center class="half">
+&lt;img src="eval1.png" width = "400" height = "130" alt="Pipeline"/>
+&lt;img src="eval2.png" width = "400" height = "130" alt="Pipeline"/>
+&lt;/center>
+&lt;p>各模型的含义：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Our_Recommender_full:&lt;/strong> 这是我们的系统的完整版。&lt;/li>
+&lt;li>&lt;strong>GPT:&lt;/strong> 调用 gpt-3.5-turbo-1106 的 API 对用户的生成直接返回。&lt;/li>
+&lt;li>&lt;strong>Our_recommender_no_kb:&lt;/strong> kb 即 knowledge base，本地知识库。此模型为我们的系统但是去掉本地知识库，仅调用网易云搜索与 Bing 搜索。测试这个模型是为了探究本地知识库对系统生成效果的影响。&lt;/li>
+&lt;li>&lt;strong>ChatGLM_with_kb:&lt;/strong> 这部分利用了 ChatGLM 大模型以及本地知识库。其实是 Langchain-Chatchat 的知识库问答的实现，可以作为我们系统的离线版本，其不需要进行联网。&lt;/li>
+&lt;li>&lt;strong>DeepAI Song Recommender:&lt;/strong> 一个歌曲推荐系统，链接为 &lt;a class="link" href="https://deepai.org/chat/songs" target="_blank" rel="noopener"
+>https://deepai.org/chat/songs&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;p>从表中可见，在 GPT 生成的问题中，除去 ChatGLM_with_kb 以外的所有模型的表现相差并不多，我们的模型仅有略微的领先。这可能是因为这些模型大多基于 GPT ，在回答 GPT 生成的问题方面可能具有天然的优势。而且这部分的许多问题都偏向西方的音乐，我们的模型由于采用了网易云音乐以及 Bing 中文搜索，在西方音乐方面并没有很大的优势。&lt;/p>
+&lt;p>而对于中文歌曲，我们的系统就有明显的优势。&lt;/p>
+&lt;h3 id="歌曲问答系统的-evaluation">歌曲问答系统的 evaluation
+&lt;/h3>&lt;p>我们利用网易云音乐的歌曲榜单构建了一个包含 100 首歌曲的 &lt;a class="link" href="https://github.com/hs-black/Music-Recommander/blob/main/composite_demo/data/csv_data/data_test.csv" target="_blank" rel="noopener"
+>test set&lt;/a>，对于每首歌曲，给定其歌名，向模型询问其歌手信息，并让模型从几个待选标签中选择一个最可能的标签，计算其正确率。&lt;/p>
+&lt;div align="center">
+&lt;img src="eval3.png" width = "400" height = "130" alt="Eval3"/>
+&lt;/div>
+&lt;p>我们的模型在两个任务上都有明显的优势。&lt;/p>
+&lt;p>在歌手信息方面，GPT表现得非常差，这是因为 test set 包含的歌曲多为较新的中文歌曲，其并没有出现在 GPT 的训练数据中。ChatGLM_with_kb 也表现得较差，这是因为 kb 中包含有一首歌曲的很多翻唱版本，LLM 无法判断哪个版本较为重要，因此很难返回正确的结果。但是比较 Our_Recommender_full 和 Our_recommender_no_kb 可以发现将 kb 整合进 Our_recommender_no_kb 中可以提升系统的表现，这是因为网易云搜索与 Bing 搜索已经返回了一些歌曲，kb 返回的翻唱版本并不能对最后的结果有很大的影响，反而，kb 还能补充一些网易云搜索和 Bing 搜索不好搜索到的歌曲信息。&lt;/p>
+&lt;p>而在 tags 方面，GPT表现得并不像歌手信息方面那么差，这是因为正确的 tags 本身就占待选 tags 的一部分，就算是 random guess 也能有不差的分数，而且 GPT 还可以通过歌名来对 tags 有一个估计。&lt;/p>
+&lt;h2 id="写在最后">写在最后
+&lt;/h2>&lt;p>我们本来想尝试一下用我们的数据对 GPT 进行 finetune，但无奈经费不足，便放弃了。&lt;/p>
+&lt;p>感谢我的队友 zzz 和 yht。&lt;/p></description></item><item><title>第0个post</title><link>https://suz-tsinghua.github.io/p/zeroth-post/</link><pubDate>Sun, 07 Jan 2024 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/zeroth-post/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/zeroth-post/02.jpg" alt="Featured image of post 第0个post" />&lt;p>建站了，打算以后在这里写点课程笔记和项目介绍。&lt;/p>
+&lt;p>放张02做封面吧，她真好看。&lt;/p></description></item><item><title>Archives</title><link>https://suz-tsinghua.github.io/archives/</link><pubDate>Sun, 06 Mar 2022 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/archives/</guid><description/></item><item><title>Search</title><link>https://suz-tsinghua.github.io/search/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/search/</guid><description/></item></channel></rss>

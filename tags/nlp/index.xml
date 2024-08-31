@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>NLP on suz</title><link>https://suz-tsinghua.github.io/tags/nlp/</link><description>Recent content in NLP on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 19 May 2024 14:00:00 +0800</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/tags/nlp/index.xml" rel="self" type="application/rss+xml"/><item><title>Language-Conditioned Mobile Manipulation: 以 TidyBot 为例</title><link>https://suz-tsinghua.github.io/p/tidybot/</link><pubDate>Sun, 19 May 2024 14:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/tidybot/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/cover.png" alt="Featured image of post Language-Conditioned Mobile Manipulation: 以 TidyBot 为例" />&lt;p>本 blog 主要以 TidyBot 这篇工作为例子，简要介绍一下 Language-Conditioned Mobile Manipulation 这个研究领域。本文采取一个从下而上的方式，先从具体的 TidyBot 出发，再去介绍更广的领域。&lt;/p>
+&lt;h2 id="tidybot">TidyBot
+&lt;/h2>&lt;p>简单来说，TidyBot 是一个能 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂乱物品的机器人。&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>https://arxiv.org/abs/2305.05658&lt;/a>&lt;/li>
+&lt;li>项目官网：&lt;a class="link" href="https://tidybot.cs.princeton.edu/" target="_blank" rel="noopener"
+>https://tidybot.cs.princeton.edu/&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/jimmyyhwu/tidybot" target="_blank" rel="noopener"
+>https://github.com/jimmyyhwu/tidybot&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="https://suz-tsinghua.github.io/tidybot_demo.mp4"
+autoplay
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="https://suz-tsinghua.github.io/tidybot_demo.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div>
+&lt;h3 id="tldr">TL;DR
+&lt;/h3>&lt;p>这篇工作的主要目的就是设计一个能够 &lt;em>个性化、自动化&lt;/em> 地帮助人们整理家中杂物的机器人。它需要能够识别地上的物体，判断该物体需要被 &lt;em>如何&lt;/em> 收纳到 &lt;em>何处&lt;/em>（如扔到垃圾桶里、放到抽屉里、放到沙发上等）。注意两点要求：&lt;/p>
+&lt;ul>
+&lt;li>个性化：由于不同的人可能有不同的收纳习惯，可能有些人喜欢把衣服放在架子上，有些人则可能喜欢放在抽屉里。
+&lt;img src="https://suz-tsinghua.github.io/p/tidybot/1.png"
+width="1822"
+height="834"
+srcset="https://suz-tsinghua.github.io/p/tidybot/1_hu11827031459779453228.png 480w, https://suz-tsinghua.github.io/p/tidybot/1_hu5399589212461683874.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="218"
+data-flex-basis="524px"
+>
+这意味着机器人不能给出一个广泛的策略（对于所有人来说，都把衣服放到架子上），它必须学习到其主人的喜好，从而指定专门的策略。&lt;/li>
+&lt;li>自动化：一旦设定完成，机器人收纳杂物的过程必须是全自动化的，不能让它的主人在旁边告诉它某物应该收纳到某处。&lt;/li>
+&lt;/ul>
+&lt;p>运用 LLM 的总结推理能力可以很好地解决这两个问题。这篇文章的 methods 非常直接，分为两步：&lt;/p>
+&lt;ul>
+&lt;li>在机器人第一次开始工作之前，先让主人提供几个例子，比如“黄衬衫要被放在抽屉里、深紫色衬衫要被放在柜子里、白色袜子要被放在抽屉里、黑色衬衫要被放在柜子里”。将这些例子告诉 LLM，让其总结出规则，LLM 就会总结出：“浅色的东西需要放在抽屉里，深色的东西需要放在柜子里。”&lt;/li>
+&lt;li>机器人工作过程中，先识别地上的某个物体，将第一步中得到的规则和这个物体是什么告诉 LLM，LLM 就可以告诉机器人这个物体需要被放在什么地方。&lt;/li>
+&lt;/ul>
+&lt;p>对于每个物体该 &lt;em>如何&lt;/em> 被放置也是同理，先给 LLM 提供一些例子，如 &amp;ldquo;pick and place yellow shirt, pick and place dark purple shirt, pick and toss white socks&amp;rdquo;。LLM 可以总结出 &amp;ldquo;pick and place shirts, pick and toss socks&amp;rdquo;，再将 LLM 的 summarization 用于新物体即可。&lt;/p>
+&lt;p>再加上一些物体识别，以及让机器人执行对应的收纳动作，这个个性化、自动化的收纳系统就可以被运用于真实世界中。&lt;/p>
+&lt;h3 id="method">Method
+&lt;/h3>&lt;p>&lt;a class="link" href="#tldr" ># TL;DR&lt;/a> 中已经简略介绍了本工作的 methods，接下来 formally 展示下这样一个收纳系统的 pipeline：&lt;/p>
+&lt;div align="center">
+&lt;img src=pipeline.png width=50% />
+&lt;/div>
+&lt;ul>
+&lt;li>$E_{receptacle}$ 和 $E_{primitive}$ 都是用户的个性化输入，分别代表了每个物品 $o_i$ 需要被收纳到何处 $r_i$，以及需要被如何收纳 $p_i$。&lt;/li>
+&lt;li>接着运用 LLM 将 $E_{receptacle}$ 和 $E_{primitive}$ 总结成 $S_{receptacle}$ 和 $S_{primitive}$。&lt;/li>
+&lt;li>此时需要将 $S_{receptacle}$ 中 LLM 总结出的物体类别 （如浅色衣服、深色衣服）提取出来，以便于视觉系统进行分类。此处 pipeline 中只写了 $S_{receptacle}$，而没写 $S_{primitive}$，或许是默认了二者提取出来的物体类别是一致的，但严谨来说，同时考虑 $S_{receptacle}$ 和 $S_{primitive}$ 应该更合理。将物体类别 $C$ 提取出来的好处在于，后面进行物体分类的时候就可以只考虑较少的类别，不容易分类错误，而且不同的用户的 $C$ 也可以不同，更加 flexible。&lt;/li>
+&lt;li>做好了前置工作，就可以将系统部署到真实的机器人上了，系统会进入以下收纳循环，每一循环收纳一个物品，直到没有物品可以收纳：&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>利用外置摄像头得到地板的俯视图，通过 ViLD 识别出距离机器人最近的物体。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人移动到此物体旁，通过其自身的摄像头得到物体的近距离照片，将近距离照片与 $C$ 告诉 CLIP，让其对物体进行分类，得到类别 $c$。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>让 LLM 根据 $c, S_{receptacle}, S_{primitive}$ 总结出物体该 &lt;em>如何&lt;/em> 被放置到 &lt;em>何处&lt;/em>。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>机器人执行相应的收纳动作。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real_system.png"
+width="1525"
+height="377"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_system_hu18148537030116396249.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_system_hu14811919430971523437.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="404"
+data-flex-basis="970px"
+>&lt;/p>
+&lt;p>涉及到 LLM 的部分，具体 prompt 可以参阅原论文 Appendix A。&lt;/p>
+&lt;h3 id="experiments">Experiments
+&lt;/h3>&lt;h4 id="benchmark-dataset">Benchmark Dataset
+&lt;/h4>&lt;p>为了评估所提出方法的可靠性，作者专门做了一个 benchmark dataset，其中共包含 96 个个性化场景，每个场景里都有一些容器和一些物品，其中有些物品被标注了应该被放到什么容器里，而另一些物品并没被标注。注意，每个场景可能代表了不同的收纳喜好，所以对于同一个物品，不同场景的收纳容器可能大不相同。任务的目的就是根据被标注的物品来预测未被标注的物体应该被放到哪里。&lt;/p>
+&lt;p>在这个数据集上，作者做了一些实验：&lt;a class="link" href="#baseline-comparisons" ># Baseline Comparisons&lt;/a>, &lt;a class="link" href="#ablation-studies" ># Ablation Studies&lt;/a>, &lt;a class="link" href="#human-evaluation" ># Human Evaluation&lt;/a>。&lt;/p>
+&lt;h4 id="baseline-comparisons">Baseline Comparisons
+&lt;/h4>&lt;p>这部分，作者将自己的方法与一些 baseline 作比较，比如只给 LLM 提供标注物体，直接让其预测为被标注物体该被放到哪里，而不经过 summarization 过程；再比如利用 pre-trained text embedding，对于未标注的物体，直接找到与其 embedding 距离最近的标注物体，认为二者应该被收纳到同一个地方。结论就是，作者的方法胜过其他 baseline。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/baseline.png"
+width="1041"
+height="534"
+srcset="https://suz-tsinghua.github.io/p/tidybot/baseline_hu2260679436813115871.png 480w, https://suz-tsinghua.github.io/p/tidybot/baseline_hu7433888565880427837.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="194"
+data-flex-basis="467px"
+>&lt;/p>
+&lt;h4 id="ablation-studies">Ablation Studies
+&lt;/h4>&lt;p>作者一共做了三个方面的 ablation studies：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;ol>
+&lt;li>不利用 user specific preference，直接让 LLM 依据 commonsense 来推断物品应该被放到哪里。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="2">
+&lt;li>让人类来进行 summarization，不用 LLM 做。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>
+&lt;ol start="3">
+&lt;li>比较采用不同 LLM 的准确率。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1.png"
+width="658"
+height="291"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu9791429553669372484.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_1_hu16712101575763368406.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="226"
+data-flex-basis="542px"
+> &lt;img src="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2.png"
+width="799"
+height="384"
+srcset="https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu4240727006035632664.png 480w, https://suz-tsinghua.github.io/p/tidybot/ablation_studies_2_hu11499249390621271082.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="208"
+data-flex-basis="499px"
+>&lt;/p>
+&lt;p>结论是，让 LLM 进行 summarization 会比直接用 commonsense 有非常大的提升，但相较于直接让人类进行 summarization 仍有不足。这也说明通过提升 LLM 的总结能力还能进一步提升此系统的能力。&lt;/p>
+&lt;p>另一方面，在不同的 LLM 中，text-davinci-003 有较好的效果。&lt;/p>
+&lt;h4 id="human-evaluation">Human Evaluation
+&lt;/h4>&lt;p>作者还招募了一些志愿者，向他们提供 user preference、baseline 给出的收纳建议、自己方法给出的收纳建议，让他们比较自己的方法与 baseline 的结果，哪个更符合 user preference。题目形式如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/question.png"
+width="744"
+height="547"
+srcset="https://suz-tsinghua.github.io/p/tidybot/question_hu15245168944330260646.png 480w, https://suz-tsinghua.github.io/p/tidybot/question_hu16038960857171736720.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="136"
+data-flex-basis="326px"
+>&lt;/p>
+&lt;p>结果显示，作者的方法有 46.9% 的情况被认为更好，而 baseline 只有 19.1% 的情况被认为更好。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/human_evaluation.png"
+width="1604"
+height="275"
+srcset="https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu12242310108710729194.png 480w, https://suz-tsinghua.github.io/p/tidybot/human_evaluation_hu7342609013758737524.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="583"
+data-flex-basis="1399px"
+>&lt;/p>
+&lt;h4 id="real-world-experiments">Real-world Experiments
+&lt;/h4>&lt;p>正如 &lt;a class="link" href="#method" ># Method&lt;/a> 中说的，作者还搭建了一个真实的机器人平台，让文章中提出的个性化收纳方法能够落地。作者构造了 8 个真实场景，每个场景包含一些散落在地上的物品以及几个收纳容器，然后让系统根据 &lt;a class="link" href="#method" ># Method&lt;/a> 中的 pipeline 运行。结果显示，系统在 85.0% 情况下都能正确完成收纳任务。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/real.png"
+width="1671"
+height="592"
+srcset="https://suz-tsinghua.github.io/p/tidybot/real_hu16826072460319586654.png 480w, https://suz-tsinghua.github.io/p/tidybot/real_hu17600697350256475454.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="282"
+data-flex-basis="677px"
+>&lt;/p>
+&lt;h2 id="language-conditioned-mobile-manipulation">Language-Conditioned Mobile Manipulation
+&lt;/h2>&lt;p>TidyBot 属于一个更广的研究领域 Language-Conditioned Mobile Manipulation。这个领域将 CV、NLP、Robotics 结合了起来，要求机器人能够根据人类的自然语言指令去做出相应的行为。&lt;/p>
+&lt;div align="center">
+&lt;img src=cross_field.png width=50% />
+&lt;/div>
+&lt;p>这篇文章为 Language-Conditioned Mobile Manipulation 领域做了个详细的调查：&lt;/p>
+&lt;ul>
+&lt;li>论文地址：&lt;a class="link" href="https://arxiv.org/pdf/2312.10807" target="_blank" rel="noopener"
+>https://arxiv.org/pdf/2312.10807&lt;/a>&lt;/li>
+&lt;li>开源代码：&lt;a class="link" href="https://github.com/hk-zh/language-conditioned-robot-manipulation-models" target="_blank" rel="noopener"
+>https://github.com/hk-zh/language-conditioned-robot-manipulation-models&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="architecture-framework">Architecture Framework
+&lt;/h3>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/framework.png"
+width="1425"
+height="934"
+srcset="https://suz-tsinghua.github.io/p/tidybot/framework_hu8973135417564341417.png 480w, https://suz-tsinghua.github.io/p/tidybot/framework_hu14937730675035186088.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="152"
+data-flex-basis="366px"
+>&lt;/p>
+&lt;p>此领域工作的总体框架如上图所示。主要包括三个模块&lt;/p>
+&lt;ul>
+&lt;li>语言模块。其主要作用是理解用户的语言输入，并转化为机器人动作指导。如 TidyBot 中，用户告诉系统收纳 preference，语言模块就会进行处理，进行 preference 的总结等。&lt;/li>
+&lt;li>感知模块。其主要作用是感知周围环境，例如 TidyBot 中机器人利用自身的相机去识别物体进行分类。&lt;/li>
+&lt;li>控制模块。其主要作用是让机器人执行需要执行的指令。对应到 TidyBot 中，就是机器人去执行 “移动到某处”、“拿起地上的物品”、“把物品放置到某处” 等。在 TidyBot 中，这样的动作是 hard-coded 的，当然也可以采用 reinforcement learning (RL), imitation learing (IL) 等方法得到。&lt;/li>
+&lt;/ul>
+&lt;h3 id="approaches-categorization">Approaches Categorization
+&lt;/h3>&lt;p>Language-Conditioned Mobile Manipulation 的工作主要可以被粗略分为以下几类：&lt;/p>
+&lt;ul>
+&lt;li>Language-conditioned Reinforcement Learning&lt;/li>
+&lt;li>Language-conditioned Imitation Learning&lt;/li>
+&lt;li>Empowered by LLMs &amp;amp; VLMs&lt;/li>
+&lt;/ul>
+&lt;p>当然，有些工作可能可以被同时划分到多种类别中。其中，前两种方法较为传统，没有采用大语言模型等现成工具。第三种方法利用现成的 LLMs 与 VLMs，简化了系统，提高了能力。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/tidybot/categories.png"
+width="1955"
+height="1212"
+srcset="https://suz-tsinghua.github.io/p/tidybot/categories_hu14519433019373800883.png 480w, https://suz-tsinghua.github.io/p/tidybot/categories_hu12373372102478987912.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="161"
+data-flex-basis="387px"
+>&lt;/p>
+&lt;h4 id="language-conditioned-reinforcement-learning">Language-conditioned Reinforcement Learning
+&lt;/h4>&lt;p>此类工作利用强化学习，通过人为设计等方法，建立一个从自然语言到 reward 的一个映射，当 agent 达到自然语言描述的目标时，它就能得到对应的 reward。Agent 在这个过程中可以学习到一个从自然语言到具体动作的映射。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Lancon-learn: Learning with language to enable generalization in multi-task manipulation &lt;a class="link" href="https://ieeexplore.ieee.org/document/9667188" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hartikainen/metaworld/tree/reward-tweaks-rebase" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Pixl2r: Guiding reinforcement learning using natural language by mapping pixels to rewards &lt;a class="link" href="https://proceedings.mlr.press/v155/goyal21a.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/prasoongoyal/PixL2R" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Learning from symmetry: Meta-reinforcement learning with symmetrical behaviors and language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.10656" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/symmetry/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Meta-reinforcement learning via language instructions &lt;a class="link" href="https://arxiv.org/abs/2209.04924" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/yaoxt3/MILLION" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://tumi6robot.wixsite.com/million" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Learning language-conditioned robot behavior from offline data and crowd-sourced annotation &lt;a class="link" href="https://proceedings.mlr.press/v164/nair22a/nair22a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Concept2robot: Learning manipulation concepts from instructions and human demonstrations &lt;a class="link" href="https://www.roboticsproceedings.org/rss16/p082.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="language-conditioned-imitation-learning">Language-conditioned Imitation Learning
+&lt;/h4>&lt;p>此类工作利用模仿学习的范式，其不像强化学习那样要求提供 reward，但是需要提供一些正确的行为例子 (expert demonstrations)，agent 会根据这些正确的行为进行学习。具体可以再被细分为 behavior cloning (BC) 和 inverse reinforcement learning (IRL)。&lt;/p>
+&lt;p>BC 就是直接依样画葫芦，expert demonstrations 里怎么做，agent 就怎么做。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Language conditioned imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2005.07648" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="" >[code]&lt;/a> &lt;a class="link" href="https://language-play.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Bc-z: Zero-shot task generalization with robotic imitation learning &lt;a class="link" href="https://arxiv.org/abs/2202.02005" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>What matters in language-conditioned robotic imitation learning over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2204.06252" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/lukashermann/hulc" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Grounding language with visual affordances over unstructured data &lt;a class="link" href="https://arxiv.org/abs/2210.01911" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/mees/hulc2" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="http://hulc2.cs.uni-freiburg.de/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning with base skill priors under unstructured data &lt;a class="link" href="https://arxiv.org/abs/2305.19075" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/hk-zh/spil" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://hk-zh.github.io/spil/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Pay attention!- robustifying a deep visuomotor policy through task-focused visual attention &lt;a class="link" href="https://arxiv.org/abs/1809.10093" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language-conditioned imitation learning for robot manipulation tasks &lt;a class="link" href="https://arxiv.org/abs/2010.12083" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>IRL 则需要经历两个步骤，第一步先从 expert demonstrations 和语言命令中学习一个从自然语言命令到 reward 的映射，再通过 RL 的方式学习行为策略（这样看来，此部分与 &lt;a class="link" href="#language-conditioned-reinforcement-learning" ># Language-conditioned Reinforcement Learning&lt;/a> 也有交集）。具体工作：&lt;/p>
+&lt;ul>
+&lt;li>Grounding english commands to reward function &lt;a class="link" href="https://www.roboticsproceedings.org/rss11/p18.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>From language to goals: Inverse reinforcement learning for vision-based instruction following &lt;a class="link" href="https://arxiv.org/abs/1902.07742" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="empowered-by-llms--vlms">Empowered by LLMs &amp;amp; VLMs
+&lt;/h4>&lt;p>前两类方法均需要对文本信息进行学习，而有了 LLM 这样强有力的工具，就可以对系统进行简化。具体而言，可以利用好大语言模型的 planning 和 reasoning 能力。&lt;/p>
+&lt;p>大语言模型的 planning 能力指的是其将复杂任务转化为一系列简单的、机器人能够执行的任务的能力。譬如要求机器人炒菜，直接学习一个炒菜的策略是非常难的，但可以先让 LLM 将炒菜的动作拆分成 洗菜、放油、放菜 等一系列简单的、机器人能够学会的动作，此时再让机器人去执行这些动作就能完成炒菜的任务了。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Sayplan: Grounding large language models using 3d scene graphs for scalable task planning &lt;a class="link" href="https://arxiv.org/abs/2307.06135" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Language models as zero-shot planners: Extracting actionable knowledge for embodied agents &lt;a class="link" href="https://arxiv.org/abs/2201.07207" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Describe, explain, plan and select: Interactive planning with large language models enables open-world multi-task agents &lt;a class="link" href="https://arxiv.org/abs/2302.01560" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Progprompt: Generating situated robot task plans using large language models &lt;a class="link" href="https://arxiv.org/abs/2209.11302" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robots that ask for help: Uncertainty alignment for large language model planners &lt;a class="link" href="https://arxiv.org/abs/2307.01928" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Task and motion planning with large language models for object rearrangement &lt;a class="link" href="https://arxiv.org/abs/2303.06247" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Do as i can, not as i say: Grounding language in robotic affordances &lt;a class="link" href="https://arxiv.org/abs/2204.01691" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The 2014 international planning competition: Progress and trends &lt;a class="link" href="https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/2571" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning via deep reinforcement learning: a tabletop object sorting application &lt;a class="link" href="https://ieeexplore.ieee.org/document/8914278" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Robot task planning and situation handling in open worlds &lt;a class="link" href="https://arxiv.org/abs/2210.01287" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/yding25/GPT-Planner" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cowplanning.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Text2motion: From natural language instructions to feasible plans &lt;a class="link" href="https://arxiv.org/abs/2303.12153" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://sites.google.com/stanford.edu/text2motion" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Large language models as commonsense knowledge for large-scale task planning &lt;a class="link" href="https://arxiv.org/abs/2305.14078" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/1989Ryan/llm-mcts" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://llm-mcts.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Alphablock: Embodied finetuning for vision-language reasoning in robot manipulation &lt;a class="link" href="https://arxiv.org/abs/2305.18898" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Learning to reason over scene graphs: a case study of finetuning gpt-2 into a robot language model for grounded task planning &lt;a class="link" href="https://www.frontiersin.org/articles/10.3389/frobt.2023.1221739/full" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/dnandha/RobLM" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Scaling up and distilling down: Language-guided robot skill acquisition &lt;a class="link" href="https://arxiv.org/abs/2307.14535" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;a class="link" href="https://github.com/real-stanford/scalingup" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://www.cs.columbia.edu/~huy/scalingup/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Stap: Sequencing task-agnostic policies &lt;a class="link" href="https://ieeexplore.ieee.org/document/10160220" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/agiachris/STAP" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;a class="link" href="https://sites.google.com/stanford.edu/stap/home" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Inner monologue: Embodied reasoning through planning with language models &lt;a class="link" href="https://arxiv.org/abs/2207.05608" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://innermonologue.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>大语言模型的 reasoning 能力就像 TidyBot 中展示的那样，利用 LLM 去推理某个物品应该被放置到何处，再让机器人去执行特定的策略。具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Rearrangement:A challenge for embodied ai &lt;a class="link" href="https://arxiv.org/abs/2011.01975" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>The threedworld transport challenge: A visually guided task and motion planning benchmark for physically realistic embodied ai &lt;a class="link" href="https://ieeexplore.ieee.org/document/9812329" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidy up my room: Multi-agent cooperation for service tasks in smart environments &lt;a class="link" href="https://dl.acm.org/doi/abs/10.3233/AIS-190524" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>A quantifiable stratification strategy for tidy-up in service robotics &lt;a class="link" href="https://ieeexplore.ieee.org/document/9542842" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Tidybot: Personalized robot assistance with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.05658" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Housekeep: Tidying virtual households using commonsense reasoning &lt;a class="link" href="https://arxiv.org/abs/2205.10712" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Building cooperative embodied agents modularly with large language models &lt;a class="link" href="https://arxiv.org/abs/2307.02485" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Voyager: An open-ended embodied agent with large language models &lt;a class="link" href="https://arxiv.org/abs/2305.16291" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Translating natural language to planning goals with large-language models &lt;a class="link" href="https://arxiv.org/abs/2302.05128" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>在自然语言的基础上，可以再加上视觉工具，比如 TidyBot 中识别物体的部分。利用了 VLMs 的具体工作有：&lt;/p>
+&lt;ul>
+&lt;li>Cliport: What and where pathways for robotic manipulation &lt;a class="link" href="https://arxiv.org/abs/2109.12098" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/cliport/cliport" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://cliport.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Transporter networks: Rearranging the visual world for robotic manipulation &lt;a class="link" href="https://proceedings.mlr.press/v155/zeng21a/zeng21a.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/google-research/ravens" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://transporternets.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Simple but effective: Clip embeddings for embodied ai &lt;a class="link" href="https://openaccess.thecvf.com/content/CVPR2022/papers/Khandelwal_Simple_but_Effective_CLIP_Embeddings_for_Embodied_AI_CVPR_2022_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Instruct2act: Mapping multi-modality instructions to robotic actions with large language model &lt;a class="link" href="https://arxiv.org/abs/2305.11176" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/OpenGVLab/Instruct2Act" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Latte: Language trajectory transformer &lt;a class="link" href="https://arxiv.org/abs/2208.02918" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/arthurfenderbucker/LaTTe-Language-Trajectory-TransformEr" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Embodied Task Planning with Large Language Models &lt;a class="link" href="https://arxiv.org/abs/2307.01848" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/Gary3410/TaPA" target="_blank" rel="noopener"
+>[code]&lt;/a> &lt;a class="link" href="https://gary3410.github.io/TaPA/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Palm-e: An embodied multimodal language model &lt;a class="link" href="https://arxiv.org/abs/2303.03378" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://palm-e.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Socratic models: Composing zero-shot multimodal reasoning with language &lt;a class="link" href="https://arxiv.org/abs/2204.00598" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;li>Pretrained language models as visual planners for human assistance &lt;a class="link" href="https://openaccess.thecvf.com/content/ICCV2023/papers/Patel_Pretrained_Language_Models_as_Visual_Planners_for_Human_Assistance_ICCV_2023_paper.pdf" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/facebookresearch/vlamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Open-world object manipulation using pre-trained vision-language models &lt;a class="link" href="https://arxiv.org/abs/2303.00905" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://robot-moo.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Robotic skill acquisition via instruction augmentation with vision-language models &lt;a class="link" href="https://arxiv.org/abs/2211.11736" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://instructionaugmentation.github.io/" target="_blank" rel="noopener"
+>[website]&lt;/a>&lt;/li>
+&lt;li>Language reward modulation for pretraining reinforcement learning &lt;a class="link" href="https://arxiv.org/abs/2308.12270" target="_blank" rel="noopener"
+>[paper]&lt;/a> &lt;a class="link" href="https://github.com/ademiadeniji/lamp" target="_blank" rel="noopener"
+>[code]&lt;/a>&lt;/li>
+&lt;li>Vision-language models as success detectors &lt;a class="link" href="https://proceedings.mlr.press/v232/du23b.html" target="_blank" rel="noopener"
+>[paper]&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>2023秋 自然语言处理 课程项目</title><link>https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/</link><pubDate>Thu, 18 Jan 2024 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/2023%E7%A7%8B-%E8%87%AA%E7%84%B6%E8%AF%AD%E8%A8%80%E5%A4%84%E7%90%86-%E8%AF%BE%E7%A8%8B%E9%A1%B9%E7%9B%AE/demo.png" alt="Featured image of post 2023秋 自然语言处理 课程项目" />&lt;h1 id="2023秋-nlp-课程项目--歌曲问答及推荐系统">2023秋 NLP 课程项目 —— 歌曲问答及推荐系统
+&lt;/h1>&lt;h2 id="介绍">介绍
+&lt;/h2>&lt;p>受到训练数据的限制，现在的 LLM（如ChatGPT）并没有能力很好地执行对歌曲信息的问答以及歌曲推荐任务，尤其是对于较新的歌曲和中文歌曲。比如“鸡你太美是什么歌曲？”“半岛铁盒是谁的歌？”“给我推荐一首吉他演奏的轻音乐。”&lt;/p>
+&lt;p>我们希望通过利用搜索引擎、构建本地知识库等方式来解决这个问题。&lt;/p>
+&lt;p>项目目前开源在 &lt;a class="link" href="https://github.com/hs-black/Music-Recommander" target="_blank" rel="noopener"
+>https://github.com/hs-black/Music-Recommander&lt;/a> （不要在意拼写错误的细节）。&lt;/p>
+&lt;h2 id="技术实现">技术实现
+&lt;/h2>&lt;h3 id="工具">工具
+&lt;/h3>&lt;p>我们在网上找到了这些工具：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>&lt;a class="link" href="https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/quickstarts/rest/python" target="_blank" rel="noopener"
+>Bing API:&lt;/a>&lt;/strong> Bing API 支持用 python 脚本调用 Bing 的搜索功能，可以利用这一 API 搜索歌曲的信息。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://github.com/Binaryify/NeteaseCloudMusicApi" target="_blank" rel="noopener"
+>NeteaseCloudMusicApi:&lt;/a>&lt;/strong> 这是一个开源的库，可以调用网易云音乐的很多功能，如获取歌曲的百科信息（曲风、推荐标签、语言、BPM 等）。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://github.com/chatchat-space/Langchain-Chatchat" target="_blank" rel="noopener"
+>Langchain-Chatchat:&lt;/a>&lt;/strong> 这个库利用 ChatGLM 等大语言模型与 Langchain 实现了很多功能，如本地知识库问答、搜索引擎问答等。我们主要利用其对本地知识库的检索功能，此部分利用 Embedding Model 进行本地文件的向量化与搜索匹配。&lt;/li>
+&lt;li>&lt;strong>&lt;a class="link" href="https://platform.openai.com/" target="_blank" rel="noopener"
+>OpenAI API:&lt;/a>&lt;/strong> 利用 OpenAI 的 API 接口在 Python 中调用 ChatGPT 等大语言模型。&lt;/li>
+&lt;/ul>
+&lt;h3 id="pipeline">Pipeline
+&lt;/h3>&lt;div align="center">
+&lt;img src="pipeline.png" width = "400" height = "300" alt="Pipeline"/>
+&lt;/div>
+&lt;p>整个项目的 pipeline 如上图所示。对于用户的输入，先用 LLM 检查是否需要调用网易云搜索、Bing 搜索、本地知识库搜索工具。因为其实用户的有些输入与歌曲问答或推荐并没有关系，可以直接用 LLM 进行回答。&lt;/p>
+&lt;p>若 LLM 认为需要调用工具，它会从用户的输入中提取出调用工具所需要的参数，如歌名、歌手、曲风、语言等信息，并调用网易云搜索、Bing 搜索、本地知识库搜索工具。LLM 会再将三个工具返回的信息进行整合提取，根据用户的输入返回其需要的信息。&lt;/p>
+&lt;p>我们也实现了 mp3 的搜索功能，对于 LLM 在最后一步中返回的歌曲，利用网易云接口找到其 mp3 音频，并可直接在项目前端播放。&lt;/p>
+&lt;h3 id="前端">前端
+&lt;/h3>&lt;p>项目前端采用 &lt;a class="link" href="https://streamlit.io/" target="_blank" rel="noopener"
+>streamlit&lt;/a> 实现，用户可以在前端直接与我们的项目进行交流，直接听到项目返回的歌曲。&lt;/p>
+&lt;div align="center">
+&lt;img src="demo.png" width = "500" height = "282" alt="Demo"/>
+&lt;/div>
+&lt;h3 id="本地知识库">本地知识库
+&lt;/h3>&lt;p>我们利用网易云的接口获取了大约500k首歌曲的信息，包括歌名、歌手、曲风、推荐标签、语种、BPM、乐评，整合进&lt;a class="link" href="https://github.com/hs-black/Music-Recommander/tree/main/composite_demo/Langchain_Chatchat/knowledge_base/music_new/content" target="_blank" rel="noopener"
+>几个 csv 文件&lt;/a>中。&lt;/p>
+&lt;div align="center">
+&lt;img src="data.png" width = "400" height = "200" alt="Pipeline"/>
+&lt;/div>
+&lt;p>接着利用 Langchain-Chatchat 的实现，用 &lt;a class="link" href="https://huggingface.co/BAAI/bge-large-zh" target="_blank" rel="noopener"
+>bge-large-zh&lt;/a> Embedding Model 对 csv 文件进行向量化，存储在本地向量库里。对于用户的一个 query，将 query 同样向量化以后在本地向量库中寻找相似信息进行整合返回。具体实现可以参考 &lt;a class="link" href="https://github.com/chatchat-space/Langchain-Chatchat" target="_blank" rel="noopener"
+>Langchain-Chatchat&lt;/a> 的文档。&lt;/p>
+&lt;h2 id="evaluation">Evaluation
+&lt;/h2>&lt;p>本项目其实可以被视为两部分：歌曲推荐系统以及歌曲问答系统，因此 evaluation 也从这两部分分别下手。&lt;/p>
+&lt;h3 id="歌曲推荐系统的-evaluation">歌曲推荐系统的 evaluation
+&lt;/h3>&lt;p>我们用 ChatGPT 生成了60个歌曲推荐问题，每个问题指定了歌曲的歌名、歌手、曲风等信息中的一个或几个。为了展示我们项目在中文歌曲上的优越性，我们还多设置了20个与中文歌曲有关的歌曲推荐问题。对于每个模型对每个问题的回答，为了保证评估的科学性与严谨性，我们将其顺序打乱并隐去了对应模型的名字，然后对其进行0到9分的评分。最后统计出每个模型回答的平均得分与其回答为最佳回答的次数。&lt;/p>
+&lt;center class="half">
+&lt;img src="eval1.png" width = "400" height = "130" alt="Pipeline"/>
+&lt;img src="eval2.png" width = "400" height = "130" alt="Pipeline"/>
+&lt;/center>
+&lt;p>各模型的含义：&lt;/p>
+&lt;ul>
+&lt;li>&lt;strong>Our_Recommender_full:&lt;/strong> 这是我们的系统的完整版。&lt;/li>
+&lt;li>&lt;strong>GPT:&lt;/strong> 调用 gpt-3.5-turbo-1106 的 API 对用户的生成直接返回。&lt;/li>
+&lt;li>&lt;strong>Our_recommender_no_kb:&lt;/strong> kb 即 knowledge base，本地知识库。此模型为我们的系统但是去掉本地知识库，仅调用网易云搜索与 Bing 搜索。测试这个模型是为了探究本地知识库对系统生成效果的影响。&lt;/li>
+&lt;li>&lt;strong>ChatGLM_with_kb:&lt;/strong> 这部分利用了 ChatGLM 大模型以及本地知识库。其实是 Langchain-Chatchat 的知识库问答的实现，可以作为我们系统的离线版本，其不需要进行联网。&lt;/li>
+&lt;li>&lt;strong>DeepAI Song Recommender:&lt;/strong> 一个歌曲推荐系统，链接为 &lt;a class="link" href="https://deepai.org/chat/songs" target="_blank" rel="noopener"
+>https://deepai.org/chat/songs&lt;/a>。&lt;/li>
+&lt;/ul>
+&lt;p>从表中可见，在 GPT 生成的问题中，除去 ChatGLM_with_kb 以外的所有模型的表现相差并不多，我们的模型仅有略微的领先。这可能是因为这些模型大多基于 GPT ，在回答 GPT 生成的问题方面可能具有天然的优势。而且这部分的许多问题都偏向西方的音乐，我们的模型由于采用了网易云音乐以及 Bing 中文搜索，在西方音乐方面并没有很大的优势。&lt;/p>
+&lt;p>而对于中文歌曲，我们的系统就有明显的优势。&lt;/p>
+&lt;h3 id="歌曲问答系统的-evaluation">歌曲问答系统的 evaluation
+&lt;/h3>&lt;p>我们利用网易云音乐的歌曲榜单构建了一个包含 100 首歌曲的 &lt;a class="link" href="https://github.com/hs-black/Music-Recommander/blob/main/composite_demo/data/csv_data/data_test.csv" target="_blank" rel="noopener"
+>test set&lt;/a>，对于每首歌曲，给定其歌名，向模型询问其歌手信息，并让模型从几个待选标签中选择一个最可能的标签，计算其正确率。&lt;/p>
+&lt;div align="center">
+&lt;img src="eval3.png" width = "400" height = "130" alt="Eval3"/>
+&lt;/div>
+&lt;p>我们的模型在两个任务上都有明显的优势。&lt;/p>
+&lt;p>在歌手信息方面，GPT表现得非常差，这是因为 test set 包含的歌曲多为较新的中文歌曲，其并没有出现在 GPT 的训练数据中。ChatGLM_with_kb 也表现得较差，这是因为 kb 中包含有一首歌曲的很多翻唱版本，LLM 无法判断哪个版本较为重要，因此很难返回正确的结果。但是比较 Our_Recommender_full 和 Our_recommender_no_kb 可以发现将 kb 整合进 Our_recommender_no_kb 中可以提升系统的表现，这是因为网易云搜索与 Bing 搜索已经返回了一些歌曲，kb 返回的翻唱版本并不能对最后的结果有很大的影响，反而，kb 还能补充一些网易云搜索和 Bing 搜索不好搜索到的歌曲信息。&lt;/p>
+&lt;p>而在 tags 方面，GPT表现得并不像歌手信息方面那么差，这是因为正确的 tags 本身就占待选 tags 的一部分，就算是 random guess 也能有不差的分数，而且 GPT 还可以通过歌名来对 tags 有一个估计。&lt;/p>
+&lt;h2 id="写在最后">写在最后
+&lt;/h2>&lt;p>我们本来想尝试一下用我们的数据对 GPT 进行 finetune，但无奈经费不足，便放弃了。&lt;/p>
+&lt;p>感谢我的队友 zzz 和 yht。&lt;/p></description></item></channel></rss>

@@ -1,0 +1,1386 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Theory of Computation on suz</title><link>https://suz-tsinghua.github.io/tags/theory-of-computation/</link><description>Recent content in Theory of Computation on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Wed, 17 Apr 2024 15:00:00 +0800</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/tags/theory-of-computation/index.xml" rel="self" type="application/rss+xml"/><item><title>Theory of Computation Lecture 4</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/</link><pubDate>Wed, 17 Apr 2024 15:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/cover.png" alt="Featured image of post Theory of Computation Lecture 4" />&lt;h1 id="lecture-4-context-free-grammar">Lecture 4 Context-Free Grammar
+&lt;/h1>&lt;h2 id="context-free-grammar">Context-Free Grammar
+&lt;/h2>&lt;p>We have already known that REGEXPs can &lt;em>generate&lt;/em> languages. Now we introduce another way to generate languages: &lt;em>Context-free grammar (CFG)&lt;/em>.&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>CFG&lt;/em> is a 4-tuple $(V, \Sigma, R, S)$:&lt;/p>
+&lt;ul>
+&lt;li>$V$ is a set of &lt;em>variables&lt;/em>.&lt;/li>
+&lt;li>$\Sigma$ is a set of &lt;em>terminals&lt;/em>.&lt;/li>
+&lt;li>$R$ is a set of &lt;em>rules&lt;/em> (a rule consists of a variable and a sting in $(V\cup \Sigma)^*$).&lt;/li>
+&lt;li>$S$ is the &lt;em>start variable&lt;/em>.&lt;/li>
+&lt;/ul>
+&lt;p>We say $uAv$ &lt;em>yields&lt;/em> $uwv$ ($uAv \Rightarrow uwv$) if $A\to w$ is a rule in $R$.&lt;/p>
+&lt;p>We say $u$ &lt;em>derives&lt;/em> $v$ ($u \Rightarrow^* v$) if $\exists u_1, u_2, \cdots, u_k$ such that $u\Rightarrow u_1\Rightarrow u_2\Rightarrow\cdots\Rightarrow u_k \Rightarrow v$.&lt;/p>
+&lt;/blockquote>
+&lt;p>总的来说，CFG 就是从 $S$ 开始，每次从现在的字符串中选择一个 variable，依据某个 rule 将其替换为一个 string，直到没有 variable 为止。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>The &lt;em>language&lt;/em> of a CFG $G$ is defined as:&lt;/p>
+&lt;p>$$L(G)=\{w\in \Sigma^* | S\Rightarrow^* w\}$$&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="cfg-is-more-powerful-than-dfa">CFG is more powerful than DFA
+&lt;/h2>&lt;p>要证明 CFG is &lt;strong>strictly&lt;/strong> more powerful than DFA，要从两方面入手：&lt;/p>
+&lt;ul>
+&lt;li>(1) 存在 language，可以用 CFG 表达，但不是 regular language。&lt;/li>
+&lt;li>(2) 任意 regular language 都可以用 CFG 表达。&lt;/li>
+&lt;/ul>
+&lt;p>对于 (1)，上节课已知 $L=\{0^n1^n | n\geq 0\}$ is nonregular，但可以用 CFG $S\to 0S1|\epsilon$ 得到。&lt;/p>
+&lt;p>对于 (2)，即要证明：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>Given a DFA $A=(Q,\Sigma,\delta,q_0,F)$, we can find a CFG $A^{\prime}=(V,\Sigma^{\prime},R,S)$, such that $L(A)=L(A^{\prime})$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>对 $A$ 的每个 state $q_i$，在 $V$ 中引入一个变量 $R_i$。&lt;/li>
+&lt;li>如果 $\delta(q_i,a)=q_j$，就在 $R$ 中引入 rule $R_i\to a R_j$。&lt;/li>
+&lt;li>$q_0$ 是 starting state，那么 $R_0$ 就是 start variable。&lt;/li>
+&lt;li>如果 $q_i$ 是一个 accepting state，就在 $R$ 中加入 rule $R_i\to\epsilon$。&lt;/li>
+&lt;/ul>
+&lt;p>这样构造出来的 $A^{\prime}$ 满足 $L(A)=L(A^{\prime})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>An example:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1.png"
+width="1351"
+height="243"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1_hu8015602755011015200.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/1_hu11338169947987226798.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="555"
+data-flex-basis="1334px"
+>&lt;/p>
+&lt;h2 id="parse-trees-and-ambiguity">Parse Trees and Ambiguity
+&lt;/h2>&lt;p>可以用一个 parse tree 来表示从 start variable 生成一个 string of terminals 的过程：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>Parse tree:&lt;/p>
+&lt;ul>
+&lt;li>Each &lt;em>internal node&lt;/em> labeled with a &lt;em>variable&lt;/em>.&lt;/li>
+&lt;li>Each &lt;em>leaf&lt;/em> labeled with a &lt;em>terminal&lt;/em>.&lt;/li>
+&lt;li>The children of a node represent the rule that was applied.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>An example:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree.png"
+width="1343"
+height="499"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree_hu14319360060515793385.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/parse_tree_hu10302481771897833312.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="269"
+data-flex-basis="645px"
+>&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A CFG is called &lt;em>ambiguous&lt;/em> if a string has two distinct parse trees.&lt;/p>
+&lt;/blockquote>
+&lt;p>直观上来说，ambiguous 指的就是存在歧义，比如 $a+a\times a$，如果不定义 + 和 $\times$ 的计算顺序，就有可能先算 +，也可能先算 $\times$。&lt;/p>
+&lt;p>ambiguous 并不等同于 “存在两种 derivations”，因为两种 derivations 可能对应同一个 parse tree。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>Leftmost derivation&lt;/em>: 每一步替换当前 string 最左边的那个 variable。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>ambiguous 等价于存在两种 leftmost derivations。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A CFL (context free language, 即可以用某个 CFG 生成的 language) is called &lt;em>inherently ambiguous&lt;/em> if every CFG of it is ambiguous.&lt;/p>
+&lt;/blockquote>
+&lt;p>An example of inherently ambiguous CFL:&lt;/p>
+&lt;p>$$L=\{w | w=a^ib^jc^k, i,j,k\geq 1 \text{ and } i=j \text{ or } i=k\}$$&lt;/p>
+&lt;h2 id="closure-properties">Closure Properties
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>CFLs are closed under Union, Concatenation, Kleene Star.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>只需要在原先的 CFG 之上引入新的 start variable，用新的 start variable 去生成旧的 start variables即可。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>CFLs are NOT closed under intersection. But CFLs are closed under intersection with REGULAR languages.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>$$L = \{w : w \in \{0, 1\}^*, w \text{ is a palindrome, and } w \text{ contains fewer 0s than 1s }\}$$&lt;/p>
+&lt;p>这是两个 CFL 的 intersection，可以用后面将要介绍的 pumping lemma 证明它不是 CFL。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="pushdown-automaton-pda">Pushdown Automaton (PDA)
+&lt;/h2>&lt;p>Regular language 在句法上可以用 REGEXP 生成，在计算模型上可以被 DFA、NFA 识别。CFL 在句法上可以用 CFG 生成，现引入新的计算模型 PDA 来识别 CFL。&lt;/p>
+&lt;p>由于 CFL 是 regular language 的扩充，PDA 也应该是 NFA 的扩充。事实上，PDA 就是为 NFA 多提供了一个无穷大的 stack，PDA 读取 input 的时候，可以从 stack 中 push 或 pop 一个 symbol。&lt;/p>
+&lt;p>PDA 做的事情就是，每次读取一个 input（可能是 $\epsilon$），并从 stack 顶部 pop 出一个 symbol（可能是 $\epsilon$），然后 transit to a new state and push a symbol to the top of the stack（可能是 $\epsilon$）。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>pushdown automaton (PDA)&lt;/em> is a 6-tuple $(Q, \Sigma, \Gamma, \delta, q_0, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$ is the input alphabet.&lt;/li>
+&lt;li>$\Gamma$ is the stack alphabet.&lt;/li>
+&lt;li>$q_0$ in $Q$ is the initial state.&lt;/li>
+&lt;li>$F \subseteq Q$ is a set of final states.&lt;/li>
+&lt;li>$\delta$ is the transition function.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$\delta : Q \times (\Sigma \cup \{\epsilon\}) \times (\Gamma \cup \{\epsilon\}) \to 2^{Q \times (\Gamma \cup \{\epsilon\})}$&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>PDA $(Q, \Sigma, \Gamma, \delta, q_0, F)$ &lt;em>accepts&lt;/em> string $w \in \Sigma^*$ if:&lt;/p>
+&lt;ul>
+&lt;li>$w$ can be written as $x_1 x_2 \cdots x_m$, each $x_i \in \Sigma \cup \{\epsilon\}$.&lt;/li>
+&lt;li>$\exists r_0, r_1, \cdots, r_m \in Q$, a sequence of $m+1$ states.&lt;/li>
+&lt;li>$\exists s_0, s_1, \cdots, s_m \in \Gamma^*$, stack contents.&lt;/li>
+&lt;li>such that&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q, s_0=\epsilon$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$(r_i, b) \in \delta(r_{i-1},x_i, a)$, where $s_{i-1}=ta$ and $s_i=tb$ for $1 \leq i \leq m$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_m\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>可以通过构造 PDA 的方法证明
+$$L=\{ww^R\}$$
+$$L=\{w:w=w^R\}$$
+$$L=\{w: w \text{ has the same number of 0s and 1s}\}$$
+$$L=\{w: w \text{ has two 0-blocks with same number of 0s}\}$$
+都可以被 PDA 识别。&lt;/p>
+&lt;h2 id="equivalence-of-cfg-and-pda">Equivalence of CFG and PDA
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>A language L is context-free if and only if it is accepted by some pushdown automaton.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1) From CFG to PDA. 思路就是用 PDA 来模拟 leftmost derivation。将每时每刻的 string 倒序放在 stack中，如果 stack 的顶部是 terminal，就和 input 比较，相同则 pop out，不同则 reject；如果 stack 顶部是 variable，就做 leftmost derivation。&lt;/p>
+&lt;p>例子：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2.png"
+width="1274"
+height="661"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2_hu11201913059252227659.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/2_hu4140085318789904323.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="192"
+data-flex-basis="462px"
+>&lt;/p>
+&lt;p>Formally:
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3.png"
+width="1018"
+height="562"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3_hu7313319200416720763.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/3_hu7394908644265965931.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="181"
+data-flex-basis="434px"
+>&lt;/p>
+&lt;p>用图来表示 PDA 就是：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4.png"
+width="1242"
+height="496"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4_hu6820510545641362402.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/4_hu11289169759666547080.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="250"
+data-flex-basis="600px"
+>&lt;/p>
+&lt;p>(2) From PDA to CFG. 总的思路就是，先令 PDA 只有一个 accept state，并且 accept 之前会清空 stack。然后 CFG 的一个 variable 就是一个字符串的集合，使得 PDA 读取集合中的字符串能从某个 state 转移到另一个 state，同时保持 stack 不变。&lt;/p>
+&lt;p>Formally:
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5.png"
+width="1727"
+height="486"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5_hu13865199756874930705.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/5_hu8929055594026879799.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="355"
+data-flex-basis="852px"
+>&lt;/p>
+&lt;p>CFG 的 rules 如下：
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6.png"
+width="1327"
+height="750"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6_hu543238877473941916.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/6_hu11033487897053469898.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="176"
+data-flex-basis="424px"
+>&lt;/p>
+&lt;p>并不给出详细的证明，直观理解即可。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="chomsky-normal-form-and-cyk-algorithm">Chomsky Normal Form and CYK algorithm
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A context-free grammar is in &lt;em>Chomsky normal form&lt;/em> if every rule is of the form:&lt;/p>
+&lt;ul>
+&lt;li>$A \to BC$&lt;/li>
+&lt;li>$A \to a$&lt;/li>
+&lt;/ul>
+&lt;p>其中，$A, B, C$ 是任意 variables，$a$ 是任意非 $\epsilon$ 的 terminal。$B, C$ 不能是 start variable。允许 $S\to \epsilon$。&lt;/p>
+&lt;/blockquote>
+&lt;p>任意 CFG 都可以转换成 CNF 的形式，课件的 91-98 页讲得很清楚，还举了个例子。&lt;/p>
+&lt;p>将任意 CFG 转成 CNF 之后，我们就可以用 &lt;em>Cocke–Younger–Kasami algorithm&lt;/em> 来判断某个特定的 string 能否被某个特定的 CFG 生成。假设 string 为 $s[1:n]$，CFG 有 $r$ 个 variables $R$，其中 $R_1$ 是 start variable。总的思路是，构造一个 $n\times n\times r$ 的表格 $T$，其中 $T[i,j,k]$ 表示 $s[i:j]$ 能否由 $R_k$ 生成，然后依据 $j-i$ 从小到大的顺序 DP 地判断 $s[i:j]$ 能否被 $R_k$ 生成。最后，$s$ 能被生成当且仅当 $T[1,n,1]$ 为真。&lt;/p>
+&lt;h2 id="pumping-lemma-for-cfl">Pumping Lemma for CFL
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>If $A$ is a context-free language, then there is a number $p$ (the pumping length)
+where, if $s$ is any string in $A$ of length at least $p$, then $s$ may be divides into 5
+pieces $s=uvxyz$, satisfying:&lt;/p>
+&lt;ul>
+&lt;li>For each $i\geq 0, uv^ixy^iz \in A$&lt;/li>
+&lt;li>$|vy|&amp;gt; 0$&lt;/li>
+&lt;li>$|vxy|\leq p$&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>用 CFG 来证明，假设 CFG 有 $a$ 个 variables，rules 右手边的 symbols 最长为 $b$ 个。考察 parse tree，当 parse tree 从 root 到 leaf 最深的 path 长度为 $v+2$ 时，至少有一个 variable $N$ 出现了两次，假设 $S\Rightarrow^* uNz\Rightarrow uvNyz\Rightarrow uvxyz$，那么显然也可以有 $S\Rightarrow^* uNz\Rightarrow uvNyz\Rightarrow uvvNyyz\Rightarrow uvvxyyz$。可以算出 $p$ 是 $b,v$ 的一个函数。
+&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7.png"
+width="948"
+height="865"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7_hu2178050390804505139.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-4/7_hu12986633172289653424.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="109"
+data-flex-basis="263px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;p>可以用 pumping lemma 证明，$\{a^n b^n c^n | n\geq 0\}, \{ww|w\in\{0,1\}^*\}, \{a^i b^j c^k | 0\leq i\leq j\leq k\}$ 都不是 context-free 的。&lt;/p></description></item><item><title>Theory of Computation Lecture 3</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/</link><pubDate>Tue, 16 Apr 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/cover.png" alt="Featured image of post Theory of Computation Lecture 3" />&lt;h1 id="lecture-3-finite-automata">Lecture 3 Finite Automata
+&lt;/h1>&lt;p>计算理论剩下的笔记会是 exam-oriented 的，因为系统地写一篇笔记确实太过耗时。&lt;/p>
+&lt;h2 id="deterministic-finite-automaton-dfa">Deterministic Finite Automaton (DFA)
+&lt;/h2>&lt;h3 id="dfa-and-regular-languages">DFA and Regular Languages
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>DFA&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$\delta: Q\times \Sigma \to Q$ is the transition function.&lt;/li>
+&lt;li>$q\in Q$ is the start state.&lt;/li>
+&lt;li>$F\subset Q$ is the set of accepting states.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>DFA 做的事情就是从 start state 开始，每次从输出序列中获取下一个 symbol，依据 transition function 转成另一个state，直到 inputs 被获取完，判断此时的 state 是否为 accepting state。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A DFA $M$ &lt;em>accepts&lt;/em> the input $w$ if:&lt;/p>
+&lt;ul>
+&lt;li>$M=(Q,\Sigma,\delta,q,F)$.&lt;/li>
+&lt;li>$w=w_1 w_2\cdots w_n$, each $w_i\in \Sigma$ for $1\leq i\leq n$.&lt;/li>
+&lt;li>$\exists (r_0, r_1, \cdots, r_n)$, each $r_i\in Q$ for $0\leq i\leq n$ s.t.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q$, the start state.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_i = \delta (r_{i-1}, w_i)$, for $1\leq i\leq n$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_n\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>每个 DFA 都存在一些 inputs 的集合，使其 accepts，定义这个集合为 DFA 的 language。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>Language&lt;/em> is a (possibly infinite) set of strings over some alphabet.&lt;/p>
+&lt;p>$L(M) = \{w | M \text{ accepts } w\}$ is the language &lt;em>recognized&lt;/em> by M.&lt;/p>
+&lt;/blockquote>
+&lt;p>A DFA always recognizes one language!&lt;/p>
+&lt;p>If it accepts no strings, it recognize the “empty language” $\emptyset$.&lt;/p>
+&lt;p>DFA 可以做一些简单的任务，比如判断一个 binary number 是否可以被 3 整除（只需要用 states 存目前被 3 除的余数即可），比如判断一个字母序列是否包含 b（检测到 b 就进入 accepting state）。由此我们可以定义 regular languages：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>Regular languages&lt;/em> is the set of all languages recognized by some DFA.&lt;/p>
+&lt;/blockquote>
+&lt;p>所以只要一个 language 能被某个 DFA 识别，那它就是一个 regular language。&lt;/p>
+&lt;h3 id="regular-languages-are-closed-under-complementation-intersection-and-union">Regular Languages are Closed under Complementation, Intersection and Union
+&lt;/h3>&lt;p>对于一个或几个 regular language(s)，我们可以由它们构造新的 language，使得新的 language 也是 regular language。比如 complementation: $L^{\prime}=\bar{L}$. 即我们现在已知存在某个 DFA $M$ 使得 $L=L(M)$, 我们是否能找到一个 DFA $M^{\prime}$ 使得 $L(M^{\prime})=\bar(L(M))$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under complementation.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>根据 $M$, 构造一新的 DFA $M^{\prime}$，二者完全一样，除了 $M^{\prime}$ 的 accepting states 是 $M$ 的 accepting states 的补集。这样的话一个 input 能被 $M$ 识别当且仅当其不能被 $M^{\prime}$ 识别。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under intersection.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>假设我们现在有两个 DFAs $M_1=(Q_1, \Sigma, \delta_1, s_1, F_1), M_2=(Q_2, \Sigma, \delta_2, s_2, F_2)$，构造一新 DFA $M_3=(Q_1\times Q_2, \Sigma, \delta_1\times \delta_2, (s_1,s_2), F_3)$。即 $M_3$ 的状态空间是 $Q_1$ 和 $Q_2$ 的直积，在两个分量空间中分别作 transition。$(q_1, q_2)\in F_3$ 当且仅当 $q_1\in F_1, q_2\in F_2$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under uniton.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用 DeMorgan’s Law $X\cup Y = \overline{(\bar{X}\cap\bar{Y})}$，也可以用与上一 theorem 类似的构造。&lt;/p>
+&lt;/blockquote>
+&lt;p>定义 regular operations on languages:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>
+A &amp;amp; B are two (possibly infinite) sets of strings. Define regular operations on them:&lt;/p>
+&lt;ul>
+&lt;li>Union: $A \cup B = \{x | x\in A \text{ or } x\in B\}$.&lt;/li>
+&lt;li>Concatenation: $A\circ B = \{xy | x\in A \text{ and } y\in B\}$.&lt;/li>
+&lt;li>Star: $A^* = \{x_1 x_2 \cdots x_k | k\geq 0 \text{ and all } x_i\in A\}$.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>note: the empty string $\epsilon (k=0)$ is always in $A^*$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>我们已知 regular languages is closed under union，但对剩下两种 operations，很难直接构造出合适的 DFA，需要先引入新的概念。&lt;/p>
+&lt;h2 id="nondeterministic-finite-automaton-nfa">Nondeterministic Finite Automaton (NFA)
+&lt;/h2>&lt;h3 id="nfa">NFA
+&lt;/h3>&lt;p>NFA 与 DFA 类似，但它&lt;/p>
+&lt;ul>
+&lt;li>可以不获取输入自发转变状态（也可以被视作获取空字符 $\epsilon$）。&lt;/li>
+&lt;li>在某个状态获取某个输入之后，转变成的新状态有很多种可能。&lt;/li>
+&lt;/ul>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An &lt;em>NFA&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q, F)$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$\delta: Q\times \Sigma_{\epsilon} \to 2^Q$ is the transition function.&lt;/li>
+&lt;li>$q\in Q$ is the start state.&lt;/li>
+&lt;li>$F\subset Q$ is the set of accepting states.&lt;/li>
+&lt;/ul>
+&lt;p>这里，$\Sigma_{\epsilon}=\Sigma\cup\{\epsilon\}$，$2^Q$ 是 $Q$ 的所有子集组成的集合，叫做 $Q$ 的 power set。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An NFA $N$ &lt;em>accepts&lt;/em> the input $w\in \Sigma^*$ if:&lt;/p>
+&lt;ul>
+&lt;li>$N=(Q,\Sigma,\delta,q,F)$.&lt;/li>
+&lt;li>$w$ can be written as $x_1 x_2\cdots x_n$, each $x_i\in \Sigma_{\epsilon}$ for $1\leq i\leq n$.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>注意这里用的是 &amp;ldquo;can be written&amp;rdquo; 而不是 &amp;ldquo;=&amp;quot;，因为 $&amp;ldquo;abba&amp;rdquo;$ can be written as $&amp;ldquo;a\epsilon bb \epsilon a&amp;rdquo;$。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>$\exists (r_0, r_1, \cdots, r_n)$, each $r_i\in Q$ for $0\leq i\leq n$ s.t.&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_0 = q$, the start state.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_i \in \delta (r_{i-1}, x_i)$, for $1\leq i\leq n$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;ul>
+&lt;li>$r_n\in F$.&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="equivalence-of-nfa-and-dfa">Equivalence of NFA and DFA
+&lt;/h3>&lt;p>可以证明 NFA 与 DFA 是等价的，即对任意 NFA 都可以找到一个 DFA，使得二者的 language 相同；对任意 DFA 也可以找到一个 NFA，使得二者的 language 相同。后者是显然的，因为任意 DFA 本身就可以被视为一个 NFA。我们现在要证明前者。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>For any NFA $N$, there is a DFA $M$ such that $L(N) = L(M)$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>总的思想就是：at all times, M keeps track of the set of states that N could be in.&lt;/p>
+&lt;p>(1) 先对 $N$ 中不存在 $\epsilon$ 的情况证明：&lt;/p>
+&lt;p>若 $N=(Q,\Sigma,\delta,q,F)$，令 $M=(Q^{\prime}, \Sigma, \delta^{\prime}, q^{\prime}, F^{\prime})$:&lt;/p>
+&lt;ul>
+&lt;li>$Q^{\prime}=2^{Q}$&lt;/li>
+&lt;li>$\delta^{\prime}(R,a)=\cup_{r\in R}\delta(r,a)$。其中 $R\in 2^{Q}, a\in \Sigma$。&lt;/li>
+&lt;li>$q^{\prime}=\{q\}$&lt;/li>
+&lt;li>$F^{\prime}=\{R\in Q^{\prime} | R\cap F\neq \emptyset\}$&lt;/li>
+&lt;/ul>
+&lt;p>(2) 对于存在 $\epsilon$ 的情况，可以将 $\epsilon$ 后的 state 并入前面的 state。Formally:&lt;/p>
+&lt;p>令 $E(R)=\{r\in Q | r \text{ is reachable from } R \text{ using zero on more } \epsilon \text{-transitions}\}$.&lt;/p>
+&lt;ul>
+&lt;li>$Q^{\prime}=2^{Q}$&lt;/li>
+&lt;li>$\delta^{\prime}(R,a)=\cup_{r\in R}E(\delta(r,a))$。其中 $R\in 2^{Q}, a\in \Sigma$。&lt;/li>
+&lt;li>$q^{\prime}=E(\{q\})$&lt;/li>
+&lt;li>$F^{\prime}=\{R\in Q^{\prime} | R\cap F\neq \emptyset\}$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>一个 NFA 需要 $\log_2 |Q|$ bits 来存 states，与其等价的 DFA 需要 $\log_2 |Q^{\prime}| = |Q|$ bits 来存 states。可以举出一个 NFA 的例子，证明这样的 exponential blowup 在某些情况下是必须的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Example:&lt;/strong>&lt;/p>
+&lt;p>$\Sigma=\{a,b\}, L_k=\{w\in\{a,b\}^* | \text{ the } k \text{-th symbol from the end is } b\}$. There is a $(k+1)$-state NFA recognizing $L_k$.&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1.png"
+width="1284"
+height="233"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1_hu12285616191936858880.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/1_hu10540943677457612510.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="551"
+data-flex-basis="1322px"
+>&lt;/p>
+&lt;p>Then we prove that any DFA with $&amp;lt; 2^k$ states can not recognize $L_k$.&lt;/p>
+&lt;p>We prove by contradiction.&lt;/p>
+&lt;p>(1) Assume there is a DFA $M$ with $|Q| = 2^k - 1$.&lt;/p>
+&lt;p>(2) Imagine running $M$ on each input $w\in\{a,b\}^k$.&lt;/p>
+&lt;p>(3) By the pigeonhole principle, $\exists w \neq w^{\prime}\in\{a,b\}^k$ s.t. after reading $w$ and $w^{\prime}$, $M$ is in the same state.&lt;/p>
+&lt;p>(4) Let $j+1$ be the first position where $w$ and $w^{\prime}$ differ.&lt;/p>
+&lt;p>(5) Run $M$ on $wa^j$ and $w^{\prime}a^j$. $M$ is supposed to be in the same state. But $w\notin L_k, w^{\prime}\in L_k$. A contradiction.&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2.png"
+width="1138"
+height="220"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2_hu7648609160853684226.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/2_hu8192488999227300051.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="517"
+data-flex-basis="1241px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="regular-languages-are-closed-under-concatenation-and-star">Regular Languages are Closed under Concatenation and Star
+&lt;/h3>&lt;p>先介绍定理：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>For any NFA $N_1$, there is an NFA $N_2$ such that $L(N_1) = L(N_2)$ and $N_2$ has exactly one accept state.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>把 $N_1$ 中所有的 accepting states 用 $\epsilon$ 连到一个新的 accepting states。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under concatenation.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>对于 $N_1, N_2$ 构造 $N_3$ 使得 $L(N_3)=L(N_1)\circ L(N_2)$。只需要把 $N_1$ 的 accepting states 都用 $\epsilon$ 连到 $N_2$ 的 starting state 就行。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>The class of regular languages is closed under star。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>如下图构造 $L(N_2)=L(N_1)^*$:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3.png"
+width="1055"
+height="516"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3_hu4782533735029558264.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/3_hu11922664207413084886.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="204"
+data-flex-basis="490px"
+>&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="equivalence-of-nfas-dfas-and-regular-expressions">Equivalence of NFAs, DFAs and Regular Expressions
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>regular expression (REGEXP)&lt;/em> 是用以下方式表示的一个集合：
+从 $\{a\}, \{\epsilon\}, \emptyset$ 开始，通过 $(R_1\cup R_2), (R_1\circ R_2), (R_1^*)$ 构成。&lt;/p>
+&lt;p>简化：省略 $\circ$，定义计算顺序 $^*, \circ, \cup$。&lt;/p>
+&lt;/blockquote>
+&lt;p>接下来证明 REGEXP 和 NFA 等价。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>(1) The language of any REGEXP is recognized by an NFA.&lt;/p>
+&lt;p>(2) The language of any NFA can be represented by a REGEXP.&lt;/p>
+&lt;/blockquote>
+&lt;p>(1) 是显然的，因为 regular languages are closed under $\cup, \circ, ^*$。&lt;/p>
+&lt;p>(2) 不显然，需要引入新概念。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>A &lt;em>GNFA (Generalized NFA)&lt;/em> is a 5-tuple $(Q, \Sigma, \delta, q_{start}, q_{accept})$:&lt;/p>
+&lt;ul>
+&lt;li>$Q$ is a finite set of states.&lt;/li>
+&lt;li>$\Sigma$, the alphabet is a finite set of symbols.&lt;/li>
+&lt;li>$q_{start}$ is the start state.&lt;/li>
+&lt;li>$q_{accept}$ is the accept state.&lt;/li>
+&lt;li>$\delta: (Q\backslash \{q_{accept}\}) \times (Q\backslash \{q_{start}\}) \to REGEXP$ is the transition function.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>简单地说，GNFA 就是 NFA，只不过 transition 用 REGEXP 表达。显然 GNFA 和 NFA 等价。&lt;/p>
+&lt;p>故而，证明 (2) 的思路为：任意一个 NFA 都可以用一个 GNFA 表示，任意一个 GNFA 都可以被缩减为只有两个 states，所以等价于一个 REGEXP。第一步和第三步显然。第二步逐个删去 state 即可，图解：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4.png"
+width="1101"
+height="376"
+srcset="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4_hu17395546765287011142.png 480w, https://suz-tsinghua.github.io/p/theory-of-computation-lecture-3/4_hu15323961194027872921.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="292"
+data-flex-basis="702px"
+>&lt;/p>
+&lt;h2 id="nonregular-languages">Nonregular Languages
+&lt;/h2>&lt;blockquote>
+&lt;p>&lt;strong>Example:&lt;/strong>&lt;/p>
+&lt;p>\{0^n 1^n|n\geq 0\} is nonregular.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>Assume it&amp;rsquo;s regular, the DFA recognizing it consists of $p$ states. Then by the pigeonhole principle, there exists $i,j$ such that after reading $0^i, 0^j$, the DFA is in the same state. So if it accepts $0^i 1^i$, it must accept $0^j 1^i$, which is a contradiction.&lt;/p>
+&lt;/blockquote>
+&lt;p>用这种思想，可以引入 pumping lemma:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Pumping Lemma:&lt;/strong>&lt;/p>
+&lt;p>If $A$ is a regular language, then there is a number $p$ (the pumping length) where, if $s$ is any string in $A$ of length at least $p$, then $s$ can be divided into $s=xyz$, satisfying:&lt;/p>
+&lt;ul>
+&lt;li>For each $i\geq 0, xy^i z \in A$&lt;/li>
+&lt;li>$|y|&amp;gt;0$&lt;/li>
+&lt;li>$|xy|\leq p$&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>令 $p$ 是 DFA 的状态数，再用上面那个例子中类似的思想即可。&lt;/p>
+&lt;/blockquote>
+&lt;p>可以用 pumping lemma 判断 nonregular language。如果不满足 pumping lemma，那么肯定是 nonregular language。思路就是，假设有个 $p$，再从 language 中找反例。&lt;/p>
+&lt;p>可以证明 $\{ww|w\in \{0,1\}^*\}, \{1^{n^2}|n\geq 0\}, \{0^i 1^j|i&amp;gt;j\}$ 都是 nonregular language。&lt;/p></description></item><item><title>Theory of Computation Lecture 2</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/</link><pubDate>Tue, 02 Apr 2024 17:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-2/cover.png" alt="Featured image of post Theory of Computation Lecture 2" />&lt;h1 id="lecture-2-mathematical-logic-2">Lecture 2 Mathematical Logic (2)
+&lt;/h1>&lt;h2 id="informal-predicate-calculus-非形式的谓词演算">Informal Predicate Calculus (非形式的谓词演算)
+&lt;/h2>&lt;h3 id="量词">量词
+&lt;/h3>&lt;p>对于某些命题，我们无法用第一节课中的方式将其表达为一命题形式，如“所有人都会死”，此时我们必须要引入量词来表达“所有”这样的限制语义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>全称量词 (Universal quantifier)&lt;/em>，对所有的 $x$，$(\forall x)$。&lt;/p>
+&lt;p>&lt;em>存在量词 (Existensial quantifier)&lt;/em>，存在 $x$，$(\exists x)$。&lt;/p>
+&lt;/blockquote>
+&lt;p>“所有人都会死”就可以表示成 $(\forall x)(A(x)\to M(x))$。
+此处，$x$ 为一变元，指的是所有的东西，并不只限于人。$A(x)$ 表示 $x$ 是人，$M(x)$ 表示 $x$ 会死。&lt;/p>
+&lt;p>$\forall$ 和 $\exists$ 之间也可以相互转换。考察句子“不是所有鸟都会飞”，可以表示为 $\sim(\forall x)(B(x)\to F(x))$。句子显然等价于“有些鸟不会飞”，可以表示为 $(\exists x)(B(x)\land \sim F(x))$。&lt;/p>
+&lt;p>我们知道：&lt;/p>
+&lt;p>$$
+\begin{align*}
+\sim(\forall x)(B(x)\to F(x)) &amp;amp;\iff \sim(\forall x)(\sim B(x)\lor F(x))\\
+&amp;amp; \iff \sim(\forall x)\sim (B(x)\land \sim F(x))
+\end{align*}
+$$&lt;/p>
+&lt;p>对比 $\sim(\forall x)\sim (B(x)\land \sim F(x))$ 与 $(\exists x)(B(x)\land \sim F(x))$，不难发现二者有相似之处。事实上，$(\exists x)\mathscr{A} \iff \sim(\forall x)\sim \mathscr{A}$。&lt;/p>
+&lt;h3 id="一阶语言">一阶语言
+&lt;/h3>&lt;p>在引入量词的基础上，我们希望跟第一讲中一样，构造一形式系统。我们称之为 &lt;em>一阶语言 (first order language)&lt;/em>。按照第一讲中定义，形式系统由符号库、合式公式、公理、演绎规则组成。先考察前二者。&lt;/p>
+&lt;p>The alphabet of symbols:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Names&lt;/th>
+&lt;th>Symbols&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>变元&lt;/td>
+&lt;td>$x_1, x_2, \cdots$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）个体常元&lt;/td>
+&lt;td>$a_1, a_2, \cdots$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）谓词字母&lt;/td>
+&lt;td>$A_i^n$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>某些（可能没有）函数字母&lt;/td>
+&lt;td>$f_i^n$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>标点符号&lt;/td>
+&lt;td>( ) ,&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>联结词&lt;/td>
+&lt;td>$\sim$ $\to$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>量词&lt;/td>
+&lt;td>$\forall$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>其中，个体常元即为一个特殊的个体，如“苏格拉底”这样一个指定的人。谓词类似一种关系 $R$，可以被视为一个函数，获取 $n$ 个输入，并返回 $T$ 或 $F$。由于 $\exists$ 可以转化为 $\forall$，我们在符号库中仅使用 $\forall$。&lt;/p>
+&lt;p>例如：$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2), f_1^2(x_2,x_1))$，若 $A_1^2$ 表示 $=$，$f_1^2$ 表示 $+$，那整个命题就可以写成 $(\forall x_1)(\forall x_2) (x_1+x_2=x_2+x_1)$。&lt;/p>
+&lt;p>接下来定义合式公式：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{L}$ 是一阶语言，$\mathscr{L}$ 中的一个 &lt;em>项 (term)&lt;/em> 定义如下：&lt;/p>
+&lt;ul>
+&lt;li>变元和个体常元是项。&lt;/li>
+&lt;li>如果 $t_1, \cdots, t_n$ 是项，那么 $f_i^n(t_1,\cdots,t_n)$ 是项。&lt;/li>
+&lt;li>所有项都由上两条规则生成。&lt;/li>
+&lt;/ul>
+&lt;p>若 $t_1, \cdots, t_k$ 是 $\mathscr{L}$ 中的项，那么 $A_i^k(t_1, \cdots, t_k)$ 是 $\mathscr{L}$ 中的一个 &lt;em>原子公式 (atomic fomula)&lt;/em>。&lt;/p>
+&lt;p>$\mathscr{L}$ 中的 &lt;em>合式公式 (well-formed formula)&lt;/em> 定义为：&lt;/p>
+&lt;ul>
+&lt;li>每个原子公式是一个合式公式。&lt;/li>
+&lt;li>若 $\mathscr{A}, \mathscr{B}$ 是合式公式，那么 $(\sim \mathscr{A}), (\mathscr{A}\to\mathscr{B})$ 和 $(\forall x_i)\mathscr{A}$ （其中 $x_i$ 是任何变元）也是 $\mathscr{L}$ 中的合式公式。&lt;/li>
+&lt;li>所有合式公式都由上两条规则生成。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>我们应注意到 $(\forall x_1)(\mathscr{A}\to\mathscr{B})$ 与 $((\forall x_1)\mathscr{A}\to\mathscr{B})$ 表达的是不同的东西，故而需要引入下面的定义。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>在公式 $(\forall x_i)\mathscr{A}$ 中，我们称 $\mathscr{A}$ 是量词的 &lt;em>辖域 (scope)&lt;/em>。&lt;/p>
+&lt;p>变元 $x_i$ 如果出现在 $(\forall x_i)$ 的辖域中，则称它是 &lt;em>约束的 (bound)&lt;/em>，反之称它是 &lt;em>自由的 (free)&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如 $(\forall \textcolor{red}{x_1})(A_1^2(\textcolor{red}{x_1},x_2)\to (\forall \textcolor{red}{x_2})A_1^1(\textcolor{red}{x_2}))$ 中，标红的即为约束的变元。&lt;/p>
+&lt;p>现考察变元的替换，在公式 $(\exists x_2)(x_2=x_1(x_1+1))$ 中，我们可以将 $x_1$ 换成 $x_3, f(x_1, x_3)$ 等不包含 $x_2$ 的项，但显然不能换成 $f(x_1, x_2)$ 这种包含 $x_2$ 的项。引入以下定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是 $\mathscr{L}$ 中的任何公式，我们称项 $t$ 对 $\mathscr{A}$ 中的 $x_i$ 是自由的，如果 $x_i$ 并不自由地出现在 $\mathscr{A}$ 的一个 $(\forall x_j)$ 的辖域中，这里 $x_j$ 是出现在 $t$ 中的任何变元。&lt;/p>
+&lt;/blockquote>
+&lt;p>在上面的例子中，$t=f(x_1,x_2), x_i=x_1, x_j=x_2$，$x_1$ 自由地出现在 $\mathscr{A}$ 中 $x_2$ 的辖域中，故 $f(x_1,x_2)$ 对 $(\exists x_2)(x_2=x_1(x_1+1))$ 中的 $x_1$ 不是自由的。&lt;/p>
+&lt;p>显然，对任何 $x_1$ 和 $\mathscr{A}$ 来说，$x_1$ 对 $\mathscr{A}$ 中的 $x_1$ 都是自由的。&lt;/p>
+&lt;h3 id="解释">解释
+&lt;/h3>&lt;p>我们现在希望考察 $\mathscr{L}$ 中的公式什么时候能被称为是 “真” 的。事实上，只有当公式中内容的 “解释” 被给出的时候，我们才能讨论公式的真假。&lt;/p>
+&lt;p>例如， $(\forall x_1)(\forall x_2)A_1^2(f_1^2(x_1,x_2), f_1^2(x_2,x_1))$。如果我们在自然数的范围内讨论，且认为 $A_1^2$ 代表 $=$，$f_1^2$ 代表 $+$，那么公式为真。但倘若 $f_1^2$ 代表 $-$，那么公式显然是假的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个 &lt;em>解释 (interpretation)&lt;/em> $I$ 由以下四部分组成：&lt;/p>
+&lt;ul>
+&lt;li>一个非空集合 $D_I$，即 $I$ 的 &lt;em>论域 (domain)&lt;/em>。&lt;/li>
+&lt;li>一个 &lt;em>特异元素集 (a collection of distinguished elements)&lt;/em> $\bar{a}_i\in D_I$。&lt;/li>
+&lt;li>一个在 $D_I$ 上的函数集 $\bar{f}_i^n: D_I^n\to D_I$。&lt;/li>
+&lt;li>一个在 $D_I$ 上的关系集 $\bar{A}_i^n$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>四者分别是对符号表中变元，个体常元，函数字母，谓词字母的具体解释。&lt;/p>
+&lt;p>例如可以取 $D_I=\{0,1,2,\cdots\}, a_1=0, A_1^2$ 表示 $=$, $f_1^2$ 表示 $+$。那么在 $I$ 中，$(\forall x_1) A_1^2(f_1^2(x_1, a_1), x_1)$ 为真。&lt;/p>
+&lt;h3 id="满足真">满足，真
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$I$ 上的一个 &lt;em>赋值 (valuation)&lt;/em> 是一从 $\mathscr{L}$ 的项集到集合 $D_I$ 的具有下列性质的一个函数 $v$:&lt;/p>
+&lt;ul>
+&lt;li>$v(a_i)=\bar{a}_i$，对 $\mathscr{L}$ 中的每个个体常元 $a_i$。&lt;/li>
+&lt;li>$v(f_i^n(t_1,t_2,\cdots, t_n)) = \bar{f}_i^n(v(t_1), v(t_2), \cdots, v(t_n))$，其中 $f_i^n$ 是 $\mathscr{L}$ 中的任意函数字母，$t_1, \cdots, t_n$ 是 $\mathscr{L}$ 中的任意项。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>接下来我们要讨论一个赋值能够使得公式为真。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>两个赋值 $v, v^{\prime}$，如果对每个 $j\neq i$，都有 $v(x_j)=v^{\prime}(x_j)$，则称二者是 $i$-等值的。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是 $\mathscr{L}$ 的一个公式，$I$ 是 $\mathscr{L}$ 的一个解释，我们称 $I$ 中的一个赋值 $v$ &lt;em>满足 (satisfies)&lt;/em> $\mathscr{A}$，如果能按如下四个条件归纳地表明 $v$ 满足 $\mathscr{A}$:&lt;/p>
+&lt;ul>
+&lt;li>如果 $\bar{A}_j^n(v(t_1), \cdots, v(t_n))$ 在 $D_I$ 中为真，那么称 $v$ 满足原子公式 $A_j^n(t_1, \cdots, t_n)$。&lt;/li>
+&lt;li>如果 $v$ 不满足 $\mathscr{B}$，那么 $v$ 满足 $(\sim\mathscr{B})$。&lt;/li>
+&lt;li>如果 $v$ 满足 $(\sim \mathscr{B})$ 或 $\mathscr{C}$，那么 $v$ 满足 $(\mathscr{B}\to\mathscr{C})$。&lt;/li>
+&lt;li>如果每个 $i$-等值于 $v$ 的赋值 $v^{\prime}$ 都满足 $\mathscr{B}$，那么 $v$ 满足 $(\forall x_i)\mathscr{B}$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>一公式 $\mathscr{A}$ 在解释 $I$ 中称为 &lt;em>真的 (true)&lt;/em>，如果在 $I$ 中的每个赋值都满足 $\mathscr{A}$。&lt;/li>
+&lt;li>一公式 $\mathscr{A}$ 在解释 $I$ 中称为 &lt;em>假的 (false)&lt;/em>，如果 $I$ 中不存在任何满足 $\mathscr{A}$ 的赋值。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>在 &lt;em>真&lt;/em> 的基础上更近一步：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{L}$ 的一个合式公式 $\mathscr{A}$ 称为 &lt;em>逻辑有效的 (logically valid)&lt;/em>，如果 $\mathscr{A}$ 在 $\mathscr{L}$ 中的每个解释都为真。&lt;/li>
+&lt;li>$\mathscr{L}$ 的一个合式公式 $\mathscr{A}$ 称为 &lt;em>矛盾的 (contradictory)&lt;/em>，如果 $\mathscr{A}$ 在 $\mathscr{L}$ 中的每个解释都为假。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果在一个解释中，公式 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 都为真，那么 $\mathscr{B}$ 也为真。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由真和赋值的定义即可证明。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>在一个解释中，公式 $\mathscr{A}$ 为真，当且仅当 $(\forall x_i) \mathscr{A}$ 为真，其中 $x_i$ 是任意变元。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由定义。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如可以取 $D_I=\{0,1,2,\cdots\}, A_1^2$ 表示 $=$, $f_1^2$ 表示 $+$。那么
+$$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+$$(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+$$A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$$
+都为真。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个公式 $\mathscr{A}$ 称为 &lt;em>闭的 (closed)&lt;/em>，如果没有变元在 $\mathscr{A}$ 中自由出现。&lt;/p>
+&lt;/blockquote>
+&lt;p>例如，$(\forall x_1)(\forall x_2) A_1^2(f_1^2(x_1,x_2),f_1^2(x_2,x_1))$ 是闭的，$(\forall x_1) A_1^1(x_1)\to A_1^1(x_1)$ 不是闭的。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 是 $\mathscr{L}$ 中的闭公式，且 $I$ 是 $\mathscr{L}$ 的一个解释，那么 $\mathscr{A}$ 在 $I$ 中非真即假。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>由于所有变量都是约束的，所以可以根据 &lt;em>满足&lt;/em> 的定义的第四条得知，一个赋值满足 $\mathscr{A}$ 当且仅当所有赋值满足 $\mathscr{A}$。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="formal-predicate-calculus-形式的谓词演算">Formal Predicate Calculus (形式的谓词演算)
+&lt;/h2>&lt;h3 id="形式系统-k_mathscrl">形式系统 $K_{\mathscr{L}}$
+&lt;/h3>&lt;p>在 &lt;a class="link" href="#%e4%b8%80%e9%98%b6%e8%af%ad%e8%a8%80" ># 一阶语言&lt;/a> 中我们说到，形式系统需由符号库、合式公式、公理、演绎规则组成，并定义了前二者。接下来我们定义后二者，并由此得到一个形式系统 $K_{\mathscr{L}}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A},\mathscr{B},\mathscr{C}$ 是 $\mathscr{L}$ 中的任意公式，以下是 $K_{\mathscr{L}}$ 的公理：&lt;/p>
+&lt;ul>
+&lt;li>(K1) $(\mathscr{A}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(K2) $((\mathscr{A}\to(\mathscr{B}\to\mathscr{C}))\to ((\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to\mathscr{C})))$.&lt;/li>
+&lt;li>(K3) $(((\sim \mathscr{A})\to(\sim \mathscr{B}))\to (\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(K4) $((\forall x_i) \mathscr{A}\to \mathscr{A})$，如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现。&lt;/li>
+&lt;li>(K5) $((\forall x_i) \mathscr{A}(x_i)\to \mathscr{A}(t))$，如果 $t$ 是 $\mathscr{L}$ 中的一个项，并且在 $\mathscr{A}(x_i)$ 中对 $x_i$ 自由。&lt;/li>
+&lt;li>(K6) $(\forall x_i)(\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to(\forall x_i)\mathscr{B})$，如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现。&lt;/li>
+&lt;/ul>
+&lt;p>演绎规则：&lt;/p>
+&lt;ul>
+&lt;li>MP：从 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 可以演绎出 $\mathscr{B}$。&lt;/li>
+&lt;li>Generalization：从 $\mathscr{A}$ 可以演绎出 $(\forall x_i)\mathscr{A}$，其中 $x_i$ 是任意变元。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>事实上，如果 $x_i$ 在 $\mathscr{A}$ 中自由出现，因为 $x_i$ 在 $\mathscr{A}$ 中对 $x_i$ 自由，可以由(K5) 知道，(K4) 仍然成立。所以，无论 $x_i$ 是否在 $\mathscr{A}$ 中自由出现，都有 $((\forall x_i) \mathscr{A}\to \mathscr{A})$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$K_{\mathscr{L}}$ 中的一个 &lt;em>证明 (proof)&lt;/em> 是指 $\mathscr{L}$ 的公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，$\mathscr{A}_i$ 或者是 $K_{\mathscr{L}}$ 的一个公理，或者是由位于 $\mathscr{A}_i$ 之前的公式通过 MP 或 Generalization 规则得到的。最后的公式 $\mathscr{A}_n$ 称为 $K_{\mathscr{L}}$ 中的一条 &lt;em>定理 (theorem)&lt;/em>，记作 $\vdash_{K_{\mathscr{L}}} \mathscr{A}_n$。&lt;/p>
+&lt;p>如果 $\Gamma$ 是 $\mathscr{L}$ 中的一组合式公式，在 $K_{\mathscr{L}}$ 中从 $\Gamma$ 的一个 &lt;em>演绎 (deduction)&lt;/em> 是指公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，$\mathscr{A}_i$ 或者是 $K_{\mathscr{L}}$ 的一个公理，或者是由位于 $\mathscr{A}_i$ 之前的公式通过 MP 或 Generalization 规则得到，或者是 $\Gamma$ 中的一个成员。记作 $\Gamma \vdash_{K_{\mathscr{L}}} \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;p>以下用 $K$ 代替 $K_{\mathscr{L}}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Soundness):&lt;/strong>&lt;/p>
+&lt;p>(K1)-(K6) 都是逻辑有效的。这可以用定义证明。&lt;/p>
+&lt;p>由此可归纳出，$K$ 中的所有定理都是逻辑有效的。&lt;/p>
+&lt;/blockquote>
+&lt;p>同样，$K$ 中也有 &lt;em>演绎定理&lt;/em>，但不同于 $L$ 中的演绎定理，我们先来看一个特殊情况：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>我们知道对于 $K$ 中的任意公式 $\mathscr{A}$，都有 $\{\mathscr{A}\}\vdash_{K} (\forall x_i)\mathscr{A}$，但是 $\vdash_{K} (\mathscr{A} \to (\forall x_i)\mathscr{A})$ 并不是必然的。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>例如 $\{(x_1 = 0)\}\vdash_{K} (\forall x_1) (x_1 = 0)$，但是并没有 $\vdash_{K} ((x_1 = 0) \to (\forall x_1)(x_1 = 0))$。因为由 &lt;em>满足&lt;/em> 定义的第四条可知，不存在赋值满足 $(\forall x_1)(x_1 = 0)$，所以 $((x_1 = 0) \to (\forall x_1)(x_1 = 0))$ 不是逻辑有效的，因此不是 $K$ 中的定理。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition ($K$ 的演绎定理，the deduction theorem)&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$，并且演绎过程中不涉及 $\mathscr{A}$ 中自由的变元，那么 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+类似于 $L$ 中演绎定理的证明，对 $\mathscr{B}$ 进行分类讨论。&lt;/p>
+&lt;/blockquote>
+&lt;p>由演绎定理可得推论：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$，并且 $\mathscr{A}$ 是闭公式，那么 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>演绎定理的逆定理始终成立，无需加条件：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\Gamma\vdash_{K}(\mathscr{A}\to\mathscr{B})$，那么 $\Gamma\cup \{\mathscr{A}\} \vdash_{K}\mathscr{B}$。&lt;/p>
+&lt;/blockquote>
+&lt;p>$K$ 中同样有三段论：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (HS):&lt;/strong>&lt;/p>
+&lt;p>对任意公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$，如果 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\}\vdash_{K}(\mathscr{A}\to\mathscr{C})$。&lt;/p>
+&lt;/blockquote>
+&lt;p>同样有替换定理：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{A}$ 和 $\mathscr{B}$ 是 $\mathscr{L}$ 中的闭公式，如果 $\mathscr{B}_0$ 是由 $\mathscr{A}_0$ 通过将其中的 $\mathscr{A}$ 替换成 $\mathscr{B}$ 得到的，那么有：
+$$\vdash_{K}(\mathscr{A}\leftrightarrow \mathscr{B})\to (\mathscr{A}_0\leftrightarrow \mathscr{B}_0)$$&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $x_i$ 不在 $\mathscr{A}$ 中自由出现，那么&lt;/p>
+&lt;ul>
+&lt;li>$\vdash_{K}(\forall x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow (\mathscr{A}\to(\forall x_i)\mathscr{B})$&lt;/li>
+&lt;li>$\vdash_{K}(\exists x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow (\mathscr{A}\to(\exists x_i)\mathscr{B})$&lt;/li>
+&lt;/ul>
+&lt;p>如果 $x_i$ 不在 $\mathscr{B}$ 中自由出现，那么&lt;/p>
+&lt;ul>
+&lt;li>$\vdash_{K}(\forall x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow ((\exists x_i)\mathscr{A}\to\mathscr{B})$&lt;/li>
+&lt;li>$\vdash_{K}(\exists x_i)(\mathscr{A}\to \mathscr{B})\leftrightarrow ((\forall x_i)\mathscr{A}\to\mathscr{B})$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="前束范式">前束范式
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的一个公式 $\mathscr{A}$ 称为 &lt;em>前束范式 (prenex form)&lt;/em>，如果它形如:
+$$(Q_1 x_{i1})(Q_2 x_{i2})(Q_k x_{ik})\mathscr{D}$$
+其中 $Q_j$ 是 $\forall$ 或 $\exists$，$\mathscr{D}$ 是不带量词的公式。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\mathscr{L}$ 中的任意合式公式 $\mathscr{A}$，总存在前束范式 $\mathscr{B}$ 等价于 $\mathscr{A}$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+由上一条 proposition 可证。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个前束范式是一个 $\Pi_n$ 式，如果它以 $\forall$ 开头，并有 $n-1$ 次量词交叉。&lt;/p>
+&lt;p>一个前束范式是一个 $\Sigma_n$ 式，如果它以 $\exists$ 开头，并有 $n-1$ 次量词交叉。&lt;/p>
+&lt;/blockquote>
+&lt;p>比如 $(\exists x_3)(\forall x_1)(\forall x_4)(\forall x_5) A(x_1,x_2,x_3,x_4,x_5)$ 就是 $\Sigma_2$ 式。&lt;/p>
+&lt;h3 id="k_mathscrl-的完备性定理">$K_{\mathscr{L}}$ 的完备性定理
+&lt;/h3>&lt;p>与 $L$ 一样， $K$ 也满足 soundness, consistency, adequacy，因此 $K$ 中的定理 $\iff$ 逻辑有效。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Adequacy, 完备性):&lt;/strong>&lt;/p>
+&lt;p>所有逻辑有效的公式都是 $K$ 中的定理。也被称为 &lt;em>一阶逻辑的哥德尔完备性定理&lt;/em>。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+过于复杂不便展示。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="模型">模型
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>如果 $S$ 是一个一阶逻辑系统，$S$ 的一个 &lt;em>模型 (model)&lt;/em> 指的是一个解释，使得 $S$ 中的所有定理都为真。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Theorem:&lt;/strong>&lt;/p>
+&lt;p>如果 $I$ 是一个解释，使得 $S$ 的所有公理都为真，那么 $I$ 是 $S$ 的一个模型。&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="数学系统">数学系统
+&lt;/h2>&lt;p>现在要在 $K$ 的基础上加些数学。&lt;/p>
+&lt;h3 id="一阶算术">一阶算术
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>一阶算术 $\mathscr{N}$ (first order arithmetic)&lt;/em> 是 $K$ 的一个一致扩充，额外引入了以下公理：&lt;/p>
+&lt;ul>
+&lt;li>(E7) $x_1=x_1$&lt;/li>
+&lt;li>(E8) $t_k=u\to f_i^n(t_1,\cdots,t_k,\cdots,t_n)=f^n_i(t_1,\cdots,u,\cdots,t_n)$&lt;/li>
+&lt;li>(E9) $t_k=u\to (A_i^n(t_1,\cdots,t_k,\cdots,t_n)\to A^n_i(t_1,\cdots,u,\cdots,t_n))$&lt;/li>
+&lt;li>(N1) $(\forall x_1) \sim (x_1^{\prime}=0)$&lt;/li>
+&lt;li>(N2) $(\forall x_1)(\forall x_2)(x_1^{\prime}=x_2^{\prime} \to x_1=x_2)$&lt;/li>
+&lt;li>(N3) $(\forall x_1) (x_1+0=x_1)$&lt;/li>
+&lt;li>(N4) $(\forall x_1)(\forall x_2)((x_1+x_2^{\prime})=(x_1+x_2)^{\prime})$&lt;/li>
+&lt;li>(N5) $(\forall x_1)(x_1\times 0=0)$&lt;/li>
+&lt;li>(N6) $(\forall x_1)(\forall x_2)((x_1\times x_2^{\prime})=(x_1\times x_2)+x_1)$&lt;/li>
+&lt;li>(N7) $\mathscr{A}(0) \to ((\forall x_1)(\mathscr{A}(x_1)\to\mathscr{A}(x_1^{\prime}))\to (\forall x_1)\mathscr{A}(x_1))$，其中 $x_1$ 在 $\mathscr{A}(x_1)$ 中自由出现。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>只有 0 是 $\mathscr{N}$ 中的符号。而 $1, 2, 3, \cdots$ 被表示为 $0^{\prime}, 0^{\prime\prime}, 0^{\prime\prime\prime}, \cdots$&lt;/p>
+&lt;h2 id="gödel-incompleteness-theorem-哥德尔不完全性定理">Gödel incompleteness theorem (哥德尔不完全性定理)
+&lt;/h2>&lt;p>这部分先放着吧，有兴趣有必要了再写。&lt;/p></description></item><item><title>Theory of Computation Lecture 1</title><link>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/</link><pubDate>Tue, 26 Mar 2024 17:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/theory-of-computation-lecture-1/cover.png" alt="Featured image of post Theory of Computation Lecture 1" />&lt;h1 id="lecture-1-mathematical-logic-1">Lecture 1 Mathematical Logic (1)
+&lt;/h1>&lt;h2 id="informal-statement-calculus-非形式的命题演算">Informal Statement Calculus (非形式的命题演算)
+&lt;/h2>&lt;h3 id="命题联结词和真值表">命题、联结词和真值表
+&lt;/h3>&lt;p>自然语言中有许多命题 (statement)，比如“拿破仑死了”。而命题之间又可以通过联结词 (connective) 组成更复杂的命题，比如“拿破仑死了&lt;em>并且&lt;/em>世界正在欢腾”。在这里，我们假设所有的命题都是非真即假的。常见的联结词及其对应的含义可见下表：&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Meaning&lt;/th>
+&lt;th>Connectives&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>not $A$&lt;/td>
+&lt;td>$\sim A$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ and $B$&lt;/td>
+&lt;td>$A \land B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ or $B$&lt;/td>
+&lt;td>$A \lor B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>if $A$ then $B$&lt;/td>
+&lt;td>$A \to B$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$A$ if and only if $B$&lt;/td>
+&lt;td>$A \leftrightarrow B$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>“拿破仑死了&lt;em>并且&lt;/em>世界正在欢腾”就可以用$A \land B$表示。&lt;/p>
+&lt;p>各联结词的真值表如下所示：&lt;/p>
+&lt;p>Negation:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$\sim p$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conjunction:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \land q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Disjunction:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \lor q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conditional:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \to q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>Conditional 的真值表的前两行并不难理解，后两行则可以认为是一种定义上的方便。因为采取这样的定义后，在判断 $p\to q$ 是否恒为真时只需要判断 $p$ 为真是否始终能推出 $q$ 为真即可，而不需要考察 $p$ 为假的情况，这与先前的认知是一致的。&lt;/p>
+&lt;p>Biconditional:&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \leftrightarrow q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>类似表中的字母 $p, q, r, \cdots$ 称为命题变元 (statement variable)，它们表示任意的非特定的单个命题。而由命题变元和联结词组成的表达式称为命题形式 (statement form)，定义如下：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>命题形式&lt;/em> 是一个含有命题变元和联结词的表达式，并且能用以下规则构成：&lt;/p>
+&lt;p>(1) 任何命题变元是一个命题形式。&lt;/p>
+&lt;p>(2) 如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，那么 $(\sim \mathscr{A}), (\mathscr{A} \land \mathscr{B}), (\mathscr{A}\lor \mathscr{B}), (\mathscr{A}\to\mathscr{B}), (\mathscr{A} \leftrightarrow \mathscr{B})$ 是命题形式。&lt;/p>
+&lt;/blockquote>
+&lt;p>每个命题形式都有其真值表。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>(1) 一命题形式称为 &lt;em>重言式 (tautology)&lt;/em> ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 &lt;em>T&lt;/em> 。&lt;/p>
+&lt;p>(2) 一命题形式称为 &lt;em>矛盾式 (contradiction)&lt;/em> ，如果对于其中出现的命题变元的各种可能的真值指派，它总取真值为 &lt;em>F&lt;/em> 。&lt;/p>
+&lt;/blockquote>
+&lt;p>$(p\lor \sim p)$ 是一个重言式，而 $(q\land \sim q)$ 是一个矛盾式。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>设 $\mathscr{A}$ 和 $\mathscr{B}$ 是命题形式，我们说 $\mathscr{A}$ &lt;em>逻辑蕴含 (logically implies)&lt;/em> $\mathscr{B}$，如果 $(\mathscr{A}\to\mathscr{B})$ 是一重言式，我们说 $\mathscr{A}$ &lt;em>逻辑等值 (logically equivalent)&lt;/em> $\mathscr{B}$，如果 $(\mathscr{A}\leftrightarrow\mathscr{B})$ 是一重言式。&lt;/p>
+&lt;/blockquote>
+&lt;p>$(p\land q)$ 逻辑蕴含 $p$，$(\sim(p\land q))$ 逻辑等值 $((\sim p)\lor(\sim q))$。&lt;/p>
+&lt;h3 id="运算和代入规则">运算和代入规则
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$ 都是重言式，那么 $\mathscr{B}$ 也是重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Rules for Substitution):&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}$ 是一个命题形式，其中有命题变元 $p_1, p_2, \cdots, p_n$，并且令 $\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n$ 是任意命题形式。如果 $\mathscr{A}$ 是一个重言式，那么由 $\mathscr{A}$ 通过用 $\mathscr{A}_i$ 到处去替换每个 $p_i$ 而得到的 $\mathscr{B}$ 也是一重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;p>比如，$(p\land q)$ 逻辑蕴含 $p$，所以对任意 $\mathscr{A}, \mathscr{B}$，都有 $(\mathscr{A}\land \mathscr{B})$ 逻辑蕴含 $\mathscr{A}$。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (De Morgan&amp;rsquo;s Law):&lt;/strong>&lt;/p>
+&lt;p>令 $\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n$ 是任意的命题形式，那么：&lt;/p>
+&lt;p>(1) $(\mathop{\lor}\limits_{i=1}^n (\sim\mathscr{A}_i))$ 逻辑等值于 $(\sim(\mathop{\land}\limits_{i=1}^n \mathscr{A}_i))$&lt;/p>
+&lt;p>(2) $(\mathop{\land}\limits_{i=1}^n (\sim\mathscr{A}_i))$ 逻辑等值于 $(\sim(\mathop{\lor}\limits_{i=1}^n \mathscr{A}_i))$&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>用数学归纳法，先用 Rules for Substitution 证明 $n=2$ 的情形，再推广至任意正整数 $n$。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="范式">范式
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>定义只含有联结词 $\sim, \land, \lor$ 的命题形式为 &lt;em>限制的命题形式 (restricted statement form)&lt;/em> 。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>每个非矛盾的命题形式逻辑等值于一个限制的命题形式 $\mathop{\lor}\limits_{i=1}^m(\mathop{\land}_{j=1}^n Q_{ij})$，其中每个 $Q_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 &lt;em>析取范式 (disjunctive normal form)&lt;/em> 。&lt;/p>
+&lt;p>每个非重言的命题形式逻辑等值于一个限制的命题形式 $\mathop{\land}\limits_{i=1}^m(\mathop{\lor}_{j=1}^n Q_{ij})$，其中每个 $Q_{ij}$ 或是一个命题变元，或是一个命题变元的否定。这个形式称为 &lt;em>合取范式 (conjunctive normal form)&lt;/em> 。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>仅对析取范式进行证明，合取范式同理。仅需证明任意真值表中只有一行为 $T$ 的命题形式可以用 $\mathop{\land}_{j=1}^n Q_{j}$ 表示即可。多行为 $T$ 的命题形式可由一行为 $T$ 的命题形式通过 $\lor$ 联结得到。&lt;/p>
+&lt;p>对于每个命题变元 $q_j$，若其在真值表中的那一行取 $T$，则 $Q_{j}=q_j$，否则取 $Q_{j}=\sim q_j$。&lt;/p>
+&lt;p>这样就可以对任意非矛盾的命题形式构造出一个与其逻辑等值的析取范式。&lt;/p>
+&lt;/blockquote>
+&lt;p>综合可得：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>每个真值函数都可以用一个限制的命题形式表示。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="联结词的完全集">联结词的完全集
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>联结词的完全集 (adequate set of connectives)&lt;/em> 是这样一个集合，使得每个真值函数都能由仅仅含有该集中的联结词的命题形式所表示。&lt;/p>
+&lt;/blockquote>
+&lt;p>显然，$\{\sim, \lor, \land\}$ 是一个完全集。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\{\sim, \land\}, \{\sim, \lor\}, \{\sim, \to\}$ 都是完全集。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用 $\{\sim, \lor, \land\}$ 是完全集来证明。&lt;/p>
+&lt;/blockquote>
+&lt;p>然而，以上介绍的联结词均不能单独构成一个完全集，不过可以通过引入新的联结词来构成只含一个联结词的完全集。&lt;/p>
+&lt;p>NOR（即 not+or）&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p \downarrow q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;p>NAND（即 not+and）&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>$p$&lt;/th>
+&lt;th>$q$&lt;/th>
+&lt;th>$p | q$&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$T$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>$F$&lt;/td>
+&lt;td>$F$&lt;/td>
+&lt;td>$T$&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$\{\downarrow\}, \{ | \}$ 都是联结词的完全集。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>可以用已知的完全集来证明。&lt;/p>
+&lt;/blockquote>
+&lt;p>但是仅使用一个联结词可能会导致表达式非常复杂，比如仅用 $\downarrow$ 构造出 $(p\to q)$：&lt;/p>
+&lt;p>$$\{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}\downarrow \{(p\downarrow p)\downarrow [(q\downarrow q)\downarrow (q\downarrow q)]\}$$&lt;/p>
+&lt;h3 id="论证和有效性">论证和有效性
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>&lt;em>论证形式 (argument form)&lt;/em> 定义为类似：&lt;/p>
+&lt;p>$$\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n; \therefore \mathscr{A}$$&lt;/p>
+&lt;p>的形式。&lt;/p>
+&lt;p>我们称一个论证形式是 &lt;em>无效 (nonvalid)&lt;/em> 的，如果存在一种对命题变元的真值指派，使得每个 $\mathscr{A}_i$ 均取值 $T$，但是 $\mathscr{A}$ 取值 $F$。否则称其是 &lt;em>有效 (valid)&lt;/em> 的。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>论证形式
+$$\mathscr{A}_1, \mathscr{A}_2, \cdots, \mathscr{A}_n; \therefore \mathscr{A}$$&lt;/p>
+&lt;p>是有效的，当且仅当命题形式&lt;/p>
+&lt;p>$$((\mathscr{A}_1\land \mathscr{A}_2 \land \cdots \land \mathscr{A}_n) \to \mathscr{A})$$&lt;/p>
+&lt;p>是一个重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+omitted.&lt;/p>
+&lt;/blockquote>
+&lt;h2 id="formal-statement-calculus-形式的命题演算">Formal Statement Calculus (形式的命题演算)
+&lt;/h2>&lt;h3 id="命题演算形式系统-l">命题演算形式系统 $L$
+&lt;/h3>&lt;p>我们主要关注两个特殊的形式系统（命题演算形式系统、谓词演算形式系统），我们先给出形式系统的一般性定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>形式系统 (formal system)&lt;/em> 由以下几部分构成：&lt;/p>
+&lt;p>(1) 一个符号库 (an alphabet of symbols)。&lt;/p>
+&lt;p>(2) 这些符号组成的有限字符串（称为合式公式，well-formed fomula）的一个集合。&lt;/p>
+&lt;p>(3) 合式公式的一个集合，称为公理 (axiom)。&lt;/p>
+&lt;p>(4) 有限个演绎规则 (rules of deduction) 组成的集合。&lt;/p>
+&lt;/blockquote>
+&lt;p>接下来给出命题演算形式系统的定义：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>一个 &lt;em>命题演算形式系统 L (formal system L of statement calculus)&lt;/em> 由以下几部分构成：&lt;/p>
+&lt;p>(1) 一个无限的符号库：&lt;/p>
+&lt;p>$$\sim, \to, (, ), p_1, p_2, p_3, \cdots$$&lt;/p>
+&lt;p>(2) 一个合式公式的集合，由以下规则确定：&lt;/p>
+&lt;ul>
+&lt;li>对于每个 $i\geq 1$, $p_i$ 是合式公式。&lt;/li>
+&lt;li>如果 $\mathscr{A}$ 和 $\mathscr{B}$ 是合式公式，那么 $(\sim \mathscr{A})$ 和 $(\mathscr{A}\to\mathscr{B})$ 也是合式公式。&lt;/li>
+&lt;li>所有合式公式都由以上两条规则产生。&lt;/li>
+&lt;/ul>
+&lt;p>(3) 一个公理的集合，对于任何合式公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$，以下公式是 $L$ 的公理：&lt;/p>
+&lt;ul>
+&lt;li>(L1) $(\mathscr{A}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;li>(L2) $((\mathscr{A}\to(\mathscr{B}\to\mathscr{C}))\to ((\mathscr{A}\to\mathscr{B})\to(\mathscr{A}\to\mathscr{C})))$.&lt;/li>
+&lt;li>(L3) $(((\sim \mathscr{A})\to(\sim \mathscr{B}))\to (\mathscr{B}\to\mathscr{A}))$.&lt;/li>
+&lt;/ul>
+&lt;p>(4) $L$ 中仅有一条演绎规则，称为 modus ponens (MP)，即对于 $L$ 中的任何公式 $\mathscr{A}$ 和 $(\mathscr{A}\to\mathscr{B})$，$\mathscr{B}$ 也是 $L$ 中的一个公式。&lt;/p>
+&lt;/blockquote>
+&lt;p>目前而言，在考察 $L$ 中的公式及其演绎时，不应考虑其是否“正确”，而应将其完全视为一文字游戏，只能通过已有公式与演绎规则推出新的合式公式。而至于新推出的合式公式的“正确性”（即新公式为一重言式），则由“公理为重言式”（可直接验证），以及“演绎规则保持公式的重言性”（先前已证明）来保证。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的一个 &lt;em>证明 (proof)&lt;/em> 是指公式的这样一个序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$，使得对于每个 $i (1\leq i\leq n)$，或者 $\mathscr{A}_i$ 是 $L$ 的一个公理，或者 $\mathscr{A}_i$ 可由序列中位于 $\mathscr{A}_i$ 前面的两个公式 $\mathscr{A}_j, \mathscr{A}_k (j,k&amp;lt;i)$ 通过 MP 得到。这样的证明称为在 $L$ 中 $\mathscr{A}_n$ 的一个证明，$\mathscr{A}_n$ 称为 $L$ 中的一个 &lt;em>定理 (theorem)&lt;/em>。&lt;/p>
+&lt;p>$\mathscr{A}_n$ 是 $L$ 中的一个定理可记作 $\vdash_L \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove: $\vdash_L (\mathscr{A}\to\mathscr{A})$.&lt;/p>
+&lt;p>&lt;strong>Solution:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad (\mathscr{A}\to((\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(2)&amp;amp;\quad ((\mathscr{A}\to(\mathscr{A}\to\mathscr{A}))\to(\mathscr{A}\to\mathscr{A})) &amp;amp;&amp;amp;(1)+(L2)+MP\\
+(3)&amp;amp;\quad (\mathscr{A}\to(\mathscr{A}\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(4)&amp;amp;\quad (\mathscr{A}\to\mathscr{A}) &amp;amp;&amp;amp;(2)+(3)+MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>令 $\Gamma$ 是 $L$ 中的公式集（可以是也可以不是 $L$ 中的公理或定理）。$L$ 中的公式序列 $\mathscr{A}_1, \cdots, \mathscr{A}_n$ 是从 $\Gamma$ 的一个 &lt;em>演绎 (deduction)&lt;/em>，如果每个 $i (1\leq i\leq n)$，下列之一成立：&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{A}_i$ 是 $L$ 的一个公理。&lt;/li>
+&lt;li>$\mathscr{A}_i$ 是 $\Gamma$ 中的一个成员。&lt;/li>
+&lt;li>$\mathscr{A}_i$ 可由序列中在 $\mathscr{A}_i$ 前的两个公式通过 MP 得到。&lt;/li>
+&lt;/ul>
+&lt;p>记作 $\Gamma\vdash_L \mathscr{A}_n$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove: $\{\mathscr{A},(\mathscr{B}\to(\mathscr{A}\to\mathscr{C}))\}\vdash_L (\mathscr{B}\to\mathscr{C})$.&lt;/p>
+&lt;p>&lt;strong>Solution:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\mathscr{A}\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad (\mathscr{B}\to\mathscr{A}) &amp;amp;&amp;amp;(1)+(2)+MP\\
+(4)&amp;amp;\quad (\mathscr{B}\to(\mathscr{A}\to\mathscr{C})) &amp;amp;&amp;amp;假设\\
+(5)&amp;amp;\quad ((\mathscr{B}\to\mathscr{A})\to(\mathscr{B}\to\mathscr{C})) &amp;amp;&amp;amp;(4)+(L2)+MP\\
+(6)&amp;amp;\quad (\mathscr{B}\to\mathscr{C}) &amp;amp;&amp;amp;(3)+(5)+MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;p>注意，这样子推出来的公式并不一定是 $L$ 中的一个定理。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (The deduction theorem):&lt;/strong>&lt;/p>
+&lt;p>$\Gamma\cup\{\mathscr{A}\}\vdash_L\mathscr{B}$ 当且仅当 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$，其中 $\mathscr{A}$ 和 $\mathscr{B}$ 是 $L$ 中的公式，$\Gamma$ 是 $L$ 的公式集（可能是空集）。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>仅证明从左至右的部分，从右至左可以直接运用 MP。运用数学归纳法证明从左至右的部分，假设从 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎是一个有 $n$ 个公式的序列。&lt;/p>
+&lt;p>(1) $n=1$ 时，三种情况：&lt;/p>
+&lt;ul>
+&lt;li>$\mathscr{B}$ 是 $L$ 中的一条公理，则有：
+$$\begin{align*}
+(1)&amp;amp;\quad \mathscr{B} &amp;amp;&amp;amp;公理\\
+(2)&amp;amp;\quad (\mathscr{B}\to (\mathscr{A}\to\mathscr{B})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad (\mathscr{A}\to\mathscr{B}) &amp;amp;&amp;amp; (1)+(2)+MP
+\end{align*}$$&lt;/li>
+&lt;li>$\mathscr{B}\in \Gamma$，则同上一种情况。&lt;/li>
+&lt;li>$\mathscr{B}=\mathscr{A}$，先前已证 $\vdash_L (\mathscr{A}\to\mathscr{A})$。&lt;/li>
+&lt;/ul>
+&lt;p>(2) 假设从 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎长度 $&amp;lt; n$ 时，proposition 成立。可以假设 $\mathscr{B}$ 不是 $L$ 中的公理，不在 $\Gamma$ 中，不为 $\mathscr{A}$，那么在 $\Gamma\cup\{\mathscr{A}\}$ 到 $\mathscr{B}$ 的演绎序列中， $\mathscr{B}$ 只可能由先前的两个公式 $\mathscr{C}$ 和 $(\mathscr{C}\to\mathscr{B})$ 通过 MP 得到。故而我们有 $\Gamma\cup \{\mathscr{A}\} \vdash_L \mathscr{C}$ 和 $\Gamma\cup \{\mathscr{A}\} \vdash_L (\mathscr{C}\to\mathscr{B})$。由归纳假设，$\Gamma\vdash_L(\mathscr{A}\to\mathscr{C}), \Gamma\vdash_L(\mathscr{A}\to(\mathscr{C}\to\mathscr{B}))$。由二者，通过 (L2) 和 MP 可得 $\Gamma\vdash_L(\mathscr{A}\to\mathscr{B})$。&lt;/p>
+&lt;p>这个 proposition 被称为 &lt;em>演绎定理&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Hypothetical Syllogism (HS)):&lt;/strong>&lt;/p>
+&lt;p>对任何 $L$ 中的公式 $\mathscr{A}, \mathscr{B}, \mathscr{C}$：&lt;/p>
+&lt;p>$$\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\} \vdash_L (\mathscr{A}\to\mathscr{C})$$&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>$$\begin{align*}
+(1)&amp;amp;\quad (\mathscr{A}\to\mathscr{B}) &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\mathscr{B}\to \mathscr{C}) &amp;amp;&amp;amp;假设\\
+(3)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;假设\\
+(4)&amp;amp;\quad \mathscr{B} &amp;amp;&amp;amp;(1)+(3)+MP \\
+(5)&amp;amp;\quad \mathscr{C} &amp;amp;&amp;amp;(2)+(4)+MP \\
+\end{align*}$$
+所以有 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C}), \mathscr{A}\} \vdash_L \mathscr{C}$，根据演绎定理，可得 $\{(\mathscr{A}\to\mathscr{B}), (\mathscr{B}\to\mathscr{C})\} \vdash_L (\mathscr{A}\to\mathscr{C})$。&lt;/p>
+&lt;p>此 proposition 被称为 &lt;em>假言三段论&lt;/em>。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Exercise:&lt;/strong>&lt;/p>
+&lt;p>Prove:&lt;/p>
+&lt;p>(1) $\vdash_L(\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$.&lt;/p>
+&lt;p>(2) $\vdash_L((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$.&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1)
+$$\begin{align*}
+(1)&amp;amp;\quad (\sim \mathscr{B}\to(\sim\mathscr{A}\to\sim\mathscr{B})) &amp;amp;&amp;amp;(L1)\\
+(2)&amp;amp;\quad ((\sim\mathscr{A}\to\sim\mathscr{B})\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(L2)\\
+(3)&amp;amp;\quad (\sim \mathscr{B}\to(\mathscr{B}\to\mathscr{A})) &amp;amp;&amp;amp;(1)+(2)+HS\\
+\end{align*}$$
+(2) 由演绎定理，只需证明 $\{(\sim \mathscr{A}\to\mathscr{A})\}\vdash_L \mathscr{A}$：
+$$\begin{align*}
+(1)&amp;amp;\quad (\sim\mathscr{A}\to\mathscr{A}) &amp;amp;&amp;amp;假设\\
+(2)&amp;amp;\quad (\sim\mathscr{A}\to(\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A})) &amp;amp;&amp;amp;(L1)\\
+(3)&amp;amp;\quad ((\sim\sim(\sim\mathscr{A}\to\mathscr{A})\to\sim\mathscr{A}) \to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(L3)\\
+(4)&amp;amp;\quad (\sim\mathscr{A}\to (\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(2)+(3)+HS\\
+(5)&amp;amp;\quad ((\sim\mathscr{A}\to \mathscr{A})\to (\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A}))) &amp;amp;&amp;amp;(4)+(L2)+MP\\
+(6)&amp;amp;\quad ((\sim\mathscr{A}\to\sim(\sim\mathscr{A}\to\mathscr{A})) \to ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(L2)\\
+(7)&amp;amp;\quad ((\sim\mathscr{A}\to\mathscr{A})\to((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})) &amp;amp;&amp;amp;(5)+(6)+HS\\
+(8)&amp;amp;\quad \mathscr{A} &amp;amp;&amp;amp;(1)+(7)+2\times MP
+\end{align*}$$&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="l-的完备性定理">$L$ 的完备性定理
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个 &lt;em>赋值 (valuation)&lt;/em> 是一个函数 $v$，它的定义域是 $L$ 的公式，值域是集合 $\{T, F\}$，并且使得对 $L$ 的任意公式 $\mathscr{A}, \mathscr{B}$：&lt;/p>
+&lt;p>(1) $v(\mathscr{A})\neq v(\sim\mathscr{A})$.&lt;/p>
+&lt;p>(2) $v(\mathscr{A}\to\mathscr{B})=F$ 当且仅当 $v(\mathscr{A})=T$ 和 $v(\mathscr{A})=F$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的一个公式 $\mathscr{A}$ 是一个 &lt;em>重言式&lt;/em>，如果对每个赋值 $v$，都有 $v(\mathscr{A})=T$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Soundness，可靠性):&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的每个定理都是重言式。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+数学归纳法。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Consistency, 一致性):&lt;/strong>&lt;/p>
+&lt;p>$L$ 中的不存在公式 $\mathscr{A}$，使得 $\mathscr{A}$ 和 $(\sim\mathscr{A})$ 都是 $L$ 中的定理。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>
+Soundness 可以推出 consistency。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition (Adequacy, 完备性):&lt;/strong>&lt;/p>
+&lt;p>如果 $\mathscr{A}$ 是 $L$ 中的一个公式，且为重言式，那么 $\mathscr{A}$ 是 $L$ 中的一个定理。&lt;/p>
+&lt;/blockquote>
+&lt;p>为了证明 adequacy，我们需要引入新的概念。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个 &lt;em>扩充 (extension)&lt;/em> 是一个形式系统，它通过修改或者扩大公理组使得原来所有的定理仍是定理（也可能引入新的定理）而得到。&lt;/p>
+&lt;/blockquote>
+&lt;p>注意，此处说的是 &lt;strong>修改&lt;/strong> 或 &lt;strong>扩大&lt;/strong>，而并不仅仅是 &lt;strong>扩大&lt;/strong>。 一个与 $L$ 没有共同公理的形式系统也可能是 $L$ 的一个扩充。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个扩充 $L^*$ 是一致的，当且仅当存在一个公式，它不是 $L^*$ 中的定理。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>(1) 如果 $L^*$ 一致，那么对任意公式 $\mathscr{A}$，总有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 不是 $L^*$ 中的定理。&lt;/p>
+&lt;p>(2) 如果 $L^*$ 不一致，我们证明任意公式 $\mathscr{A}$ 都是 $L^*$ 中的定理。因为存在 $\mathscr{B}$，使得 $\mathscr{B}$ 和 $(\sim\mathscr{B})$ 都是 $L^*$ 中的定理。先前证过 $\vdash_L (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$，所以 $\vdash_{L^*} (\sim\mathscr{B}\to(\mathscr{B}\to\mathscr{A}))$。再应用两次 MP 即可得到 $\vdash_{L^*} \mathscr{A}$。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>令 $L^*$ 是 $L$ 的一个一致的扩充，并且 $\mathscr{A}$ 是一个公式，它不是 $L^*$ 的一条定理，那么将 $L^*$ 补充公理 $(\sim\mathscr{A})$ 得到的系统 $L^{**}$ 也是一致的。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>如果 $L^{**}$ 不一致，那么 $\vdash_{L^{**}} \mathscr{A}$，即 $\{\sim\mathscr{A}\}\vdash_{L^*} \mathscr{A}$。&lt;/p>
+&lt;p>由 deduction theorem，$\vdash_{L^*} (\sim\mathscr{A}\to\mathscr{A})$。&lt;/p>
+&lt;p>先前有 $\vdash_L ((\sim\mathscr{A}\to\mathscr{A})\to\mathscr{A})$，故 $\vdash_{L^*} \mathscr{A}$。矛盾&lt;/p>
+&lt;/blockquote>
+&lt;p>由此可知，我们可以依次考察所有公式 $\mathscr{A}$，将 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 加入公理组中，最终得到一个一致的形式系统，且有对于所有公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是它的定理。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>$L$ 的一个扩充是 &lt;em>完全 (complete)&lt;/em> 的，如果对每个公式 $\mathscr{A}$，都有 $\mathscr{A}$ 或 $(\sim\mathscr{A})$ 是该扩充的一条定理。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>存在一个 $L$ 的一致完全扩充。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proposition:&lt;/strong>&lt;/p>
+&lt;p>如果 $L^*$ 是 $L$ 的一个一致完全扩充，那么存在一种赋值使得 $L^*$ 中的每个定理都取值 $T$。&lt;/p>
+&lt;p>&lt;strong>Proof:&lt;/strong>&lt;/p>
+&lt;p>定义 $v(\mathscr{A})=T$，如果 $\mathscr{A}$ 是 $L^*$ 中的一条定理，反之定义 $v(\mathscr{A})=F$。用 valuation 的定义可以证明这样的函数是一个 valuation。&lt;/p>
+&lt;/blockquote>
+&lt;blockquote>
+&lt;p>&lt;strong>Proof of the adequacy theorem of L:&lt;/strong>&lt;/p>
+&lt;p>假设 $\mathscr{A}$ 是重言式，但不是 $L$ 的定理，那么可以扩充 $L$ 为 $L\cup\{\sim\mathscr{A}\}$ 再到一个一致完全扩充 $L^*$。$\vdash_{L^*}(\sim\mathscr{A})$，故必定存在赋值 $v$ 使得 $v(\sim\mathscr{A})=T$。矛盾。&lt;/p>
+&lt;/blockquote></description></item></channel></rss>

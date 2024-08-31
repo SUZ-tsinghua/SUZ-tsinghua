@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>DRL on suz</title><link>https://suz-tsinghua.github.io/tags/drl/</link><description>Recent content in DRL on suz</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sat, 31 Aug 2024 07:00:00 +0000</lastBuildDate><atom:link href="https://suz-tsinghua.github.io/tags/drl/index.xml" rel="self" type="application/rss+xml"/><item><title>Deep Reinforcement Learning Lecture 6</title><link>https://suz-tsinghua.github.io/p/drl-notes-6/</link><pubDate>Sat, 31 Aug 2024 07:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-6/</guid><description>&lt;h1 id="proximal-policy-optimization">Proximal Policy Optimization
+&lt;/h1>&lt;p>Proximal Policy Optimization (PPO) 的 objective function:&lt;/p>
+&lt;p>$$\max_{\theta}\left( \mathbb{E}_t\left[\frac{\pi_{\theta}(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)} A^{\pi_{\text{old}}}_t\right] - \beta \mathbb{E}_t\left[\textbf{KL}[\pi_{\theta_{\text{old}}}(\cdot|s_t), \pi_{\theta}(\cdot|s_t)]\right]\right)$$&lt;/p>
+&lt;p>其中第二项是为了保证 $\pi$ 在更新时不要发生太大的变化，这样可以让训练更稳定。&lt;/p>
+&lt;h2 id="adaptive-kl-penalty">Adaptive KL Penalty
+&lt;/h2>&lt;p>系数 $\beta$ 是可以调节的，用于调节 KL penalty 的比重，也可以 adaptively 调节。比如令&lt;/p>
+&lt;p>$$d = \mathbb{E}_t\left[\textbf{KL}[\pi_{\theta_{\text{old}}}(\cdot|s_t), \pi_{\theta}(\cdot|s_t)]\right]$$&lt;/p>
+&lt;p>再设定一个目标 $d_{\text{targ}}$，&lt;/p>
+&lt;ul>
+&lt;li>当 $d&amp;lt;d_{\text{targ}}/1.5$ 时，$\beta\leftarrow \beta/2$。&lt;/li>
+&lt;li>当 $d&amp;gt;d_{\text{targ}}\times 1.5$ 时，$\beta\leftarrow \beta\times 2$。&lt;/li>
+&lt;/ul>
+&lt;h3 id="ppo-with-clipped-objective">PPO with Clipped Objective
+&lt;/h3>&lt;p>为了让训练更加稳定，对 $r_t=\frac{\pi_{\theta}(a_t|s_t)}{\pi_{\theta_{\text{old}}}}$ 进行 clip：&lt;/p>
+&lt;p>$$L^{\text{CLIP}}=\mathbb{E}_t\left[\min \left(r_t A^{\pi_{\text{old}}}_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) A^{\pi_{\text{old}}}_t\right)\right]$$&lt;/p>
+&lt;h3 id="ppo-in-practice">PPO in Practice
+&lt;/h3>&lt;p>一般在使用时，会在 CLIP 项后额外加两项，而 KL divergence 则作为调节 learning rate 的判据 （KL小就调大 lr，KL大就调小 lr）。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-6/ppo.png"
+width="1701"
+height="548"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-6/ppo_hu18306677165486188349.png 480w, https://suz-tsinghua.github.io/p/drl-notes-6/ppo_hu5735245097465197443.png 1024w"
+loading="lazy"
+class="gallery-image"
+data-flex-grow="310"
+data-flex-basis="744px"
+>&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 5</title><link>https://suz-tsinghua.github.io/p/drl-notes-5/</link><pubDate>Sun, 21 Jul 2024 07:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-5/</guid><description>&lt;h1 id="actor-critic">Actor-Critic
+&lt;/h1>&lt;h2 id="off-policy-policy-gradient">Off-Policy Policy Gradient
+&lt;/h2>&lt;p>上节中我们提到，REINFORCE 中：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>等式右边的期望 $\mathbb{E}_{\tau}$ 是对当前 policy $\pi_{\theta}$ 而言的。因此在更新 policy 时只能采用当前 policy 跑出来的 trajectory 数据，不能用过往 policy 或者任意别的 policy 跑出来的 trajectory。而这使得 REINFORCE 的训练样本量较小，训练速度较慢。我们现在希望用某种方法使得 REINFORCE 能够使用别的 trajectory 数据。&lt;/p>
+&lt;h3 id="importance-sampling">Importance Sampling
+&lt;/h3>&lt;p>假设现在有一个随机变量 $x$，其概率密度函数 $p(x)$，我们希望估计函数 $f(x)$ 的均值 $\mathbb{E}_{x\sim p(x)}[f(x)]$。如果我们拥有一些符合概率密度函数 $p(x)$ 的 samples $\{x_i\}$ 则可以通过 Monte-Carlo 的办法进行直接估计：&lt;/p>
+&lt;p>$$\mathbb{E}_{x\sim p(x)}[f(x)]\approx \frac{1}{|{x_i}|} \sum_{i} f(x_i)$$&lt;/p>
+&lt;p>但实际情况是，我们拥有的 samples $\{x_i\}$ 并不符合 $p(x)$，而是符合另一概率密度函数 $q(x)$，则可以用以下 Monte-Carlo 的办法估计：&lt;/p>
+&lt;p>$$\mathbb{E}_{x\sim p(x)}[f(x)]=\int f(x) p(x) dx =\int f(x) \frac{p(x)}{q(x)} q(x) dx \approx \frac{1}{|{x_i}|} \sum_{i} f(x_i) \frac{p(x_i)}{q(x_i)}$$&lt;/p>
+&lt;p>这种方法称为 Importance Sampling。&lt;/p>
+&lt;h3 id="off-policy-pg">Off-Policy PG
+&lt;/h3>&lt;p>利用 Importance Sampling，在更新策略时我们可以使用别的 policy 跑出来的 trajectory，假设我们利用 $\pi_{\theta^{\prime}}$ 跑出来的数据来更新 $\pi_{\theta}$。&lt;/p>
+&lt;p>$$\begin{align*}
+\nabla_{\theta}J(\theta)&amp;amp;=\mathbb{E}_{\tau\sim p_{\theta}}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi_{\theta}(a_t|s_t)\right]\\
+&amp;amp;=\mathbb{E}_{\tau\sim p^{\prime}_{\theta}}\left[\frac{p_{\theta}(\tau)}{p_{\theta}^{\prime}(\tau)}R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi_{\theta}(a_t|s_t)\right]\\
+\end{align*}$$&lt;/p>
+&lt;p>其中：&lt;/p>
+&lt;p>$$\frac{p_{\theta}(\tau)}{p_{\theta}^{\prime}(\tau)}=\frac{\mu(s_0)\prod_{t=0}^{T-1}\left[\pi_{\theta}(a_t|s_t)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]}{\mu(s_0)\prod_{t=0}^{T-1}\left[\pi_{\theta^{\prime}}(a_t|s_t)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]}=\frac{\prod_{t=0}^{T-1}\left[\pi_{\theta}(a_t|s_t)\right]}{\prod_{t=0}^{T-1}\left[\pi_{\theta^{\prime}}(a_t|s_t)\right]}$$&lt;/p>
+&lt;h2 id="actor-critic-1">Actor-Critic
+&lt;/h2>&lt;p>事实上，我们除了可以选取 $\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$ 来作为 $\nabla_{\theta}J(\theta)$，还有许多别的选择：&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient.png"
+width="1702"
+height="1016"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient_hu12674062784506064854.png 480w, https://suz-tsinghua.github.io/p/drl-notes-5/general_form_policy_gradient_hu9820593768097020010.png 1024w"
+loading="lazy"
+alt="A general form of policy gradient methods. (Schulman et al., 2016, https://arxiv.org/abs/1506.02438)"
+class="gallery-image"
+data-flex-grow="167"
+data-flex-basis="402px"
+>&lt;/p>
+&lt;p>我们接下来考虑形式：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[\sum_{t=0}^{T-1}(Q^{\pi}(s_t, a_t)-V^{\pi}(s_t))\nabla_{\theta}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>其中 $V^{\pi}(s_t)$ 即为上一讲说到的 baseline，可以起到降低 variance 的作用。&lt;/p>
+&lt;p>由于 $V^{\pi}$ 并不能轻易得到，我们在原先已有神经网络 $\pi_{\theta}$ 的基础上再加一个神经网络 $V^{\pi}_{\phi}$。用新的神经网络 $V^{\pi}_{\phi}$ 去拟合 $V^{\pi}$。我们需要同时学习这两个神经网络。直观上来看，由于新的神经网络表征的是 value function，它相当于对原有的 policy 网络 $\pi_{\theta}$ 进行评判，因此我们把这类方法称为 actor-critic，$\pi_{\theta}$ 是 actor，$V^{\pi}_{\phi}$ 是 critic。&lt;/p>
+&lt;h3 id="batch-actor-critic-algorithm">Batch Actor-Critic Algorithm
+&lt;/h3>&lt;blockquote>
+&lt;p>&lt;strong>Batch Actor-Critic Algorithm (Without Discount):&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>在机器人或别的智能体上跑 $\pi_{\theta}$，得到很多 trajectories 数据。&lt;/li>
+&lt;li>用收集到的数据更新 $V^{\pi}_{\phi}$ 网络。&lt;/li>
+&lt;li>对收集到的每个 transition $(s, a, r, s^{\prime})$， 计算出估计的 advantage function $A^{\pi}(s,a)=r(s,a)+V^{\pi}_{\phi}(s^{\prime})-V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>算出梯度 $\nabla_{\theta}J(\theta)\approx \frac{1}{N} \sum_i A^{\pi}(s_i,a_i)\nabla_{\theta} \log\pi_{\theta}(a_i|s_i)$。&lt;/li>
+&lt;li>更新参数 $\theta\leftarrow \theta + \alpha \nabla_{\theta}J(\theta)$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>但如果我们不想收集完一整个 episode 的数据再更新，而是想要每个 step 都能更新一次怎么办？我们可以用 TD update 来更新 $V^{\pi}_{\phi}$，并且再加入 discount。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Batch Actor-Critic Algorithm:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>在机器人或别的智能体上跑 $\pi_{\theta}$，得到一个 step 的数据 $(s, a, r, s^{\prime})$。&lt;/li>
+&lt;li>以 $r+\gamma V^{\pi}_{\phi}(s^{\prime})$ 为目标更新 $V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>计算出估计的 advantage function $A^{\pi}(s,a)=r(s,a)+V^{\pi}_{\phi}(s^{\prime})-V^{\pi}_{\phi}(s)$。&lt;/li>
+&lt;li>算出梯度 $\nabla_{\theta}J(\theta)\approx \frac{1}{N} \sum_i A^{\pi}(s_i,a_i)\nabla_{\theta} \log\pi_{\theta}(a_i|s_i)$。&lt;/li>
+&lt;li>更新参数 $\theta\leftarrow \theta + \alpha \nabla_{\theta}J(\theta)$。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="ddpg">DDPG
+&lt;/h3>&lt;p>我们知道，在 DQN 中，$Q$ 的更新需要用到 target: $r+\gamma\max_{a^{\prime}}Q(s^{\prime},a^{\prime})$。由于要对 $a^{\prime}$ 取最大值，DQN 不能直接被应用到 continuous action 的情况。那是否有办法将其应用到 continuous action 的情况呢？提供几种可能的解决方法：&lt;/p>
+&lt;ul>
+&lt;li>Solution 1: 取 $N$ 个 $a$ 的samples，取其中的最大值，即认为 $\max_{a^{\prime}}Q(s^{\prime},a^{\prime})\approx \max{Q(s^{\prime},a^{\prime}_1), Q(s^{\prime},a^{\prime}_2), &amp;hellip;, Q(s^{\prime},a^{\prime}_N)}$。但这样取出来的值可能和真正的最大值差的非常大，尤其是 action space 很大的时候。&lt;/li>
+&lt;li>Solution 2：参数化 $Q$ 时用 $Q_{\phi}(s,a)=-\frac{1}{2}(a-\mu_{\phi}(s))^{T}P_{\phi}(s)(a-\mu_{\phi}(s))+V_{\phi}(s)$。这样可以直接得出 $\arg\max Q$ 和 $\max Q$，但由于限制了表达形式，会让 $Q$ less expressive。&lt;/li>
+&lt;li>Solution 3：每次求 $\max_{a^{\prime}}Q(s^{\prime},a^{\prime})$ 都做 gradient ascent。这样太慢了。&lt;/li>
+&lt;li>Solution 4：直接学习一个 $\mu_{\theta}(s)$ s.t. $\mu_{\theta}(s)\approx\argmax_a Q(s,a)$。&lt;/li>
+&lt;/ul>
+&lt;p>顺着 solution 4，我们得到一个新的算法 Deep Deterministic Policy Gradient (DDPG)。&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>DDPG:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>每一步的 action 从 $\mu_{\theta}(s)$+noise 中 sample，得到很多 transitions $(s_i, a_i, s_i^{\prime}, r_i)$，将他们存到 buffer $\mathcal{B}$ 中。&lt;/li>
+&lt;li>随机从 $\mathcal{B}$ 中 sample 得到 $N$ 个 transitions $(s_j, a_j, s_j^{\prime}, r_j)$。&lt;/li>
+&lt;li>用 target network 得到 $y_j=r_j+\gamma Q_{\phi^{\prime}}(s_j^{\prime},\mu_{\theta^{\prime}}(s_j^{\prime}))$。&lt;/li>
+&lt;li>Update $Q_{\phi}$ to minimize the loss funciton $L=\frac{1}{N}\sum_j(y_j-Q_{\phi}(s_j, a_j))^2$。&lt;/li>
+&lt;li>Update the actor network $\mu_{\theta}(s)$ by $\theta\leftarrow \theta+\beta\frac{1}{N}\sum_j\frac{d\mu}{d\theta}(s_j)\frac{dQ}{da}(s_j, \mu_{\theta}(s_j))$。&lt;/li>
+&lt;li>用不管什么方法，更新 target network。&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;h3 id="td3">TD3
+&lt;/h3>&lt;p>Twin Delayed DDPG (TD3) 通过在 DDPG 的基础上进行改进得来。它多加了 3 个技巧：&lt;/p>
+&lt;h4 id="clipped-double-q-learning">Clipped Double Q-learning
+&lt;/h4>&lt;p>这是说，采用两套 networks $(Q_{\phi_1}, \mu_{\theta_1}), (Q_{\phi_2}, \mu_{\theta_2})$。在更新两套 networks 时，分别采用：&lt;/p>
+&lt;p>$$y_1=r+\gamma \min_i Q_{\phi_i}(s^{\prime}, \mu_{\theta_1}(s^{\prime}))$$
+$$y_2=r+\gamma \min_i Q_{\phi_i}(s^{\prime}, \mu_{\theta_2}(s^{\prime}))$$&lt;/p>
+&lt;p>这有助于解决 overestimation of $Q$。&lt;/p>
+&lt;h4 id="delayed-policy-updates">Delayed Policy Updates
+&lt;/h4>&lt;p>因为 $Q$ network 和 $\mu$ network 是耦合的，也就是说当 policy 较差的时候， $Q$ 由于 overestimation 也会变差；而 $Q$ 变差了又会得到更差的 policy。因此降低 $\mu$ network 的更新频率，每次先固定 $\mu$，更新多次 $Q$ 直到其较为稳定，这时再去更新 $\mu$。&lt;/p>
+&lt;h4 id="target-policy-smoothing">Target Policy Smoothing
+&lt;/h4>&lt;p>计算 $y$ 时，将 $\mu_{\theta^{\prime}}(s^{\prime})$ 替换为 $clip(\mu_{\theta^{\prime}}(s^{\prime})+clip(\epsilon, -c, c), a_{low}, a_{high})$。这样可以让 policy 函数更加 smooth，这是基于相近的 state 本就应该有相近的 action 的假设的。&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 4</title><link>https://suz-tsinghua.github.io/p/drl-notes-4/</link><pubDate>Fri, 19 Jul 2024 08:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-4/</guid><description>&lt;h1 id="advanced-dqn-and-policy-gradient">Advanced DQN and Policy Gradient
+&lt;/h1>&lt;h2 id="dqn-variants">DQN Variants
+&lt;/h2>&lt;p>本节我们先来介绍一下 DQN 的几种 variants。&lt;/p>
+&lt;h3 id="double-dqn">Double DQN
+&lt;/h3>&lt;p>在加入 Target Network 后，DQN 的 loss function 为：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>在 $Q(s, a; w)$ 收敛的过程中，我们可以将其视为一个随机变量，其值随着 $w$ 的变化而上下浮动，以真值 $\hat{Q}(s,a)$ 为期望。由于采用了 Experience Replay，同一个 transition 会在 $w$ 不同的时候被多次计算，我们实际上在以：&lt;/p>
+&lt;p>$$\mathbb{E}_{w^-}\left[r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)\right]$$&lt;/p>
+&lt;p>为 target 优化 $Q(s_t, a_t; w)$。根据不等式：&lt;/p>
+&lt;p>$$\mathbb{E}(\max(X_1, X_2, &amp;hellip;))\geq \max(\mathbb{E}(X_1), \mathbb{E}(X_2), &amp;hellip;)$$&lt;/p>
+&lt;p>我们能得到：&lt;/p>
+&lt;p>$$\mathbb{E}_{w^-}\left[r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)\right]\geq r_t+\gamma \max_{a^{\prime}} \hat{Q}(s_{t+1}, a^{\prime})$$&lt;/p>
+&lt;p>不等式右边才是我们想要的 target，因此可见 DQN 往往会存在 overestimation 的问题。我们使用的 target 会比实际的 target 大。&lt;/p>
+&lt;p>解决方法是我们用当前的 $Q$-network $w$ 来选择最好的 action，但用之前的 $Q$-network $w^-$ 来 evaluate action，即：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma Q\left(s_{t+1}, \argmax_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w); w^-\right)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>这个方法被称为 Double DQN。&lt;/p>
+&lt;p>显然，$Q\left(s_{t+1}, \argmax_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w); w^-\right)\leq \max_{a^{\prime}}Q\left(s_{t+1}, a^{\prime}; w^-\right)$。因此相较于 DQN，Double DQN 可以在一定程度上缓解 overestimation 带来的影响。并且当 $w^-$ 和 $w$ 收敛之后，不等式会取等。&lt;/p>
+&lt;h3 id="prioritized-experience-replay">Prioritized Experience Replay
+&lt;/h3>&lt;p>由于 DQN 对 replay buffer 里的 samples 学习好坏程度并不相同，有些 samples 学习得较好，有些则学习得较差。如果每次从 buffer 中取 samples 都完全随机的话，有可能会 overfit 到一些 samples 上，而另一些 samples 则几乎没学到。这样就会让训练效果变差，训练速度变慢。&lt;/p>
+&lt;p>解决方法是每次根据学习得好坏来对 replay buffer 进行加权采样。Store experience in priority queue according to DQN error：&lt;/p>
+&lt;p>$$\left|r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right|$$&lt;/p>
+&lt;p>对 error 进行一些函数变换之后作为 sample 的权重。这个方法被称作 Prioritized Experience Replay。&lt;/p>
+&lt;h3 id="dueling-dqn">Dueling DQN
+&lt;/h3>&lt;p>我们定义 advantage function：&lt;/p>
+&lt;p>$$A^{\pi}(s,a)=Q^{\pi}(s,a)-V^{\pi}(s)$$&lt;/p>
+&lt;p>用来衡量 state $s$ 下，action $a$ 相较于其他的 actions 好多少。&lt;/p>
+&lt;p>Dueling DQN 将 $Q$-network 分为两个 channel，一个 channel 用来学习只与 state 有关的 value function $V(s;w)$；另一个 channel 学习 advantage function $A(s,a;w)$。计算 $Q$ 时将二者加起来：&lt;/p>
+&lt;p>$$Q(s,a;w)=V(s;w)+A(s,a;w)$$&lt;/p>
+&lt;p>其中 $V(s;w)$ 与 $A(s,a;w)$ 共享部分结构，如下图所示。网络的输入是 $s$ 的 vector representation，输出是大小为 $|A|$ 的向量。$V(s;w)$ 的输出在图中呈现为单个数。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/dueling.jpg"
+width="624"
+height="344"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/dueling_hu7026778928025059580.jpg 480w, https://suz-tsinghua.github.io/p/drl-notes-4/dueling_hu8892534989995122532.jpg 1024w"
+loading="lazy"
+alt="The Architecture of Dueling DQN"
+class="gallery-image"
+data-flex-grow="181"
+data-flex-basis="435px"
+>&lt;/p>
+&lt;h3 id="n-step-return">$n$-Step Return
+&lt;/h3>&lt;p>我们先前一直用的都是 1-step return 作为 target，当然也可以用 $n$-step return：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(R_t^{n}+\gamma^n\max_{a^{\prime}}Q(s_{t+n}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;h3 id="rainbow">Rainbow
+&lt;/h3>&lt;p>&lt;a class="link" href="https://arxiv.org/abs/1710.02298" target="_blank" rel="noopener"
+>Rainbow&lt;/a> 这篇工作总结比较了 DQN 的许多变种，并同时运用了这些 tricks 来得到较好的效果。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/rainbow.png"
+width="711"
+height="468"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/rainbow_hu16392776797459743248.png 480w, https://suz-tsinghua.github.io/p/drl-notes-4/rainbow_hu2209319984347038257.png 1024w"
+loading="lazy"
+alt="Rainbow"
+class="gallery-image"
+data-flex-grow="151"
+data-flex-basis="364px"
+>&lt;/p>
+&lt;h2 id="policy-gradient">Policy Gradient
+&lt;/h2>&lt;p>相较于 $Q$-learning，DQN 已经在一定程度上解决了 $|S|$ 与 $|A|$ 较大的问题，但还不够，从 $Q$ function 得到 policy 需要对 $Q(s,a) \forall a$ 进行比较，这相当耗时。为了在更大的空间里进行 RL，我们希望直接参数化 policy：&lt;/p>
+&lt;p>$$\pi_{\theta}(s,a)=\mathbb{P}[a|s,\theta]$$&lt;/p>
+&lt;h3 id="three-types-of-rl-methods">Three Types of RL Methods
+&lt;/h3>&lt;p>RL 可以根据是否学习参数化的 value/$Q$ function，是否学习参数化的 policy 分为三大类&lt;/p>
+&lt;ul>
+&lt;li>Value Based: Learn Value/$Q$ Function, Implicit Policy.&lt;/li>
+&lt;li>Policy Based: No Value Function, Learn Policy.&lt;/li>
+&lt;li>Actor-Critic: Learn Value Function, Learn Policy.&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-4/value-policy.png"
+width="348"
+height="218"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-4/value-policy_hu10201127908205460900.png 480w, https://suz-tsinghua.github.io/p/drl-notes-4/value-policy_hu8778164666726168570.png 1024w"
+loading="lazy"
+alt="Tree types of RL methods"
+class="gallery-image"
+data-flex-grow="159"
+data-flex-basis="383px"
+>&lt;/p>
+&lt;p>我们之前讲的方法都属于 Value Based，这部分会介绍 Policy Based Method，而下一节会讲 Actor-Critic。&lt;/p>
+&lt;h3 id="policy-parameterization">Policy Parameterization
+&lt;/h3>&lt;p>先讲如何 parameterize $\pi_{\theta}$。&lt;/p>
+&lt;h4 id="softmax-policy">Softmax Policy
+&lt;/h4>&lt;p>$$\pi_{\theta}(s,a)\propto e^{\phi(s,a)^{\top}\theta}$$&lt;/p>
+&lt;p>其中 $\phi(s,a)$ 是 $s,a$ 的 features，也可以用 neural networks 表示。&lt;/p>
+&lt;p>定义 score function 为 $\nabla_{\theta}\log \pi_{\theta}(s,a)$ （后面的推导中会看到为何要这么定义）。那么 softmax policy 的 score function 为：&lt;/p>
+&lt;p>$$\nabla_{\theta}\log \pi_{\theta}(s,a)=\phi(s,a)-\mathbb{E}_{\pi_{\theta}}[\phi(s,\cdot)]$$&lt;/p>
+&lt;h4 id="gaussian-policy">Gaussian Policy
+&lt;/h4>&lt;p>一个更广泛运用的 parameterized policy 是 Gaussian Policy，其只适用于 continuous actions。&lt;/p>
+&lt;p>Action 的均值为 $\mu(s)=\phi(s)^{\top}\theta$，其中 $\phi(s)$ 是 $s$ 的 features，也可以用 neural networks 表示。&lt;/p>
+&lt;p>Action 的方差为 $\sigma^2$，可以是固定的，也可以是 parameterized 的。&lt;/p>
+&lt;p>Action 从高斯分布中采样，$a\sim \mathcal{N}(\mu(s), \sigma^2)$。&lt;/p>
+&lt;p>Score function:&lt;/p>
+&lt;p>$$\nabla_{\theta}\log \pi_{\theta}(s,a)=\frac{(a-\mu(s))\phi(s)}{\sigma^2}$$&lt;/p>
+&lt;h3 id="policy-objective-functions">Policy Objective Functions
+&lt;/h3>&lt;p>既然要学习参数化的 policy $\pi_{\theta}(s,a)$，那么该如何衡量 policy 的好坏，如何定义 objective function to maximize。一种可行的定义方法是 average reward per time-step：&lt;/p>
+&lt;p>$$J_{avR}(\theta)=\sum_{s}d^{\pi_{\theta}}(s)\sum_a\pi_{\theta}(s,a)r(s,a)$$&lt;/p>
+&lt;p>这里，$d^{\pi_{\theta}}$ 是 MDP 在 $\pi_{\theta}$ 下的稳定分布。&lt;/p>
+&lt;p>不过，在 model-free 的情况下我们无法得知 $d^{\pi_{\theta}}$，另一种较为直接的办法就是 maximize expected return of trajectories：&lt;/p>
+&lt;p>$$J(\theta)=\mathbb{E}_{\tau}[R(\tau)]$$&lt;/p>
+&lt;h3 id="gradient-of-objective-functions">Gradient of Objective Functions
+&lt;/h3>&lt;p>为了更新 policy，我们需要对 objective funcion 进行 gradient ascent：&lt;/p>
+&lt;p>$$\Delta \theta = \alpha \nabla_{\theta}J(\theta)$$&lt;/p>
+&lt;p>接下来就对这个导数进行推导。&lt;/p>
+&lt;p>$$\begin{align*}
+\nabla_{\theta}J(\theta)&amp;amp;=\nabla_{\theta}\sum_{\tau}\mathbb{P}(\tau|\theta)R(\tau)\\
+&amp;amp;=\sum_{\tau}R(\tau)\nabla_{\theta}\mathbb{P}(\tau|\theta)\\
+&amp;amp;=\sum_{\tau}R(\tau)\mathbb{P}(\tau|\theta)\frac{\nabla_{\theta}\mathbb{P}(\tau|\theta)}{\mathbb{P}(\tau|\theta)}\\
+&amp;amp;=\sum_{\tau}R(\tau)\mathbb{P}(\tau|\theta)\nabla_{\theta}\log\mathbb{P}(\tau|\theta)\\
+&amp;amp;=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\log\mathbb{P}(\tau|\theta)\right]
+\end{align*}$$&lt;/p>
+&lt;p>假设 $\tau = s_0, a_0, r_0, s_1, a_1, &amp;hellip;, s_{T-1}, a_{T-1}, r_{T-1}, s_T$，那么有：&lt;/p>
+&lt;p>$$\mathbb{P}(\tau|\theta)=\mu(s_0)\prod_{t=0}^{T-1}\left[\pi(a_t|s_t,\theta)\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]$$&lt;/p>
+&lt;p>其中 $\mu(s_0)$ 是 initial distribution。取对数：&lt;/p>
+&lt;p>$$\log\mathbb{P}(\tau|\theta)=\log\mu(s_0)+\sum_{t=0}^{T-1}\left[\log\pi(a_t|s_t,\theta)+\log\mathbb{P}(s_{t+1},r_t|s_t, a_t)\right]$$&lt;/p>
+&lt;p>求导：&lt;/p>
+&lt;p>$$\nabla_{\theta}\log\mathbb{P}(\tau|\theta)=\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)$$&lt;/p>
+&lt;p>代入原式中，得到：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[R(\tau)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p>
+&lt;p>在已知 $\tau$ 以及 $\pi$ 的情况下，括号中的内容可以直接算出。Expectation 则可以用 MC 来 estimate。&lt;/p>
+&lt;h3 id="reinforce">REINFORCE
+&lt;/h3>&lt;p>根据以上的推导，得出了一个 MC-based, policy-based RL method：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>REINFORCE:&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>sample {$\tau^i$} from $\pi_{\theta}$ (run the policy)&lt;/li>
+&lt;li>$\nabla_{\theta}J(\theta)\approx\frac{1}{|\{\tau^i\}|}\sum_{i}\left[R(\tau_i)\sum_{t}\nabla_{\theta}\log\pi_{\theta}(a_t^i|s_t^i)\right]$&lt;/li>
+&lt;li>$\theta\leftarrow \theta+\alpha\nabla_{\theta}J(\theta)$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>REINFORCE 的一个问题是，其只能用当前 policy 跑出来的 trajectory 进行策略的更新，即它是 &lt;strong>on-policy&lt;/strong> 的。用别的 policy 跑出来的 trajectory 进行更新会导致 MC estimate 错误。这样一种性质使得 REINFORCE 的训练非常慢。下一节课会讲如何改进得到 &lt;strong>off-policy&lt;/strong> Policy Gradient。&lt;/p>
+&lt;h3 id="baseline-with-reinforce">Baseline with REINFORCE
+&lt;/h3>&lt;p>REINFORCE 中采用 MC 的方法进行 estimate，会导致 high variance，我们试图减小 variance。先不考虑整个 trajectory，只考虑一个 step。即减小 $r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)$ 的方差。&lt;/p>
+&lt;p>注意到，$\forall B(s)$ irrelevant with $a$：&lt;/p>
+&lt;p>$$\begin{align*}
+\mathbb{E}_{\pi_{\theta}}\left[B(s)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]&amp;amp;=\sum_{a}\pi_{\theta}(s,a)B(s)\nabla_{\theta}\log\pi_{\theta}(s,a)\\
+&amp;amp;=\sum_{a}B(s)\nabla_{\theta}\pi_{\theta}(s,a)\\
+&amp;amp;=B(s)\nabla_{\theta}\sum_{a}\pi_{\theta}(s,a)\\
+&amp;amp;=B(s)\nabla_{\theta}1\\
+&amp;amp;=0
+\end{align*}$$&lt;/p>
+&lt;p>故而用 $\mathbb{E}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$ 来代替 $\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$ 并不会影响 expectation。并且我们可以证明，当 $B(s)$ 合适的时候，$\text{Var}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right] &amp;lt; \text{Var}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]$：&lt;/p>
+&lt;p>$$\begin{align*}
+&amp;amp;\text{Var}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right] - \text{Var}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]\\
+=&amp;amp;\mathbb{E}_{\pi_{\theta}}\left[\left(r(s,a)-B(s)\right)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2 - \mathbb{E}_{\pi_{\theta}}\left[r(s,a)\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2\\
+=&amp;amp;\mathbb{E}_{\pi_{\theta}}\left[\left(B(s)^2-2r(s,a)B(s)\right)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]\\
+=&amp;amp;B(s)^2\mathbb{E}_{\pi_{\theta}}\left[\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2-2B(s)\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]
+\end{align*}$$&lt;/p>
+&lt;p>这是个二次函数，当 $B(s)=\frac{\mathbb{E}_{\pi_{\theta}}\left[r(s,a)\left(\nabla_{\theta}\log\pi_{\theta}(s,a)\right)^2\right]}{\mathbb{E}_{\pi_{\theta}}\left[\nabla_{\theta}\log\pi_{\theta}(s,a)\right]^2}$ 时，两个 Variance 的差取最小值，小于0。&lt;/p>
+&lt;p>$B(s)$ 称为 baseline。在 REINFORCE 中，选择一个合适的 constant baseline 也可以 reduce variance：&lt;/p>
+&lt;p>$$\nabla_{\theta}J(\theta)=\mathbb{E}_{\tau}\left[(R(\tau)-B)\nabla_{\theta}\sum_{t=0}^{T-1}\log\pi(a_t|s_t,\theta)\right]$$&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 3</title><link>https://suz-tsinghua.github.io/p/drl-notes-3/</link><pubDate>Thu, 18 Jul 2024 09:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-3/</guid><description>&lt;h1 id="q-learning-and-deep-q-learning">Q-Learning and Deep Q-Learning
+&lt;/h1>&lt;h2 id="from-estimation-to-policy">From Estimation to Policy
+&lt;/h2>&lt;h3 id="policy-evaluation-for-qsa">Policy Evaluation for $Q(s,a)$
+&lt;/h3>&lt;p>在上一节中，我们学习了在 model-free 的情况下，如何进行 Policy Evaluation。我们知道，Policy Iteration 除了 Policy Evaluation，还有一步 Policy Improvement。这里先来看下如何在 model-free 的情况下进行 Policy Improvement。最初的 Policy Iteration 中 Policy Improvement 的方法是：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V(s^{\prime})]$$&lt;/p>
+&lt;p>但这种方法要求知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$。另一种方法是，在 Policy Evaluation 的时候，我们并不去计算 $V(s)$，而是计算 $Q(s,a)$。这样就可以直接通过：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a Q(s,a)$$&lt;/p>
+&lt;p>来进行 Policy Improvement。$Q(s,a)$ 也满足 Bellman Equation：&lt;/p>
+&lt;p>$$Q(s,a)=\sum_{s^{\prime}}T(s,a,s^{\prime})(R(s,a,s^{\prime})+\gamma\max_{a^{\prime}}Q(s^{\prime}, a^{\prime}))$$&lt;/p>
+&lt;p>因此用 MC、TD 对 $Q$ 进行 Policy Evaluation 的方法与对 $V$ 进行 Policy Evaluation 的方法类似，这里不再详细阐述。&lt;/p>
+&lt;h3 id="exploration-vs-exploitation">Exploration v.s. Exploitation
+&lt;/h3>&lt;p>当然，完全根据以上得到的 $Q$ 进行 Policy Iteration 是不可取的。我们来看这样一个简单的例子：&lt;/p>
+&lt;p>假设一个 MDP 只有一个 state $s$，在这个 state 上有两个 actions $a_1, a_2$。$R(s,a_1)$ 有 100 个样本，均取值为 1；而 $R(s,a_2)$ 仅有一个样本，取值为 0。那么根据以上的 Policy Iteration，得出的 policy 会永远选择 $a_1$。但实际上由于选择 $a_2$ 的样本数较少，我们不能确定 $\mathbb{E}(R(s,a_2))&amp;lt;\mathbb{E}(R(s,a_1))$。所以只用以上的方法进行 RL，很可能无法学到 optimal policy。有时候也需要选择当前看来并不是最优的 action 来拓展眼界。&lt;/p>
+&lt;p>永远选择当前最优策略的行动方法称为 exploitation，而在上面所说的例子中，我们可以在某些时候选择当前看来并不是最好的 solution $a_2$，这种行为叫做 exploration。&lt;/p>
+&lt;ul>
+&lt;li>Exploration: Get more information about the world. 可能有些更好地选择 agent 之前并不知道，它需要勇于尝试未知的事物才能得到更好的 reward。&lt;/li>
+&lt;li>Exploitation: To try to get reward. RL 的目的毕竟还是得到更高的 reward，在大多数情况下，我们更希望是一个“保守派”，选择目前最优的策略以期得到较高的 reward。&lt;/li>
+&lt;/ul>
+&lt;p>剩下的问题就是，该在什么时候选择 exploration，什么时候选择 exploitation，这种决定何时选择 exploration 何时选择 exploitation 的策略被称为 exploration/exploitation policy。 一个数学上十分简单的 exploration/exploitaton policy 是 $\epsilon$-greedy exploration，即有 $1-\epsilon$ 的概率选择 greedy action (exploitation)，有 $\epsilon$ 的概率 act randomly (exploration)。由于 exploration 的时候也有可能选到 greedy action，policy 可以被写成：&lt;/p>
+&lt;p>$$\pi(a|s)=\begin{cases} \epsilon/|A|+1-\epsilon &amp;amp;\text{if } a=\argmax_{a^{\prime}\in A}Q(s,a^{\prime})\\
+\epsilon/|A| &amp;amp; \text{otherwise}\end{cases}$$&lt;/p>
+&lt;p>有些 exploration/exploitation policy 具有一种特殊的性质，这种性质被称为 &lt;strong>Greedy in the Limit with Infinite Exploration (GLIE)&lt;/strong>。顾名思义，这类 exploration/exploitation policy 当 explore 得足够多的时候会收敛到 fully exploitation policy。更严谨地说，当所有的 state-action pair 都被 explore 了无数遍时，&lt;/p>
+&lt;p>$$\lim_{k\to\infty} N_k(s,a)=\infty$$&lt;/p>
+&lt;p>要求 exploration/exploitation policy 收敛到 greedy policy，&lt;/p>
+&lt;p>$$\lim_{k\to\infty}\pi_k(a|s)=\mathbf{1}\left(a=\argmax_{a^{\prime}\in A}Q_k(s,a^{\prime})\right)$$&lt;/p>
+&lt;p>这里，$k$ 代表走了多少个 step。For example, $\epsilon$-greedy policy is &lt;strong>GLIE&lt;/strong> if $\epsilon_k=\frac{1}{k}$. 另一个 &lt;strong>GLIE&lt;/strong> 的例子是 Boltzman Exploration：&lt;/p>
+&lt;p>$$\pi(a|s)=\frac{\exp(Q(s,a)/T)}{\sum_{a^{\prime}\in A}\exp(Q(s,a^{\prime})/T)}$$&lt;/p>
+&lt;p>要求 $T\to 0$。&lt;/p>
+&lt;h3 id="q-learning">$Q$ Learning
+&lt;/h3>&lt;p>总结一下之前所学的内容：&lt;/p>
+&lt;ul>
+&lt;li>我们先学了 Value Iteration, Policy Iteration 等。&lt;/li>
+&lt;li>但是由于大部分情况下我们并不知道 transition/reward functions，我们需要 MC, TD 等方法来 estimate value function。&lt;/li>
+&lt;li>用 value function 来得到 policy 还是需要 transition/reward functions，所以我们用 TD 来 estimate $Q$ 而非 value function。&lt;/li>
+&lt;li>即使采用了 $Q$ function，我们的学习过程仍然是 passive 的，有些未曾涉足的区域会永远被忽视。因此需要 explore，我们采用某种 exploration/exploitation policy。&lt;/li>
+&lt;/ul>
+&lt;p>通过以上的过程，我们几乎已经创造出了 $Q$ Learning。Formally:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>$Q$-Learning&lt;/strong>:&lt;/p>
+&lt;ul>
+&lt;li>Start with initial $Q$-function (e.g. all zeros).&lt;/li>
+&lt;li>Every time take an action from an exploration/exploitation &lt;strong>GLIE&lt;/strong> policy. This action gives a transition $s_t,a_t,r_t,s_{t+1}$. Perform TD update for the $Q$ function:
+$$Q(s_t,a_t)\leftarrow Q(s_t, a_t)+\alpha\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime})-Q(s_t, a_t)\right)$$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>$Q$-learning converges to the optimal $Q$-value function in the limit with probability 1, if every state-action pair is visited infinitely often. 即 $Q$-learning 在某条件下一定能收敛到最优解。&lt;/p>
+&lt;p>由于每一步的 update 并不依赖真实的 $a_{t+1}$，我们称 $Q$ Learning 是 &lt;strong>off-policy&lt;/strong> 的。$Q$ Learning 的一种 &lt;strong>on-policy&lt;/strong> 的变种是 State-Action-Reward-State-Action (SARSA)，即把每步 update 替换为：&lt;/p>
+&lt;p>$$Q(s_t,a_t)\leftarrow Q(s_t, a_t)+\alpha\left(r_t+\gamma Q(s_{t+1}, a_{t+1})-Q(s_t, a_t)\right)$$&lt;/p>
+&lt;h2 id="function-approximation">Function Approximation
+&lt;/h2>&lt;p>尽管 $Q$ Learning 非常强大，但它也有其局限性。$Q$ Learning 中，我们需要存储 $Q$ function，其定义域大小正比于 $|S|\times|A|$，因此 $Q$ Learning 只能适用于 $|S|$ 和 $|A|$ 很小的情况，不能适用于围棋 ($\sim 10^{170}$ states), 机器人 (continuous state space) 等领域。&lt;/p>
+&lt;p>一个解决方法是，我们并不去计算 $V$ 或是 $Q$ 在定义域上每个点的值，而是用一个参数化的函数去 approximate $V, Q$。这样我们就只需要储存函数的参数，而不用存 $V, Q$ 的每一个函数值。&lt;/p>
+&lt;p>有许多办法可以 approximate functions，比如 Decision Tree, Linear combinations of features 等。我们着重考虑 differentiable 的方法，比如用 neural networks。&lt;/p>
+&lt;p>我们先以 $V$ 为例子，我们的目标是找到一个参数 vector $w$, 使得以下 loss 尽可能小：&lt;/p>
+&lt;p>$$J(w)=\mathbb{E}_{\pi} \left[(v_{\pi}(S)-\hat{v}(S,w))^2\right]$$&lt;/p>
+&lt;p>其中，$v_{\pi}$ 是要近似的函数，$\hat{v}$ 是我们的参数化函数。&lt;/p>
+&lt;p>Gradient Descent:&lt;/p>
+&lt;p>$$\Delta w = -\frac{1}{2}\alpha\nabla_{w}J(w) = \alpha \mathbb{E}_{\pi}\left[(v_{\pi}(S)-\hat{v}(S,w)) \nabla_{w} \hat{v}(S,w)\right]$$&lt;/p>
+&lt;p>添加的系数 $\frac{1}{2}$ 只是为了把求导出来的 2 给约掉。如果我们只用一个 sample，即 SGD，则式子变为：&lt;/p>
+&lt;p>$$\Delta w = \alpha (v_{\pi}(S)-\hat{v}(S,w)) \nabla_{w} \hat{v}(S,w)$$&lt;/p>
+&lt;p>其中，$v_{\pi}(S)$ 可以用上一节中讲的 MC、TD 表示，比如：&lt;/p>
+&lt;p>$$v_{\pi}(S)=G_t\quad MC$$&lt;/p>
+&lt;p>$$v_{\pi}(S)=R_{t}+\gamma \hat{v}(S_{t+1},w)\quad TD(0)$$&lt;/p>
+&lt;p>$$v_{\pi}(S)=G_t^{\lambda}\quad TD(\lambda)$$&lt;/p>
+&lt;h2 id="deep-q-learning">Deep $Q$ Learning
+&lt;/h2>&lt;p>与 $V$ 一样，$Q$ 也可以被 neural nets approximate。Deep $Q$ Learning 就是 $Q$-learning with non-linear approximators：&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Deep $Q$-Learning&lt;/strong>:&lt;/p>
+&lt;ul>
+&lt;li>Start with initial parameter values.&lt;/li>
+&lt;li>Every time take an action from an exploration/exploitation &lt;strong>GLIE&lt;/strong> policy. This action gives a transition $s_t,a_t,r_t,s_{t+1}$. Perform TD update for the parameters. Do gradient descent on the following loss function:
+$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w)-Q(s_t, a_t; w)\right)^2$$&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>与 $Q$-learning 不同，deep $Q$-learning 并没有收敛保证，但 empirically 它是能用的。为了 DQN (Deep Q Network) 能训得更好，还需要加一些其他的 tricks。&lt;/p>
+&lt;h3 id="trick-1-experience-replay">Trick 1. Experience Replay
+&lt;/h3>&lt;p>由于每几个 step 的 states 是类似的，比如 $s_t, s_{t+1}, &amp;hellip;, s_{t+n}$，DQN 在用这些 transition 进行更新时很可能会 overfit 到 state space 的这个区域。我们可以用 Experience Replay 来解决这个问题，即每次得到一个 transition $(s_t, a_t, r_t, s_{t+1})$，都将其存到 replay memory $D$ 中，每次要更新 network 时就从 $D$ 中取一个 mini-batch 出来进行更新。&lt;/p>
+&lt;h3 id="trick-2-target-q-network">Trick 2. Target $Q$ Network
+&lt;/h3>&lt;p>在 DQN 的 loss function 中，我们可以发现每次更新 $w$ 都会同时更新 target $(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w))$ 和 $Q$-network $(Q(s_t, a_t; w))$。但是同时更新二者容易造成训练不稳定，我们可以让 target 更新得慢一点，即每次更新时用 loss：&lt;/p>
+&lt;p>$$\mathcal{L}(w)=\left(r_t+\gamma\max_{a^{\prime}}Q(s_{t+1}, a^{\prime}; w^-)-Q(s_t, a_t; w)\right)^2$$&lt;/p>
+&lt;p>其中，$w^-$ 是较早几个 steps 的参数，等到 $w$ 更新了几个 steps 之后再去更新 $w^-$，而不是每个 step 都去更新 $w^-$。&lt;/p>
+&lt;h3 id="trick-3-reward-clipping">Trick 3. Reward Clipping
+&lt;/h3>&lt;p>有些 step 的 reward 非常大，使得 gradient 也很大，容易造成训练不稳定。我们实际计算时，将 reward clip 到某个合适的范围，比如 [-1, 1]。&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 2</title><link>https://suz-tsinghua.github.io/p/drl-notes-2/</link><pubDate>Tue, 16 Jul 2024 10:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-2/</guid><description>&lt;h1 id="model-free-estimation-monte-carlo-and-temporal-difference">Model-Free Estimation: Monte-Carlo and Temporal Difference
+&lt;/h1>&lt;p>前一节我们讲过如何进行 Policy Evaluation，但这是基于我们能知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 的前提的，这种方法被称为是 model-based 的。由于大部分情况下我们并不知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$，我们需要 model-free 的方法来进行 Policy Evaluation。但因为 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$ 往往是带有概率的，model-free 的方法通常只能 estimate value function，而不能精确地进行 Policy Evaluation。显然，在 model-free 的情况下，agent 只能通过与环境交互来得到信息，再利用这些信息得到 value function。&lt;/p>
+&lt;h2 id="model-free-estimation-monte-carlo-learning">Model-free Estimation: Monte-Carlo Learning
+&lt;/h2>&lt;p>我们想要做的事情是在已知很多 episodes of experience under policy $\pi$ 的情况下，学出 $v_{\pi}$。Episodes of experience 用 trajectories 来表示：&lt;/p>
+&lt;p>$$s_1, a_1, r_1, s_2, a_2, r_2, &amp;hellip;, s_T, a_T, r_T, s_{T+1} \sim \pi$$&lt;/p>
+&lt;p>即在 $s_t$ 状态时做出 action $a_t$，转移到 $s_{t+1}$ 的同时得到 reward $r_t$。定义时刻 $t$ 的 return 为：&lt;/p>
+&lt;p>$$G_t=r_{t}+\gamma r_{t+1} + \gamma^2 r_{t+2} + &amp;hellip; +\gamma^{T-t} r_T$$&lt;/p>
+&lt;p>那么就可以用 Monte-Carlo 的方法估计出 $v_{\pi}(s)$：&lt;/p>
+&lt;p>$$v_{\pi}(s)=\mathbb{E}_{\pi}[G_t|S_t=s]$$&lt;/p>
+&lt;p>即对任意一个状态 $s$，需要在样本中找到每一个 $s$，计算每一个 $s$ 对应的 return $G_t$，再将其进行平均。实际计算中，可以存这么几个量：&lt;/p>
+&lt;ul>
+&lt;li>Increment counter $N(s)\leftarrow N(s)+1$&lt;/li>
+&lt;li>Increment total return $S(s)\leftarrow S(s)+G_t$&lt;/li>
+&lt;li>Estimated Value $V(s)=S(s)/N(s)$&lt;/li>
+&lt;/ul>
+&lt;p>当 $N(s)\to \infty$ 的时候，$V(s)\to v_{\pi}(s)$。&lt;/p>
+&lt;p>存了以上 $N(s)$ 和 $V(s)$ 之后，当获取到新的样本时，就可以通过以下式子直接得出新的 $N(s)$ 和 $V(s)$:&lt;/p>
+&lt;p>$$N(s)\leftarrow N(s)+1$$
+$$V(s)\leftarrow \frac{(N(s)-1)V(s)+G_t}{N(s)}$$&lt;/p>
+&lt;p>MC Learning 的好处在于它非常简单，但是它要求每个 episode sample 都必须要终止，否则无法得到 $G_t$。并且它由于没有利用 Bellman Equation，对样本的利用效率非常低，需要大量样本才能得到比较好的近似值。&lt;/p>
+&lt;h2 id="model-free-estimation-temporal-difference-learning">Model-free Estimation: Temporal Difference Learning
+&lt;/h2>&lt;p>TD 与 MC 不同，它并不要求每个 episode sample 都是终止的。TD 每得到一个 transition 就会进行一次更新：&lt;/p>
+&lt;p>$$V(S_t)\leftarrow V(S_t)+\alpha(R_t+\gamma V(S_{t+1})-V(S_t))$$&lt;/p>
+&lt;p>这种更新方法被称为 TD(0)（后面还会介绍 TD($\lambda$)）。式子中 $\alpha$ 被称为 learning rate，$R_t+\gamma V(S_{t+1})$ 被称为 TD target，$\delta_t=R_t+\gamma V(S_{t+1})-V(S_t)$ 被称为 TD error。&lt;/p>
+&lt;p>相较于 MC，TD 利用了 Bellman Equation。因为当 $\alpha$ 很小，样本量很大的时候，$V(s)$ 会趋向于平衡点 $\sum_{s^{\prime}}T(s,\pi(s),s^{\prime})[R(s,\pi(s),s^{\prime})+\gamma V(s^{\prime})]$，这就是 Bellman Equation 中给定的 $V(s)$。&lt;/p>
+&lt;h2 id="对比-mc-与-td">对比 MC 与 TD
+&lt;/h2>&lt;h3 id="bias-and-variance">Bias and Variance
+&lt;/h3>&lt;p>先来比较两种方法的 bias 和 variance。MC 中 $G_t$ 是实际值 $v_{\pi}(s_t)$ 的 unbiased estimate。而 TD 中，尽管 $R_{t+1}+\gamma v_{\pi}(s_{t+1})$ 也是 $v_{\pi}(s_t)$ 的 unbiased estimate，但我们实际计算时不知道 $v_{\pi}(s_{t+1})$，而是用的当前值 $V(s_{t+1})$。$R_{t+1}+\gamma V(s_{t+1})$ 是 $v_{\pi}(s_t)$ 的 biased estimate。&lt;/p>
+&lt;p>但另一方面，TD 的 variance 是比 MC 要小的。所以 MC has high variance, zero bias；TD has low variance, some bias。&lt;/p>
+&lt;h3 id="initial-value">Initial Value
+&lt;/h3>&lt;p>TD(0) 在计算时需要给定 initial value $V(s)$，由于之后的更新是依赖于当前的 $V(s)$ 的，所以 initial value 如果给得不好会影响 TD(0) 的收敛速度。而 MC 中 initial value 的影响则较小。&lt;/p>
+&lt;h3 id="sample-efficiency">Sample Efficiency
+&lt;/h3>&lt;p>由于利用了 Bellman Equation，TD 的对样本的利用较 MC 来说更为充分，所以在样本比较少的时候可以选择用 TD。&lt;/p>
+&lt;h3 id="visualization">Visualization
+&lt;/h3>&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/MC.png"
+width="748"
+height="484"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/MC_hu1746506231710650691.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/MC_hu7615492740886265233.png 1024w"
+loading="lazy"
+alt="MC Visualization"
+class="gallery-image"
+data-flex-grow="154"
+data-flex-basis="370px"
+>&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/TD.png"
+width="772"
+height="466"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/TD_hu4411611430607166636.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/TD_hu9970765329820358223.png 1024w"
+loading="lazy"
+alt="TD Visualization"
+class="gallery-image"
+data-flex-grow="165"
+data-flex-basis="397px"
+>&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-2/VI.png"
+width="781"
+height="537"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-2/VI_hu11165952852152721916.png 480w, https://suz-tsinghua.github.io/p/drl-notes-2/VI_hu18140508691770503701.png 1024w"
+loading="lazy"
+alt="Value Iteration Visualization"
+class="gallery-image"
+data-flex-grow="145"
+data-flex-basis="349px"
+>&lt;/p>
+&lt;p>三种方法 MC，TD，Value Iteration 的 visualization 如上图所示。可以看出，MC 每次更新利用了一个 trajectory 从头到尾的数据，而 TD 则利用只利用了一个 step 的数据。我们将 MC 与 TD 的更新式子写成类似的形式：&lt;/p>
+&lt;ul>
+&lt;li>MC: $V(S_t)\leftarrow V(S_t)+\alpha(G_t-V(S_t))$，其中 $G_t=R_{t}+\gamma R_{t+1} + \gamma^2 R_{t+2} + &amp;hellip; +\gamma^{T-t} R_T$, $\alpha = \frac{1}{N(S_t)}$。&lt;/li>
+&lt;li>TD: $V(S_t)\leftarrow V(S_t)+\alpha(R_{t+1}+\gamma V(S_{t+1})-V(S_t))$。&lt;/li>
+&lt;/ul>
+&lt;p>我们定义从 $S_t$ 开始走过 $n$ 步的 return，$n$-step return 为：
+$$G_t^{(n)}=R_{t}+\gamma R_{t+1} + &amp;hellip; + \gamma^{n-1} R_{t+n-1} + \gamma^{n} V(S_{t+n})$$&lt;/p>
+&lt;p>那么 MC 可以被写成：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(\infty)}-V(S_t))$$&lt;/p>
+&lt;p>TD 可以被写成：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(1)}-V(S_t))$$&lt;/p>
+&lt;p>当然 $n$ 除了取 1 和 $\infty$ 还可以取别的值，即 $n$-step TD：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{(n)}-V(S_t))$$&lt;/p>
+&lt;h2 id="tdlambda-combination-of-td-and-mc">TD($\lambda$): Combination of TD and MC
+&lt;/h2>&lt;p>我们并不好决定在何时用 TD，何时用 MC。如果当前估计的 $V(s)$ 已经很好了，可以用 TD；但如果当前的值不好，用 MC 更合适。但是否有一种方法，可以将 MC 与 TD 的优点结合起来呢？可以采用 TD($\lambda$)。&lt;/p>
+&lt;p>先介绍 $\lambda$-return $G_{t}^{\lambda}$，其将所有的 $n$-step return 结合起来：&lt;/p>
+&lt;p>$$G_t^{\lambda}=(1-\lambda)\sum_{n=1}^{\infty}\lambda^{n-1}G_t^{(n)}$$&lt;/p>
+&lt;p>基于 $G_t^{\lambda}$ 提出 TD($\lambda$)：
+$$V(S_t)\leftarrow V(S_t)+\alpha(G_t^{\lambda}-V(S_t))$$&lt;/p>
+&lt;p>通过整合所有的 $n$-step return，TD($\lambda$) 在 bias 和 variance 之间做出了一个折中，使得二者均不会太大。&lt;/p>
+&lt;p>可以看出，$\lambda=0$ 时，TD($\lambda$) 退化为了 TD(0)。&lt;/p>
+&lt;h3 id="computation-trick">Computation Trick
+&lt;/h3>&lt;p>看起来，TD($\lambda$) 似乎丢失了 TD(0) 一个很好的特性。TD(0) 并不需要一整个 episode 的数据，只需要得知当前的一个 transition 就可以进行一次更新，而 TD($\lambda$) 似乎需要整个 episode 的数据才能得到 $G_t^{\lambda}$ 从而完成一次更新。事实上，这个问题可以通过计算上的 trick 来解决。&lt;/p>
+&lt;p>正常的计算思路是，在 update $V(S_t)$ 时，去查看所有 $\tau&amp;gt;t$ 时刻的 transition，然后对 $t$ 时刻的 value function 进行更新。这种方法是 forward 的，但事实上也可以采取 backward 的计算方法，即得到 $\tau$ 时刻的 transition 时，去更新所有 $t&amp;lt;\tau$ 时刻的 value function。先重写 $G_t^{\lambda}-V(S_t)$：&lt;/p>
+&lt;p>$$\begin{align*}
+G_t^{\lambda}-V(S_t)=-V(S_t)&amp;amp;+(1-\lambda)\lambda^0(R_t+\gamma V(S_{t+1}))\\
+&amp;amp;+(1-\lambda)\lambda^1(R_t+\gamma R_{t+1}+\gamma^2 V(S_{t+2}))\\
+&amp;amp;+(1-\lambda)\lambda^2(R_t+\gamma R_{t+1}+\gamma^2 R_{t+2}+\gamma^3 V(S_{t+3}))\\
+&amp;amp;+ &amp;hellip; \\
+=-V(S_t)&amp;amp;+(\gamma\lambda)^0(R_t+\gamma V(S_{t+1})-\gamma\lambda V(S_{t+1}))\\
+&amp;amp;+(\gamma\lambda)^1(R_{t+1}+\gamma V(S_{t+2})-\gamma\lambda V(S_{t+2}))\\
+&amp;amp;+(\gamma\lambda)^2(R_{t+2}+\gamma V(S_{t+3})-\gamma\lambda V(S_{t+3}))\\
+&amp;amp;+ &amp;hellip; \\
+=(\gamma\lambda)^0&amp;amp;(R_t+\gamma V(S_{t+1})-V(S_t))\\
+&amp;amp;+(\gamma\lambda)^1(R_{t+1}+\gamma V(S_{t+2})-V(S_{t+1}))\\
+&amp;amp;+(\gamma\lambda)^2(R_{t+2}+\gamma V(S_{t+3})-V(S_{t+2}))\\
+&amp;amp;+ &amp;hellip; \\
+=\delta_t&amp;amp;+\gamma\lambda\delta_{t+1}+(\gamma\lambda)^2\delta_{t+2}+ &amp;hellip;
+\end{align*}$$&lt;/p>
+&lt;p>所以 backward 的计算方法是，在得到 $\tau$ 时刻的 transition 时，先计算出相应的 $\delta_{\tau}$，再对所有 $t&amp;lt;\tau$ 时刻的 value function 进行一次更新：
+$$V(S_t)\leftarrow V(S_t)+\alpha\delta_{\tau}(\gamma\lambda)^{\tau-t}$$&lt;/p></description></item><item><title>Deep Reinforcement Learning Lecture 1</title><link>https://suz-tsinghua.github.io/p/drl-notes-1/</link><pubDate>Mon, 15 Jul 2024 17:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/drl-notes-1/</guid><description>&lt;p>2024春季学期选了xhz老师的限选课&lt;strong>深度强化学习&lt;/strong>，恰巧也在研究这方面的内容，于是打算写个笔记。&lt;/p>
+&lt;h1 id="mdp-value-iteration-and-policy-iteration">MDP, Value Iteration and Policy Iteration
+&lt;/h1>&lt;h2 id="mdp-basics">MDP Basics
+&lt;/h2>&lt;h3 id="definition-of-mdp">Definition of MDP
+&lt;/h3>&lt;p>Markov Decision Process (MDP) 是一个决策过程数学模型，直观地来说：一个智能体 (agent) 处在一个环境中，环境处于不同的状态 (state)；每一步，agent 可以得知环境的部分或全部 state 信息，这部分信息称为 agent 的观测 (observation)；通过 observation，agent 每一步会作出决策，给出一个动作 (action)；这个动作会影响环境，环境有概率转移到另一个 state；同时，环境根据潜在的奖励函数 (rewards) 来给 agent 提供奖励。Formally:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>An MDP is a 4-tuple $(S, A, T, R)$:&lt;/p>
+&lt;ul>
+&lt;li>$S$ is a set of states called the &lt;em>state space&lt;/em>.&lt;/li>
+&lt;li>$A$ is a set of actions called the &lt;em>action space&lt;/em>.&lt;/li>
+&lt;li>$T(s, a, s^{\prime})=Pr(s_{t+1}=s^{\prime}|s_t=s, a_t=a)$ is the probability that action $a$ at $s$ leads to $s^{\prime}$, called the &lt;em>transition fuction&lt;/em> (also &lt;em>model&lt;/em> or &lt;em>dynamics&lt;/em>).&lt;/li>
+&lt;li>$R(s, a, s^{\prime})$ is the immediate &lt;em>reward&lt;/em> received after transitioning from state $s$ to state $s^{\prime}$, due to action $a$.&lt;/li>
+&lt;/ul>
+&lt;/blockquote>
+&lt;p>当然这只是最简单的定义，还可以根据情况的不同引入额外的东西。比如系统初始状态的分布函数 (&lt;em>initial state distribution&lt;/em>)，一个一旦到达就直接停止的结束状态 (&lt;em>terminal state&lt;/em>)。再比如某些情况下，环境可能是 partially observable 的，agent 无法观测到环境的整个 state (比如打扑克的时候，你无法看到对方手上的牌，这是 partially observable 的，但是下围棋的时候，你可以看到棋盘上所有的东西，这是 fully observable 的)，此时需要在定义中引入 a set of observations $O$，此时的 MDP 称为 Partially Observable MDP (POMDP)。&lt;/p>
+&lt;p>定义中 Markov 的意思是：给定当前状态之后，未来与过去就无关了，即 $Pr(s_{t+1}|s_t, a_t, s_{t-1}, a_{t-1}, &amp;hellip;, s_0)=Pr(s_{t+1}|s_t, a_t)$。可以认为过去的信息都被浓缩到当前的 state 中了。&lt;/p>
+&lt;h3 id="an-example">An Example
+&lt;/h3>&lt;p>用一个简单的例子来加深理解:&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/grid_world.png"
+width="486"
+height="439"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/grid_world_hu4615231692853378775.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/grid_world_hu13349423474860228102.png 1024w"
+loading="lazy"
+alt="An example of MDP"
+class="gallery-image"
+data-flex-grow="110"
+data-flex-basis="265px"
+>&lt;/p>
+&lt;p>比如一个 agent 位于这样一个 grid world 中&lt;/p>
+&lt;ul>
+&lt;li>每一时刻的 state 就是 agent 的位置。&lt;/li>
+&lt;li>action 是上下左右。&lt;/li>
+&lt;li>$T$ 我们定义为，有 80% 的可能，agent 的 transition 与其 action 一致；有 10% 的可能，无论什么 action，agent 都往左；有 10% 的可能，无论什么 action，agent 都往右。&lt;/li>
+&lt;li>只有在 agent 吃到钻石的时候才会有 reward。&lt;/li>
+&lt;/ul>
+&lt;h3 id="policy">Policy
+&lt;/h3>&lt;p>以上我们主要关注环境，接下来我们看 agent，我们将 agent 从 state/observation 得到 action 的决策称为 policy:&lt;/p>
+&lt;blockquote>
+&lt;p>&lt;strong>Definition:&lt;/strong>&lt;/p>
+&lt;p>Policy $\pi$ 是一个条件概率密度函数 $\pi(a|s)$，表示 agent 在 state $s$ 时采取 action $a$ 的概率。&lt;/p>
+&lt;/blockquote>
+&lt;h3 id="utility">Utility
+&lt;/h3>&lt;p>RL 的目标是学出一个好的 policy，那么这个 “好的” 该如何进行评价。直观来看，我们可以将 agent 放在某个 initial state，让其根据自己的 policy 进行运动固定的步数，或是等到最后结束。那么问题就到了，agent 跑出的这个序列 $(s_0, a_0, r_0, s_1, a_1, r_1, &amp;hellip;, s_t, a_t, r_t)$ (称为 trajectory) 该如何评价。我们引入 Reward Hypothesis, 即MDP中所有的目标都应被 reward 定义，而不牵扯到其他的量。那么可以将 trajectory 中的 rewards 单独抽出来 $(r_0, r_1, r_2, &amp;hellip;, r_t)$。我们希望有一个函数 (Utility) 能够将这个 rewards 序列映射成一个标量，这样有助于比较不同 trajectories 的优劣。&lt;/p>
+&lt;p>一种方法是直接加起来，即 additive utilities: $U([r_0, r_1, r_2, &amp;hellip;]) = r_0+r_1+r_2 + &amp;hellip;$&lt;/p>
+&lt;p>考虑到现实生活中，当下的 reward 往往比之后的 reward 更具有价值 (当下给你一块钱往往优于两天后给你一块钱)，一个更常用的 utility 是 discounted utilities: $U([r_0, r_1, r_2, &amp;hellip;]) = r_0+\gamma r_1+\gamma^2 r_2 + &amp;hellip;$。其中 $\gamma$ 称为 discounted factor。&lt;/p>
+&lt;h3 id="optimal-quantities">Optimal Quantities
+&lt;/h3>&lt;p>直观上定义 optimal quantities:&lt;/p>
+&lt;ul>
+&lt;li>Optimal policy: $\pi^*(s)$ = optimal action from state $s$.&lt;/li>
+&lt;li>Optimal value/utility of a state $s$: $V^*(s)$ = expected utility starting from $s$ and acting optimally.&lt;/li>
+&lt;li>Optimal Q value: $Q^*(s,a)$ = expected utility taking action $a$ from state $s$ and acting optimally.&lt;/li>
+&lt;/ul>
+&lt;p>Formally 可以递归地定义这些量：&lt;/p>
+&lt;p>$$\pi^{*}(s)=\argmax_a Q^{*}(s,a)$$
+$$V^{*}(s)=\max_a Q^{*}(s,a)$$
+$$Q^{*}(s,a)=\sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>从以上两个式子我们可以消去 $Q^{*}$ 得到 $V^{*}$ 满足的等式：&lt;/p>
+&lt;p>$$V^{*}(s)=\max_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>称为 Bellman Equation。&lt;/p>
+&lt;h2 id="value-iteration">Value Iteration
+&lt;/h2>&lt;p>RL 的最终目标是得到 $\pi^{*}$，我们可以利用 $V^{*}$ 来得到 $\pi^{*}$。一种可行的用来得到 $V^{*}$ 的方法称为 Value Iteration，其利用了 Bellman Equation。&lt;/p>
+&lt;p>假设 MDP 在 $k$ 步后结束，定义 $s$ 的 optimal value 为 $V^{*}_k(s)$，那么有：&lt;/p>
+&lt;p>$$V_0^{*}(s)=0$$
+$$V_{k+1}^{*}(s)=\max_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V_k^{*}(s^{\prime})]$$&lt;/p>
+&lt;p>迭代计算直至收敛，即可得到 $V_{\infty}^{*}=V^{*}$。&lt;/p>
+&lt;p>VI 有两个问题：&lt;/p>
+&lt;ul>
+&lt;li>VI 每一步的时间复杂度为 $O(S^2A)$，因此仅仅适用于 discrete case，并且要求 $S$ 和 $A$ 均比较小，无法适用于连续空间。&lt;/li>
+&lt;li>Policy 往往会比 Value 收敛得更早，如果能够提前发现 policy 已经收敛会更好。&lt;/li>
+&lt;/ul>
+&lt;h2 id="policy-iteration">Policy Iteration
+&lt;/h2>&lt;h3 id="policy-evaluation">Policy Evaluation
+&lt;/h3>&lt;p>上面介绍的 $V^{*}$ 是 optimal policy 的 value function，我们也可以给定一个 policy $\pi$，计算其对应的 value function $V^{\pi}$，这个计算过程称为 Policy Evaluation。&lt;/p>
+&lt;p>$$V^{\pi}(s) = \text{expected total discounted rewards starting in } s \text{ and following } \pi$$&lt;/p>
+&lt;p>计算过程类似于 Value Iteration，也是从相应的 Bellman Equation 入手进行迭代计算：&lt;/p>
+&lt;p>$$V^{\pi}(s)=\sum_{s^{\prime}}T(s,\pi(s),s^{\prime})[R(s,\pi(s),s^{\prime})+\gamma V^{\pi}(s^{\prime})]$$&lt;/p>
+&lt;p>Policy Evaluation 一步花费时间 $O(S^2)$。&lt;/p>
+&lt;h3 id="policy-improvement">Policy Improvement
+&lt;/h3>&lt;p>假设我们知道一个 MDP 的 value function, 如何得到在这个 value function 下的 optimal policy。显然可以在某个状态 $s$ 遍历所有的 action $a$，看哪个 $a$ 的收益最大，即：&lt;/p>
+&lt;p>$$\pi(s)=\argmax_a \sum_{s^{\prime}}T(s,a,s^{\prime})[R(s,a,s^{\prime})+\gamma V(s^{\prime})]$$&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement.png"
+width="388"
+height="292"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement_hu14245069186618032335.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/policy_improvement_hu5568883509343015072.png 1024w"
+loading="lazy"
+alt="Value function of a grid world"
+class="gallery-image"
+data-flex-grow="132"
+data-flex-basis="318px"
+>&lt;/p>
+&lt;p>这个过程就是 policy improvement。&lt;/p>
+&lt;h3 id="policy-iteration-1">Policy Iteration
+&lt;/h3>&lt;p>结合 Policy Evaluation 和 Policy Improvement，我们可以用另一种方法（不同于 Value Iteration）来得到 $\pi^*$。&lt;/p>
+&lt;p>循环以下两步直至 policy 收敛：&lt;/p>
+&lt;ul>
+&lt;li>Step 1: Policy Evaluation。对当前的 policy 进行 policy evaluation。&lt;/li>
+&lt;li>Step 2: Policy Improvement。对 Step 1 中得到的 value function 进行 policy improvement，得到新的 policy。&lt;/li>
+&lt;/ul>
+&lt;p>这就是 Policy Iteration。PI 也可以得到 optimal $\pi^*$，并且在一些情况下比 VI 收敛得更快。&lt;/p>
+&lt;h2 id="mdp-to-reinforcement-learning">MDP to Reinforcement Learning
+&lt;/h2>&lt;p>不管是 VI 还是 PI，都要求我们知道 MDP 的 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$。但是在现实中的大部分情况，我们并不能准确地知道 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$，尤其是 $T$，因此需要引入 RL。&lt;/p>
+&lt;p>&lt;img src="https://suz-tsinghua.github.io/p/drl-notes-1/RL.png"
+width="774"
+height="328"
+srcset="https://suz-tsinghua.github.io/p/drl-notes-1/RL_hu2981708100594716212.png 480w, https://suz-tsinghua.github.io/p/drl-notes-1/RL_hu12781544691208971070.png 1024w"
+loading="lazy"
+alt="Reinforcement Learning"
+class="gallery-image"
+data-flex-grow="235"
+data-flex-basis="566px"
+>&lt;/p>
+&lt;p>RL 的主要思想是：&lt;/p>
+&lt;ul>
+&lt;li>环境会为 agent 的 action 提供 reward 进行反馈。&lt;/li>
+&lt;li>Agent 的所有 utility 都被 reward 定义。&lt;/li>
+&lt;li>Agent 的目标是 maximize expected rewards。&lt;/li>
+&lt;li>学习只能基于 agent 获取到的 observations, actions, rewards 等信息（不知道真实的 $T(s,a,s^{\prime})$ 和 $R(s,a,s^{\prime})$）。&lt;/li>
+&lt;/ul></description></item><item><title>2024 Spring Deep Reinforcement Learning Course Project Demo</title><link>https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/</link><pubDate>Tue, 25 Jun 2024 00:00:00 +0000</pubDate><guid>https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/2024-spring-deep-reinforcement-learning-course-project-demo/cover.png" alt="Featured image of post 2024 Spring Deep Reinforcement Learning Course Project Demo" />&lt;h1 id="2024春-深度强化学习-课程项目--cyberdog2-quadrupedal-and-bipedal-dribbling">2024春 深度强化学习 课程项目 —— Cyberdog2 Quadrupedal and Bipedal Dribbling
+&lt;/h1>&lt;p>我们用强化学习在 Cyberdog2 上实现了四足与二足的运球，其中四足运球被部署到了真机上。&lt;/p>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="https://suz-tsinghua.github.io/drl_project_demo.mp4"
+autoplay
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="https://suz-tsinghua.github.io/drl_project_demo.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div></description></item><item><title>Leveraging Symmetry in RL-based Legged Locomotion Control</title><link>https://suz-tsinghua.github.io/p/symmetric-quadruped/</link><pubDate>Tue, 02 Apr 2024 18:00:00 +0800</pubDate><guid>https://suz-tsinghua.github.io/p/symmetric-quadruped/</guid><description>&lt;img src="https://suz-tsinghua.github.io/p/symmetric-quadruped/cover.png" alt="Featured image of post Leveraging Symmetry in RL-based Legged Locomotion Control" />&lt;h1 id="leveraing-symmetry-in-rl-based-legged-locomotion-control">Leveraing Symmetry in RL-based Legged Locomotion Control
+&lt;/h1>&lt;p>第一个科研项目。先在这放个链接，之后再补正文吧。&lt;/p>
+&lt;p>&lt;a class="link" href="https://arxiv.org/abs/2403.17320v2" target="_blank" rel="noopener"
+>Arxiv链接&lt;/a>&lt;/p>
+&lt;p>Demo: （可能需要梯子）
+&lt;div class="video-wrapper">
+&lt;iframe loading="lazy"
+src="https://www.youtube.com/embed/Ad1clt4Yi4U"
+allowfullscreen
+title="YouTube Video"
+>
+&lt;/iframe>
+&lt;/div>
+&lt;/p></description></item></channel></rss>
